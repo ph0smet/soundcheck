@@ -1,0 +1,22 @@
+# OCaml / dune build artifacts
+_build/
+_opam/
+*.install
+*.merlin
+.merlin
+
+# Compiled outputs
+*.exe
+*.cmi
+*.cmo
+*.cmx
+*.o
+*.a
+
+# OS / editor cruft
+.DS_Store
+*~
+*.swp
+
+# Local Claude settings (CLAUDE.md is intentionally tracked)
+.claude/settings.local.json
