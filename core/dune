@@ -1,0 +1,3 @@
+(library
+ (name soundcheck_core)
+ (libraries unix))
