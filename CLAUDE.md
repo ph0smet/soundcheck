@@ -114,6 +114,46 @@ to each frontend's vocabulary.
 
 ---
 
+## Invocation & AI interface
+
+Soundcheck is a **library + thin adapters**, so it is consumable as a *component*
+in any workflow — not just a standalone app. Two enforcement layers, used
+together:
+
+- **Soft / in-loop (MCP):** an MCP server exposes a `verify` tool that existing
+  AI agents (Claude Code, Cursor, custom agents) call *while generating* a
+  config, so they self-correct from the counterexample before delivering. Fast,
+  best-effort, prompt-driven. **MCP is an adapter, not a new agent framework.**
+- **Hard / gate (CI):** the CLI runs in CI / a pre-apply hook and **blocks
+  merge/apply on non-zero exit**, regardless of what any agent did. This is the
+  actual guarantee — never rely on a prompt for it.
+
+**Integration surfaces** (all thin wrappers over `soundcheck_core` + connectors):
+CLI (`soundcheck verify`), machine-readable **JSON output** (the universal
+contract), the **MCP `verify` tool**, the **OCaml library**, a future **HTTP
+service**, and a **GitHub Action**. A third-party PR-reviewer bot, custom agent,
+IDE plugin, or CI all plug in via whichever surface fits.
+
+**Design commitments that keep it embeddable (non-negotiable):**
+- All logic stays in `soundcheck_core`; every adapter (`cli/`, `mcp/`, `http/`)
+  stays thin — never bake verification logic into an adapter.
+- The **JSON result schema is a stable, versioned contract**, e.g.
+  `{ "result": "violated|proved|unknown", "property": "...",
+     "counterexample": { "principal": "...", "method": "...", "path": "...",
+     "route": "...", "service": "..." } }`.
+- `mcp/` lives **in this monorepo** (sibling of `cli/`), ideally as a subcommand
+  of the single `soundcheck` binary (`soundcheck verify` vs `soundcheck mcp`) —
+  one distributable, no extra runtime.
+- The P1 **CEGIS loop** consumes the same JSON counterexample to drive
+  regenerate-until-proved.
+
+**Build order for the AI interface:** (1) `--format json` on the verifier →
+(2) `mcp/` `verify` tool (all-OCaml first; thin TS wrapper over the JSON CLI as
+fallback) → (3) CI-gate example (GitHub Action) → then more property templates →
+P1 CEGIS loop.
+
+---
+
 ## Repo structure
 
 ```
