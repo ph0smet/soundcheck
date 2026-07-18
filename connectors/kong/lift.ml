@@ -31,17 +31,38 @@ let offending_route (cfg : Ast.config) (path : string)
           None service.routes)
     None cfg.services
 
-let lift (cfg : Ast.config) (m : Solve.model) : string =
-  let who = if m.is_anon then "anonymous" else "authenticated" in
+(* Structured lift: the abstract SMT model rendered into a core
+   [Report.counterexample], carrying Kong's route/service vocabulary so the JSON
+   contract (and every adapter over it) is actionable in the user's own terms. *)
+let counterexample (cfg : Ast.config) (m : Solve.model) : Report.counterexample =
+  let principal = if m.is_anon then "anonymous" else "authenticated" in
   let meth = if m.method_ = "" then "<any-method>" else m.method_ in
   match offending_route cfg m.path with
   | Some (service, route) ->
-    Printf.sprintf
-      "%s request %s %s is ALLOWED via route %S (service %S) — no \
-       authentication plugin is attached to the route or its service."
-      who meth m.path route.name service.name
+    { Report.principal;
+      action  = m.method_;
+      path    = m.path;
+      route   = Some route.name;
+      service = Some service.name;
+      note =
+        Printf.sprintf
+          "%s request %s %s is ALLOWED via route %S (service %S) — no \
+           authentication plugin is attached to the route or its service."
+          principal meth m.path route.name service.name;
+    }
   | None ->
-    Printf.sprintf
-      "%s request %s %s is ALLOWED (no matching Kong route identified for \
-       lifting)."
-      who meth m.path
+    { Report.principal;
+      action  = m.method_;
+      path    = m.path;
+      route   = None;
+      service = None;
+      note =
+        Printf.sprintf
+          "%s request %s %s is ALLOWED (no matching Kong route identified for \
+           lifting)."
+          principal meth m.path;
+    }
+
+(* Human one-liner, kept as the [note] of the structured lift (no duplication). *)
+let lift (cfg : Ast.config) (m : Solve.model) : string =
+  (counterexample cfg m).note
