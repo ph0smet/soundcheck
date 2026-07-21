@@ -1,0 +1,3 @@
+(library
+ (name soundcheck_mcp)
+ (libraries soundcheck_core soundcheck_kong yaml))

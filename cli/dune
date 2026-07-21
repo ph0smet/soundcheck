@@ -1,3 +1,3 @@
 (executable
  (name main)
- (libraries soundcheck_core soundcheck_kong))
+ (libraries soundcheck_core soundcheck_kong soundcheck_mcp))

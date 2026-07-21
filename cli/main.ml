@@ -8,7 +8,10 @@ let usage () =
   prerr_endline
     "usage: soundcheck verify <config.yaml> [--path-prefix PREFIX] [--format human|json]\n\
     \  Verifies that no anonymous request is allowed under PREFIX (default /admin).\n\
-    \  --format selects the output rendering (default human).";
+    \  --format selects the output rendering (default human).\n\
+     \n\
+     usage: soundcheck mcp\n\
+    \  Runs the MCP server (JSON-RPC over stdio) exposing the `verify` tool.";
   exit 2
 
 type format = Human | Json
@@ -66,4 +69,5 @@ let run_verify file rest =
 let () =
   match Array.to_list Sys.argv with
   | _ :: "verify" :: file :: rest -> run_verify file rest
+  | _ :: "mcp" :: _ -> Soundcheck_mcp.Server.run ()
   | _ -> usage ()
