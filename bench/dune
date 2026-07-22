@@ -1,0 +1,5 @@
+(test
+ (name corpus)
+ (libraries soundcheck_core soundcheck_kong)
+ (deps
+  (source_tree kong/cases)))

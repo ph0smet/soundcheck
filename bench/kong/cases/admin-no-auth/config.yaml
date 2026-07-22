@@ -1,3 +1,6 @@
+# Scenario: an admin route is exposed with no authentication plugin — the classic
+# "forgot to lock down /admin". Anonymous requests reach it directly.
+# Expected: VIOLATED (no-anonymous-access) via route "admin-route".
 _format_version: "3.0"
 services:
   - name: admin-api

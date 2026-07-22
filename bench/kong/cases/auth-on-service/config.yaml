@@ -1,0 +1,17 @@
+# Scenario: authentication is attached at the SERVICE level (openid-connect), so
+# every route under the service inherits the requirement — a common real-world
+# pattern for locking down a whole admin surface at once.
+# Expected: PROVED (no-anonymous-access) — both routes inherit service-level auth.
+_format_version: "3.0"
+services:
+  - name: admin-api
+    url: http://admin-backend
+    plugins:
+      - name: openid-connect
+    routes:
+      - name: admin-route
+        paths:
+          - /admin
+      - name: admin-metrics
+        paths:
+          - /admin/metrics
