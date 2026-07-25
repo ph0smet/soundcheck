@@ -1,0 +1,35 @@
+name: CI
+
+# Soundcheck's own CI: build the engine + connectors and run the corpus
+# regression gate (dune test) on every PR and on pushes to main.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The solver backend shells out to the `z3` CLI (`z3 -smt2 <file>`), so the
+      # binary must be on PATH — not just an OCaml library.
+      - name: Install z3
+        run: sudo apt-get update && sudo apt-get install -y z3
+
+      - name: Set up OCaml
+        uses: ocaml/setup-ocaml@v3
+        with:
+          ocaml-compiler: "5"
+
+      # `yaml` is the only external opam dependency (`unix` ships with the
+      # compiler). No .opam file yet, so install deps explicitly.
+      - name: Install dependencies
+        run: opam install --yes dune yaml
+
+      - name: Build
+        run: opam exec -- dune build
+
+      - name: Test (corpus regression gate)
+        run: opam exec -- dune test
