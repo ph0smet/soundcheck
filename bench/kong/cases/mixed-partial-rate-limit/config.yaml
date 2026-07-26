@@ -1,0 +1,17 @@
+# Scenario: two public routes — one is rate-limited, but a second (a login
+# endpoint added later) was left unthrottled. Partial coverage still leaves an
+# open abuse surface.
+# Expected: VIOLATED (rate-limit-on-public) via the unthrottled route "login".
+_format_version: "3.0"
+services:
+  - name: public-api
+    url: http://public-backend
+    routes:
+      - name: search
+        paths:
+          - /search
+        plugins:
+          - name: rate-limiting
+      - name: login
+        paths:
+          - /login

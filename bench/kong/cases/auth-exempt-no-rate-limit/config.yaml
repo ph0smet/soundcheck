@@ -1,0 +1,14 @@
+# Scenario: a private endpoint requires key-auth but has no rate-limiting. It is
+# NOT anonymous-reachable, so the public-rate-limit invariant does not apply —
+# rate-limiting is about unauthenticated abuse.
+# Expected: PROVED (rate-limit-on-public) — auth-required routes are exempt.
+_format_version: "3.0"
+services:
+  - name: api
+    url: http://backend
+    routes:
+      - name: account
+        paths:
+          - /account
+        plugins:
+          - name: key-auth

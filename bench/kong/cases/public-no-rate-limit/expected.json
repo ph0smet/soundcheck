@@ -1,0 +1,1 @@
+{"result":"violated","property":"rate-limit-on-public","counterexample":{"principal":"anonymous","action":"","path":"/search","route":"search","service":"public-api"}}
