@@ -6,9 +6,10 @@ open Soundcheck_kong
 
 let usage () =
   prerr_endline
-    "usage: soundcheck verify <config.yaml> [--path-prefix PREFIX] [--format human|json]\n\
-    \  Verifies that no anonymous request is allowed under PREFIX (default /admin).\n\
-    \  --format selects the output rendering (default human).\n\
+    "usage: soundcheck verify <config.yaml> [--property P] [--path-prefix PREFIX] [--format human|json]\n\
+    \  --property  no-anonymous-access (default) | rate-limit-on-public\n\
+    \  --path-prefix  prefix for no-anonymous-access (default /admin)\n\
+    \  --format    human (default) | json\n\
      \n\
      usage: soundcheck mcp\n\
     \  Runs the MCP server (JSON-RPC over stdio) exposing the `verify` tool.";
@@ -36,13 +37,28 @@ let parse_path_prefix rest =
   in
   find rest
 
+let parse_property rest : Verify.property =
+  let rec find = function
+    | "--property" :: "no-anonymous-access" :: _ ->
+      Verify.No_anonymous_access (parse_path_prefix rest)
+    | "--property" :: "rate-limit-on-public" :: _ -> Verify.Rate_limit_on_public
+    | "--property" :: other :: _ ->
+      Printf.eprintf
+        "unknown --property %S (expected no-anonymous-access|rate-limit-on-public)\n"
+        other;
+      exit 2
+    | _ :: tl -> find tl
+    | [] -> Verify.No_anonymous_access (parse_path_prefix rest)
+  in
+  find rest
+
 let exit_code : Report.outcome -> int = function
   | Report.Proved -> 0
   | Report.Violated _ -> 3
   | Report.Unknown _ -> 4
 
 let run_verify file rest =
-  let path_prefix = parse_path_prefix rest in
+  let property = parse_property rest in
   let format = parse_format rest in
   (* Read the config here so a missing/unreadable file is a CLI-level error;
      the verification pipeline itself is the shared {!Verify.run}. *)
@@ -53,7 +69,7 @@ let run_verify file rest =
     Printf.eprintf "parse error: %s\n" e;
     exit 1
   | Ok config ->
-    (match Verify.run ~config ~path_prefix with
+    (match Verify.run ~config ~property with
      | Error e ->
        Printf.eprintf "parse error: %s\n" e;
        exit 1

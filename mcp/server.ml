@@ -108,22 +108,35 @@ let verify_tool () =
               [ "type", J.str "string";
                 "description",
                 J.str "decK (Kong declarative) config YAML to verify." ];
+            "property",
+            J.obj
+              [ "type", J.str "string";
+                "enum",
+                J.arr [ J.str "no-anonymous-access"; J.str "rate-limit-on-public" ];
+                "description",
+                J.str
+                  "Invariant to verify (default no-anonymous-access): \
+                   no-anonymous-access = no anonymous request allowed under \
+                   path_prefix; rate-limit-on-public = every anonymous-reachable \
+                   route has a rate-limiting plugin." ];
             "path_prefix",
             J.obj
               [ "type", J.str "string";
                 "description",
-                J.str "Path prefix that must require authentication (default /admin)." ] ];
+                J.str
+                  "For no-anonymous-access: the path prefix that must require \
+                   authentication (default /admin)." ] ];
         "required", J.arr [ J.str "config" ] ]
   in
   J.obj
     [ "name", J.str "verify";
       "description",
       J.str
-        "Verify a Kong decK config against the no-anonymous-access property. \
-         Returns the stable JSON result contract: result = proved | violated | \
-         unknown, with a concrete counterexample (principal / method / path / \
-         route / service) when violated — use it to correct the config and \
-         re-verify.";
+        "Verify a Kong decK config against a security property (no-anonymous-access \
+         or rate-limit-on-public). Returns the stable JSON result contract: \
+         result = proved | violated | unknown, with a concrete counterexample \
+         (principal / method / path / route / service) when violated — use it to \
+         correct the config and re-verify.";
       "inputSchema", input_schema ]
 
 let tools_list_result () = J.obj [ "tools", J.arr [ verify_tool () ] ]
@@ -155,9 +168,26 @@ let tool_call json =
       let path_prefix =
         match string_field "path_prefix" args with Some p -> p | None -> "/admin"
       in
-      (match Verify.run ~config ~path_prefix with
-       | Error e -> tool_error ("config parse error: " ^ e)
-       | Ok report -> tool_ok (Report.to_json report)))
+      let prop_name =
+        match string_field "property" args with
+        | Some p -> p
+        | None -> "no-anonymous-access"
+      in
+      let property =
+        match prop_name with
+        | "no-anonymous-access" -> Some (Verify.No_anonymous_access path_prefix)
+        | "rate-limit-on-public" -> Some Verify.Rate_limit_on_public
+        | _ -> None
+      in
+      (match property with
+       | None ->
+         tool_error
+           ("unknown property: " ^ prop_name
+          ^ " (expected no-anonymous-access|rate-limit-on-public)")
+       | Some property -> (
+         match Verify.run ~config ~property with
+         | Error e -> tool_error ("config parse error: " ^ e)
+         | Ok report -> tool_ok (Report.to_json report))))
   | Some other -> tool_error ("unknown tool: " ^ other)
   | None -> tool_error "missing tool name"
 
