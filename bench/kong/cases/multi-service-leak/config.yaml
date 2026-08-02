@@ -1,0 +1,20 @@
+# Scenario: the primary admin service is locked down, but a SECOND service also
+# serving an /admin* path was left open — the leak hides in a different service
+# block, easy to miss when the first one looks secured.
+# Expected: VIOLATED — anonymous reaches /admin/internal via route "internal-route".
+_format_version: "3.0"
+services:
+  - name: admin-api
+    url: http://admin-backend
+    plugins:
+      - name: key-auth
+    routes:
+      - name: admin-route
+        paths:
+          - /admin
+  - name: internal-api
+    url: http://internal-backend
+    routes:
+      - name: internal-route
+        paths:
+          - /admin/internal

@@ -1,0 +1,15 @@
+# Scenario: a plugin IS attached to the admin route — but it's cors + rate-limiting,
+# not an authentication plugin. Looks configured; provides no auth. The classic
+# "looks-secured-but-isn't" trap.
+# Expected: VIOLATED — anonymous still reaches /admin via route "admin-route".
+_format_version: "3.0"
+services:
+  - name: admin-api
+    url: http://admin-backend
+    routes:
+      - name: admin-route
+        paths:
+          - /admin
+        plugins:
+          - name: cors
+          - name: rate-limiting

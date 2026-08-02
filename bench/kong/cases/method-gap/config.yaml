@@ -1,0 +1,21 @@
+# Scenario: two routes on the same /admin path split by method — GET is guarded
+# by key-auth, but a second route exposing POST on the same path was left
+# unauthenticated. A method-specific auth gap that a path-only review misses.
+# Expected: VIOLATED — anonymous POST /admin is allowed via route "admin-write".
+_format_version: "3.0"
+services:
+  - name: admin-api
+    url: http://admin-backend
+    routes:
+      - name: admin-read
+        paths:
+          - /admin
+        methods:
+          - GET
+        plugins:
+          - name: key-auth
+      - name: admin-write
+        paths:
+          - /admin
+        methods:
+          - POST

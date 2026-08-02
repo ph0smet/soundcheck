@@ -1,0 +1,1 @@
+{"result":"violated","property":"no-anonymous-access","counterexample":{"principal":"anonymous","action":"GET","path":"/admin","route":"admin-route","service":"admin-api"}}

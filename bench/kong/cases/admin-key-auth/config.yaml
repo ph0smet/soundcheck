@@ -1,3 +1,6 @@
+# Scenario: the admin route is guarded by key-auth on the route. Anonymous
+# requests to /admin are denied — the baseline "done right".
+# Expected: PROVED (no-anonymous-access).
 _format_version: "3.0"
 services:
   - name: admin-api
@@ -9,8 +12,8 @@ services:
         methods:
           - GET
           - POST
-    plugins:
-      - name: key-auth
+        plugins:
+          - name: key-auth
   - name: public-api
     url: http://public-backend
     routes:

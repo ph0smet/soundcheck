@@ -1,0 +1,17 @@
+# Scenario: auth was added to the main admin route, but a sibling admin route
+# (a legacy/debug endpoint added later) was left open. Route-level auth protects
+# only the route it is on — not its siblings under the same prefix.
+# Expected: VIOLATED — anonymous reaches /admin/legacy via route "admin-legacy".
+_format_version: "3.0"
+services:
+  - name: admin-api
+    url: http://admin-backend
+    routes:
+      - name: admin-main
+        paths:
+          - /admin
+        plugins:
+          - name: key-auth
+      - name: admin-legacy
+        paths:
+          - /admin/legacy
