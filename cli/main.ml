@@ -6,10 +6,12 @@ open Soundcheck_kong
 
 let usage () =
   prerr_endline
-    "usage: soundcheck verify <config.yaml> [--property P] [--path-prefix PREFIX] [--format human|json]\n\
-    \  --property  no-anonymous-access (default) | rate-limit-on-public\n\
+    "usage: soundcheck verify <config.yaml> [--property P] [--path-prefix PREFIX]\n\
+    \                                       [--format human|json] [--emit-smt PATH]\n\
+    \  --property     no-anonymous-access (default) | rate-limit-on-public\n\
     \  --path-prefix  prefix for no-anonymous-access (default /admin)\n\
-    \  --format    human (default) | json\n\
+    \  --format       human (default) | json\n\
+    \  --emit-smt     write the SMT-LIB2 query to PATH and keep it (audit artifact)\n\
      \n\
      usage: soundcheck mcp\n\
     \  Runs the MCP server (JSON-RPC over stdio) exposing the `verify` tool.";
@@ -52,6 +54,17 @@ let parse_property rest : Verify.property =
   in
   find rest
 
+let parse_emit_smt rest =
+  let rec find = function
+    | "--emit-smt" :: v :: _ -> Some v
+    | [ "--emit-smt" ] ->
+      prerr_endline "--emit-smt requires a PATH";
+      exit 2
+    | _ :: tl -> find tl
+    | [] -> None
+  in
+  find rest
+
 let exit_code : Report.outcome -> int = function
   | Report.Proved -> 0
   | Report.Violated _ -> 3
@@ -60,6 +73,7 @@ let exit_code : Report.outcome -> int = function
 let run_verify file rest =
   let property = parse_property rest in
   let format = parse_format rest in
+  let emit_smt = parse_emit_smt rest in
   (* Read the config here so a missing/unreadable file is a CLI-level error;
      the verification pipeline itself is the shared {!Verify.run}. *)
   match Parse.read_file file with
@@ -69,7 +83,7 @@ let run_verify file rest =
     Printf.eprintf "parse error: %s\n" e;
     exit 1
   | Ok config ->
-    (match Verify.run ~config ~property with
+    (match Verify.run ?emit_smt ~property config with
      | Error e ->
        Printf.eprintf "parse error: %s\n" e;
        exit 1

@@ -11,13 +11,18 @@ let to_string = function `String s -> Some s | _ -> None
 let string_list (v : Yaml.value option) : string list =
   match v with Some (`A xs) -> List.filter_map to_string xs | _ -> []
 
+(* Kong treats a plugin as enabled unless it says otherwise, so an absent or
+   non-boolean [enabled] key means true. Only an explicit [false] disables. *)
+let enabled_of (v : Yaml.value) : bool =
+  match member "enabled" v with Some (`Bool b) -> b | _ -> true
+
 let plugins_of (v : Yaml.value option) : Ast.plugin list =
   match v with
   | Some (`A xs) ->
     List.filter_map
       (fun x ->
         match member "name" x with
-        | Some (`String n) -> Some ({ name = n } : Ast.plugin)
+        | Some (`String n) -> Some ({ name = n; enabled = enabled_of x } : Ast.plugin)
         | _ -> None)
       xs
   | _ -> []

@@ -2,7 +2,10 @@
    We model only what the v0 properties need: services, their routes, and the
    plugins attached at either level (to detect authentication). *)
 
-type plugin = { name : string }
+(* [enabled] mirrors Kong's own field, which defaults to true when omitted. A
+   plugin with [enabled = false] is configured but NOT enforced by Kong, so it
+   must not count as authentication (or as a rate limit) during lowering. *)
+type plugin = { name : string; enabled : bool }
 
 type route = {
   name    : string;

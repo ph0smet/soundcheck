@@ -35,8 +35,13 @@ let resolve (cfg : Ast.config) :
 
 (* Verify a decK config (as text) against [property]. [Error] is a parse failure
    (malformed config — a caller-level error), while [Ok report] is a verification
-   outcome (proved / violated / unknown). *)
-let run ~config ~(property : property) : (Report.t, string) result =
+   outcome (proved / violated / unknown). [emit_smt] keeps the SMT-LIB2 query at
+   that path as an audit artifact.
+
+   [config] is positional and last so [emit_smt] stays erasable: callers that do
+   not want the artifact (MCP, the corpus runner) need not mention it. *)
+let run ?emit_smt ~(property : property) (config : string) :
+    (Report.t, string) result =
   match Parse.parse_string config with
   | Error e -> Error e
   | Ok cfg ->
@@ -44,7 +49,7 @@ let run ~config ~(property : property) : (Report.t, string) result =
     let prop, lift = resolve cfg property in
     let smt = Smt_encode.to_smtlib policy prop in
     let result : Report.outcome =
-      match Solve.check smt with
+      match Solve.check ?emit_smt smt with
       | Solve.Proved -> Report.Proved
       | Solve.Violated m -> Report.Violated (lift m)
       | Solve.Unknown s -> Report.Unknown s

@@ -185,7 +185,7 @@ let tool_call json =
            ("unknown property: " ^ prop_name
           ^ " (expected no-anonymous-access|rate-limit-on-public)")
        | Some property -> (
-         match Verify.run ~config ~property with
+         match Verify.run ~property config with
          | Error e -> tool_error ("config parse error: " ^ e)
          | Ok report -> tool_ok (Report.to_json report))))
   | Some other -> tool_error ("unknown tool: " ^ other)

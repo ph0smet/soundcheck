@@ -85,12 +85,20 @@ let first_token_is hay word =
   let n = String.length hay and wl = String.length word in
   i + wl <= n && String.sub hay i wl = word
 
-let check ?(z3 = "z3") (smtlib : string) : result =
-  let file = Filename.temp_file "soundcheck" ".smt2" in
+(* With [emit_smt] the query is written to that path and KEPT, so the proof
+   obligation survives the run as an inspectable artifact: it is plain SMT-LIB2
+   and can be re-checked by any solver that speaks it, independently of us.
+   Without it we use a temp file and clean up. *)
+let check ?(z3 = "z3") ?emit_smt (smtlib : string) : result =
+  let file, keep =
+    match emit_smt with
+    | Some path -> (path, true)
+    | None -> (Filename.temp_file "soundcheck" ".smt2", false)
+  in
   write_file file smtlib;
   let cmd = Printf.sprintf "%s -smt2 %s" (Filename.quote z3) (Filename.quote file) in
   let out = run_capture cmd in
-  (try Sys.remove file with _ -> ());
+  if not keep then (try Sys.remove file with _ -> ());
   if first_token_is out "unsat" then Proved
   else if first_token_is out "sat" then
     let path = Option.value ~default:"" (extract_string out "path") in

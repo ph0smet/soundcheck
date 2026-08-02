@@ -40,7 +40,7 @@ let () =
       let dir = Filename.concat cases_dir case in
       let config = read (Filename.concat dir "config.yaml") in
       let expected = String.trim (read (Filename.concat dir "expected.json")) in
-      match Verify.run ~config ~property:(property_of dir) with
+      match Verify.run ~property:(property_of dir) config with
       | Error e ->
         incr failures;
         Printf.printf "[ERROR] %-20s config parse error: %s\n" case e

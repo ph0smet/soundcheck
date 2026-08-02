@@ -1,3 +1,4 @@
 (executable
  (name main)
+ (public_name soundcheck)
  (libraries soundcheck_core soundcheck_kong soundcheck_mcp))

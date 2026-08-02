@@ -16,7 +16,9 @@ let auth_plugins =
 let is_auth_plugin (name : string) = List.mem name auth_plugins
 
 let requires_auth (service : Ast.service) (route : Ast.route) : bool =
-  let has ps = List.exists (fun (p : Ast.plugin) -> is_auth_plugin p.name) ps in
+  let has ps =
+    List.exists (fun (p : Ast.plugin) -> p.enabled && is_auth_plugin p.name) ps
+  in
   has route.plugins || has service.plugins
 
 (* Kong rate-limiting / throttling plugins. *)
@@ -27,7 +29,9 @@ let rate_limit_plugins =
 let is_rate_limit_plugin (name : string) = List.mem name rate_limit_plugins
 
 let rate_limited (service : Ast.service) (route : Ast.route) : bool =
-  let has ps = List.exists (fun (p : Ast.plugin) -> is_rate_limit_plugin p.name) ps in
+  let has ps =
+    List.exists (fun (p : Ast.plugin) -> p.enabled && is_rate_limit_plugin p.name) ps
+  in
   has route.plugins || has service.plugins
 
 let route_condition (service : Ast.service) (route : Ast.route) : Ir.condition =
