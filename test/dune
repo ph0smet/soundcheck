@@ -1,3 +1,7 @@
 (executable
  (name smoke)
  (libraries soundcheck_core))
+
+(executable
+ (name mcp_smoke)
+ (libraries soundcheck_core soundcheck_mcp))

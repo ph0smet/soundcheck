@@ -54,11 +54,17 @@ let parse_string (s : string) : (Ast.config, string) result =
   | Ok v -> Ok (config_of v)
   | Error (`Msg m) -> Error m
 
-let parse_file (path : string) : (Ast.config, string) result =
+(* Read a file to a string. File I/O is kept separate from parsing so adapters
+   (the CLI) can read a path and hand the text to the shared {!Verify.run}, while
+   {!parse_string} stays the entry for already-in-memory config (the MCP tool). *)
+let read_file (path : string) : (string, string) result =
   try
     let ic = open_in_bin path in
     let n = in_channel_length ic in
     let s = really_input_string ic n in
     close_in ic;
-    parse_string s
+    Ok s
   with Sys_error e -> Error e
+
+let parse_file (path : string) : (Ast.config, string) result =
+  match read_file path with Ok s -> parse_string s | Error e -> Error e

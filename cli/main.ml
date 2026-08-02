@@ -8,7 +8,10 @@ let usage () =
   prerr_endline
     "usage: soundcheck verify <config.yaml> [--path-prefix PREFIX] [--format human|json]\n\
     \  Verifies that no anonymous request is allowed under PREFIX (default /admin).\n\
-    \  --format selects the output rendering (default human).";
+    \  --format selects the output rendering (default human).\n\
+     \n\
+     usage: soundcheck mcp\n\
+    \  Runs the MCP server (JSON-RPC over stdio) exposing the `verify` tool.";
   exit 2
 
 type format = Human | Json
@@ -33,18 +36,6 @@ let parse_path_prefix rest =
   in
   find rest
 
-(* Map the solver outcome into the connector-lifted presentation value. *)
-let to_report cfg (prop : Property.t) (result : Solve.result) : Report.t =
-  let result : Report.outcome =
-    match result with
-    | Solve.Proved -> Report.Proved
-    | Solve.Violated m -> Report.Violated (Lift.counterexample cfg m)
-    | Solve.Unknown s -> Report.Unknown s
-  in
-  { Report.result;
-    property_name = prop.name;
-    property_description = prop.description }
-
 let exit_code : Report.outcome -> int = function
   | Report.Proved -> 0
   | Report.Violated _ -> 3
@@ -53,26 +44,30 @@ let exit_code : Report.outcome -> int = function
 let run_verify file rest =
   let path_prefix = parse_path_prefix rest in
   let format = parse_format rest in
-  match Parse.parse_file file with
+  (* Read the config here so a missing/unreadable file is a CLI-level error;
+     the verification pipeline itself is the shared {!Verify.run}. *)
+  match Parse.read_file file with
   | Error e ->
-    (* Parse failures are a CLI-level error (not a verification outcome), so they
-       stay on stderr with exit 1 regardless of --format. *)
+    (* File/parse failures are a CLI-level error (not a verification outcome), so
+       they stay on stderr with exit 1 regardless of --format. *)
     Printf.eprintf "parse error: %s\n" e;
     exit 1
-  | Ok cfg ->
-    let policy = Lower.to_policy cfg in
-    let prop : Property.t = Property.no_anonymous_access ~path_prefix in
-    let smt = Smt_encode.to_smtlib policy prop in
-    let report = to_report cfg prop (Solve.check smt) in
-    let rendered =
-      match format with
-      | Human -> Report.to_human report
-      | Json -> Report.to_json report
-    in
-    print_endline rendered;
-    exit (exit_code report.result)
+  | Ok config ->
+    (match Verify.run ~config ~path_prefix with
+     | Error e ->
+       Printf.eprintf "parse error: %s\n" e;
+       exit 1
+     | Ok report ->
+       let rendered =
+         match format with
+         | Human -> Report.to_human report
+         | Json -> Report.to_json report
+       in
+       print_endline rendered;
+       exit (exit_code report.result))
 
 let () =
   match Array.to_list Sys.argv with
   | _ :: "verify" :: file :: rest -> run_verify file rest
+  | _ :: "mcp" :: _ -> Soundcheck_mcp.Server.run ()
   | _ -> usage ()
