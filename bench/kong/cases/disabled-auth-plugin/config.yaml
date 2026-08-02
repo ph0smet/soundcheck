@@ -1,0 +1,22 @@
+# Scenario: the admin route HAS a key-auth plugin attached, but it is switched
+# off with `enabled: false` — typically disabled to debug something and never
+# turned back on. Kong does not enforce a disabled plugin, so the route is
+# effectively open while still looking protected in review.
+# Expected: VIOLATED (no-anonymous-access) via route "admin-route".
+_format_version: "3.0"
+services:
+  - name: admin-api
+    url: http://admin-backend
+    routes:
+      - name: admin-route
+        paths:
+          - /admin
+        plugins:
+          - name: key-auth
+            enabled: false
+  - name: public-api
+    url: http://public-backend
+    routes:
+      - name: public-route
+        paths:
+          - /public
