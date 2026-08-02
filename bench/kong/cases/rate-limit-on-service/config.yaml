@@ -1,0 +1,16 @@
+# Scenario: rate-limiting attached at the SERVICE level, inherited by every
+# public route under it — a common way to throttle a whole public surface.
+# Expected: PROVED (rate-limit-on-public) — both routes inherit the limit.
+_format_version: "3.0"
+services:
+  - name: public-api
+    url: http://public-backend
+    plugins:
+      - name: rate-limiting-advanced
+    routes:
+      - name: search
+        paths:
+          - /search
+      - name: feed
+        paths:
+          - /feed

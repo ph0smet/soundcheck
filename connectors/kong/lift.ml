@@ -7,9 +7,11 @@ let starts_with ~prefix s =
   let lp = String.length prefix in
   String.length s >= lp && String.sub s 0 lp = prefix
 
-(* The route (and its service) that would serve [path] without requiring auth —
-   i.e. the one enabling the anonymous access the solver found. *)
-let offending_route (cfg : Ast.config) (path : string)
+(* The route (and its service) serving [path] that is the culprit for the finding
+   — i.e. the one the solver's model exploited. [culprit] captures what makes a
+   path-matching route the offender: for no-anonymous-access it is "not requiring
+   auth"; for rate-limit-on-public it is "anonymous-reachable and unthrottled". *)
+let offending_route ~culprit (cfg : Ast.config) (path : string)
   : (Ast.service * Ast.route) option =
   List.fold_left
     (fun acc (service : Ast.service) ->
@@ -25,19 +27,29 @@ let offending_route (cfg : Ast.config) (path : string)
                 route.paths = []
                 || List.exists (fun pre -> starts_with ~prefix:pre path) route.paths
               in
-              if path_matches && not (Lower.requires_auth service route) then
-                Some (service, route)
+              if path_matches && culprit service route then Some (service, route)
               else None)
           None service.routes)
     None cfg.services
 
+(* The default culprit / explanation: a path-matching route that does not require
+   authentication (the no-anonymous-access story). *)
+let no_auth_culprit (service : Ast.service) (route : Ast.route) =
+  not (Lower.requires_auth service route)
+
+let no_auth_missing =
+  "no authentication plugin is attached to the route or its service."
+
 (* Structured lift: the abstract SMT model rendered into a core
    [Report.counterexample], carrying Kong's route/service vocabulary so the JSON
-   contract (and every adapter over it) is actionable in the user's own terms. *)
-let counterexample (cfg : Ast.config) (m : Solve.model) : Report.counterexample =
+   contract (and every adapter over it) is actionable in the user's own terms.
+   [culprit] selects the offending route and [missing] names what it lacks, so
+   the same lift serves different properties (auth vs rate-limiting). *)
+let counterexample ?(culprit = no_auth_culprit) ?(missing = no_auth_missing)
+    (cfg : Ast.config) (m : Solve.model) : Report.counterexample =
   let principal = if m.is_anon then "anonymous" else "authenticated" in
   let meth = if m.method_ = "" then "<any-method>" else m.method_ in
-  match offending_route cfg m.path with
+  match offending_route ~culprit cfg m.path with
   | Some (service, route) ->
     { Report.principal;
       action  = m.method_;
@@ -46,9 +58,8 @@ let counterexample (cfg : Ast.config) (m : Solve.model) : Report.counterexample 
       service = Some service.name;
       note =
         Printf.sprintf
-          "%s request %s %s is ALLOWED via route %S (service %S) — no \
-           authentication plugin is attached to the route or its service."
-          principal meth m.path route.name service.name;
+          "%s request %s %s is ALLOWED via route %S (service %S) — %s"
+          principal meth m.path route.name service.name missing;
     }
   | None ->
     { Report.principal;

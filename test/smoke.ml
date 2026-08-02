@@ -13,14 +13,15 @@ let run label (policy : Ir.policy) (prop : Property.t) =
 let () =
   let insecure : Ir.policy =
     { rules =
-        [ Ir.{ id = "admin-route"; when_ = Path_prefix "/admin"; decision = Allow } ];
+        [ Ir.{ id = "admin-route"; when_ = Path_prefix "/admin";
+               decision = Allow; rate_limited = false } ];
       default = Ir.Deny }
   in
   let secure : Ir.policy =
     { rules =
         [ Ir.{ id = "admin-route";
                when_ = And [ Path_prefix "/admin"; Requires_auth ];
-               decision = Allow } ];
+               decision = Allow; rate_limited = false } ];
       default = Ir.Deny }
   in
   let prop = Property.no_anonymous_access ~path_prefix:"/admin" in

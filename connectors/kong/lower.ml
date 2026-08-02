@@ -19,6 +19,17 @@ let requires_auth (service : Ast.service) (route : Ast.route) : bool =
   let has ps = List.exists (fun (p : Ast.plugin) -> is_auth_plugin p.name) ps in
   has route.plugins || has service.plugins
 
+(* Kong rate-limiting / throttling plugins. *)
+let rate_limit_plugins =
+  [ "rate-limiting"; "rate-limiting-advanced"; "response-ratelimiting";
+    "graphql-rate-limiting-advanced" ]
+
+let is_rate_limit_plugin (name : string) = List.mem name rate_limit_plugins
+
+let rate_limited (service : Ast.service) (route : Ast.route) : bool =
+  let has ps = List.exists (fun (p : Ast.plugin) -> is_rate_limit_plugin p.name) ps in
+  has route.plugins || has service.plugins
+
 let route_condition (service : Ast.service) (route : Ast.route) : Ir.condition =
   let path_c =
     match route.paths with
@@ -41,7 +52,8 @@ let to_policy (cfg : Ast.config) : Ir.policy =
           (fun (route : Ast.route) : Ir.rule ->
             { id = route.name;
               when_ = route_condition service route;
-              decision = Ir.Allow })
+              decision = Ir.Allow;
+              rate_limited = rate_limited service route })
           service.routes)
       cfg.services
   in

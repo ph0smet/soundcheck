@@ -1,0 +1,11 @@
+# Scenario: a public (unauthenticated) search endpoint with no rate-limiting —
+# open to brute-force / scraping / DoS abuse.
+# Expected: VIOLATED (rate-limit-on-public) via route "search".
+_format_version: "3.0"
+services:
+  - name: public-api
+    url: http://public-backend
+    routes:
+      - name: search
+        paths:
+          - /search

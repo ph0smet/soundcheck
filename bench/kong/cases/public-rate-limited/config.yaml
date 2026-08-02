@@ -1,0 +1,13 @@
+# Scenario: the same public search endpoint, now protected by a rate-limiting
+# plugin on the route.
+# Expected: PROVED (rate-limit-on-public).
+_format_version: "3.0"
+services:
+  - name: public-api
+    url: http://public-backend
+    routes:
+      - name: search
+        paths:
+          - /search
+        plugins:
+          - name: rate-limiting

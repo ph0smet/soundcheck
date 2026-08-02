@@ -10,7 +10,6 @@
 open Soundcheck_kong
 
 let cases_dir = "kong/cases"
-let path_prefix = "/admin"
 
 let read path =
   let ic = open_in_bin path in
@@ -18,6 +17,16 @@ let read path =
   let s = really_input_string ic n in
   close_in ic;
   s
+
+(* A case may name the property to check in an optional "property" file; absent
+   means the default no-anonymous-access (/admin). *)
+let property_of dir : Verify.property =
+  let f = Filename.concat dir "property" in
+  let name = if Sys.file_exists f then String.trim (read f) else "no-anonymous-access" in
+  match name with
+  | "no-anonymous-access" -> Verify.No_anonymous_access "/admin"
+  | "rate-limit-on-public" -> Verify.Rate_limit_on_public
+  | other -> failwith (Printf.sprintf "%s: unknown property %S" dir other)
 
 let () =
   let cases =
@@ -31,7 +40,7 @@ let () =
       let dir = Filename.concat cases_dir case in
       let config = read (Filename.concat dir "config.yaml") in
       let expected = String.trim (read (Filename.concat dir "expected.json")) in
-      match Verify.run ~config ~path_prefix with
+      match Verify.run ~config ~property:(property_of dir) with
       | Error e ->
         incr failures;
         Printf.printf "[ERROR] %-20s config parse error: %s\n" case e

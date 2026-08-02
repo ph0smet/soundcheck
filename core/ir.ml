@@ -27,9 +27,10 @@ type condition =
   | Or  of condition list
 
 type rule = {
-  id       : string;
-  when_    : condition;
-  decision : decision;
+  id           : string;
+  when_        : condition;
+  decision     : decision;
+  rate_limited : bool;
 }
 
 type policy = {

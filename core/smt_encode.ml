@@ -26,10 +26,16 @@ let rec cond (c : Ir.condition) : string =
   | Ir.Or cs -> Printf.sprintf "(or %s)" (String.concat " " (List.map cond cs))
 
 (* The policy's "allowed" predicate under deny-overrides semantics (mirrors
-   {!Ir.evaluate}):  allowed = (not matched_deny) and (matched_allow or default) *)
-let allowed_formula (p : Ir.policy) : string =
+   {!Ir.evaluate}):  allowed = (not matched_deny) and (matched_allow or default).
+   [reach_via] filters which Allow rules count as reaching (the Deny side is
+   unfiltered) — this is how a structural property (e.g. rate-limit-on-public)
+   asks "reachable specifically via a rule of this kind". *)
+let allowed_formula ~reach_via (p : Ir.policy) : string =
   let matched (want : Ir.decision) =
-    let rs = List.filter (fun (r : Ir.rule) -> r.decision = want) p.rules in
+    let keep (r : Ir.rule) =
+      r.decision = want && (match want with Ir.Allow -> reach_via r | Ir.Deny -> true)
+    in
+    let rs = List.filter keep p.rules in
     match rs with
     | [] -> "false"
     | _ ->
@@ -53,7 +59,8 @@ let to_smtlib (p : Ir.policy) (prop : Property.t) : string =
   Buffer.add_string b "; the request is in the property's forbidden class:\n";
   Buffer.add_string b (Printf.sprintf "(assert %s)\n" (cond prop.forbidden_when));
   Buffer.add_string b "; ... yet the policy would allow it:\n";
-  Buffer.add_string b (Printf.sprintf "(assert %s)\n" (allowed_formula p));
+  Buffer.add_string b
+    (Printf.sprintf "(assert %s)\n" (allowed_formula ~reach_via:prop.reach_via p));
   Buffer.add_string b "(check-sat)\n";
   Buffer.add_string b "(get-value (path method is_anon))\n";
   Buffer.contents b

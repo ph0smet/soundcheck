@@ -46,9 +46,13 @@ type condition =
   | Or  of condition list
 
 type rule = {
-  id       : string;          (** connector-facing identifier (e.g. route name) *)
-  when_    : condition;       (** the rule applies to requests matching this *)
-  decision : decision;        (** effect produced when it applies *)
+  id           : string;      (** connector-facing identifier (e.g. route name) *)
+  when_        : condition;    (** the rule applies to requests matching this *)
+  decision     : decision;     (** effect produced when it applies *)
+  rate_limited : bool;
+      (** metadata (not a reachability guard): a rate-limiting / throttling plugin
+          is attached to this rule's route or its service. Consumed by structural
+          properties like rate-limit-on-public; ignored by {!evaluate}. *)
 }
 
 type policy = {
