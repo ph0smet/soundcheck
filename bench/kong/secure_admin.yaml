@@ -1,0 +1,19 @@
+_format_version: "3.0"
+services:
+  - name: admin-api
+    url: http://admin-backend
+    routes:
+      - name: admin-route
+        paths:
+          - /admin
+        methods:
+          - GET
+          - POST
+    plugins:
+      - name: key-auth
+  - name: public-api
+    url: http://public-backend
+    routes:
+      - name: public-route
+        paths:
+          - /public
