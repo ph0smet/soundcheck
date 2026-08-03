@@ -1,0 +1,12 @@
+# Scenario: a pre-3.0 config, where the regex marker was implicit — Kong compiled
+# a path as a regex if it contained characters outside the plain-path set. No
+# leading '~' here, but the metacharacters make it a regex all the same.
+# Expected: UNKNOWN (unsupported fragment), naming the offending route.
+_format_version: "2.1"
+services:
+  - name: admin-api
+    url: http://admin-backend
+    routes:
+      - name: admin-implicit-regex
+        paths:
+          - /admin(/.*)?

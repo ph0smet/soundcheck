@@ -45,15 +45,20 @@ let run ?emit_smt ~(property : property) (config : string) :
   match Parse.parse_string config with
   | Error e -> Error e
   | Ok cfg ->
-    let policy = Lower.to_policy cfg in
     let prop, lift = resolve cfg property in
-    let smt = Smt_encode.to_smtlib policy prop in
-    let result : Report.outcome =
-      match Solve.check ?emit_smt smt with
-      | Solve.Proved -> Report.Proved
-      | Solve.Violated m -> Report.Violated (lift m)
-      | Solve.Unknown s -> Report.Unknown s
+    let outcome : Report.outcome =
+      (* Check the decidability boundary BEFORE encoding: a config outside the
+         supported fragment must report [unknown], never a quiet pass. *)
+      match Fragment.check cfg with
+      | Error reason -> Report.Unknown reason
+      | Ok () -> (
+        let policy = Lower.to_policy cfg in
+        let smt = Smt_encode.to_smtlib policy prop in
+        match Solve.check ?emit_smt smt with
+        | Solve.Proved -> Report.Proved
+        | Solve.Violated m -> Report.Violated (lift m)
+        | Solve.Unknown s -> Report.Unknown s)
     in
-    Ok { Report.result;
+    Ok { Report.result = outcome;
          property_name = prop.name;
          property_description = prop.description }

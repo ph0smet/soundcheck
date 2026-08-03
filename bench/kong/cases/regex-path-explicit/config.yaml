@@ -1,0 +1,13 @@
+# Scenario: the admin route is written as a Kong 3.x regex path (leading '~') and
+# has no auth plugin. The encoder models paths as literal prefixes, so encoding
+# this one literally would make it match nothing and drop it from the analysis,
+# yielding a false PROVED on a wide-open route.
+# Expected: UNKNOWN (unsupported fragment), naming the offending route.
+_format_version: "3.0"
+services:
+  - name: admin-api
+    url: http://admin-backend
+    routes:
+      - name: admin-regex
+        paths:
+          - "~/admin/\\d+"
