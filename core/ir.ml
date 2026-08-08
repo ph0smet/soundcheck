@@ -28,7 +28,9 @@ type condition =
 
 type rule = {
   id           : string;
-  when_        : condition;
+  match_       : condition;
+  guard        : condition;
+  priority     : int;
   decision     : decision;
   rate_limited : bool;
 }
@@ -54,8 +56,10 @@ let rec matches (c : condition) (r : request) : bool =
   | And cs -> List.for_all (fun c -> matches c r) cs
   | Or cs -> List.exists (fun c -> matches c r) cs
 
+let applies_when (r : rule) : condition = And [ r.match_; r.guard ]
+
 let evaluate (p : policy) (r : request) : decision =
-  let matching = List.filter (fun rule -> matches rule.when_ r) p.rules in
+  let matching = List.filter (fun rule -> matches (applies_when rule) r) p.rules in
   if List.exists (fun rule -> rule.decision = Deny) matching then Deny
   else if List.exists (fun rule -> rule.decision = Allow) matching then Allow
   else p.default

@@ -47,13 +47,34 @@ type condition =
 
 type rule = {
   id           : string;      (** connector-facing identifier (e.g. route name) *)
-  when_        : condition;    (** the rule applies to requests matching this *)
+  match_       : condition;
+      (** ROUTING only: which requests this rule is a candidate to serve (path,
+          method). Deliberately separate from {!guard}, because a real gateway
+          picks the serving route from routing criteria ALONE and only then
+          applies policy. Folding policy in here would let a request that fails
+          authentication "fall through" to a more permissive rule, which no
+          gateway does: it routes first, then returns 401. *)
+  guard        : condition;
+      (** POLICY applied once this rule serves the request (e.g. Requires_auth).
+          Failing the guard denies the request; it does not re-route it. *)
+  priority     : int;
+      (** Higher wins when several rules match. EQUAL priority means "order
+          unknown", not "same rank": the encoder only suppresses STRICTLY
+          higher-priority rules, so tied rules stay simultaneously selectable and
+          the encoding degrades to a sound union over the tied set. Connectors
+          must therefore assign distinct priorities only where the target's
+          ordering is actually known, and tie otherwise. *)
   decision     : decision;     (** effect produced when it applies *)
   rate_limited : bool;
       (** metadata (not a reachability guard): a rate-limiting / throttling plugin
           is attached to this rule's route or its service. Consumed by structural
           properties like rate-limit-on-public; ignored by {!evaluate}. *)
 }
+
+val applies_when : rule -> condition
+(** [match_ ∧ guard]: the condition under which a rule both serves a request and
+    permits it. This is the flat, order-insensitive reading of a rule; it ignores
+    priority and so does not model winner-takes-all selection. *)
 
 type policy = {
   rules   : rule list;

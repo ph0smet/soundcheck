@@ -40,7 +40,8 @@ let allowed_formula ~reach_via (p : Ir.policy) : string =
     | [] -> "false"
     | _ ->
       Printf.sprintf "(or %s)"
-        (String.concat " " (List.map (fun (r : Ir.rule) -> cond r.when_) rs))
+        (String.concat " "
+           (List.map (fun (r : Ir.rule) -> cond (Ir.applies_when r)) rs))
   in
   let a = matched Ir.Allow in
   let d = matched Ir.Deny in

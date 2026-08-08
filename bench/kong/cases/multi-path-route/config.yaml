@@ -1,0 +1,21 @@
+# Scenario: one Kong route carrying several paths of different lengths, with no
+# auth plugin. Exercises the lowering that splits a route into one IR rule per
+# path — a single rule could not carry a well-defined priority when its paths
+# differ in length, which matters once routing becomes winner-takes-all.
+# The shorter sibling path is the one that leaks.
+# Expected: VIOLATED (no-anonymous-access) via route "admin-multi".
+_format_version: "3.0"
+services:
+  - name: admin-api
+    url: http://admin-backend
+    routes:
+      - name: admin-multi
+        paths:
+          - /admin
+          - /operations/admin-console
+  - name: public-api
+    url: http://public-backend
+    routes:
+      - name: public-route
+        paths:
+          - /public
