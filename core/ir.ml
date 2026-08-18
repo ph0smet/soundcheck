@@ -56,10 +56,22 @@ let rec matches (c : condition) (r : request) : bool =
   | And cs -> List.for_all (fun c -> matches c r) cs
   | Or cs -> List.exists (fun c -> matches c r) cs
 
-let applies_when (r : rule) : condition = And [ r.match_; r.guard ]
+(* Winner-takes-all selection, mirroring {!Smt_encode.selected}: [rule] serves
+   [r] when its routing criteria match and no STRICTLY higher-priority rule's do.
+   Ties stay simultaneously selectable, degrading to a union over the tied set. *)
+let selected (p : policy) (r : request) (rule : rule) : bool =
+  matches rule.match_ r
+  && not
+       (List.exists
+          (fun (o : rule) -> o.priority > rule.priority && matches o.match_ r)
+          p.rules)
 
 let evaluate (p : policy) (r : request) : decision =
-  let matching = List.filter (fun rule -> matches (applies_when rule) r) p.rules in
+  let matching =
+    List.filter
+      (fun rule -> selected p r rule && matches rule.guard r)
+      p.rules
+  in
   if List.exists (fun rule -> rule.decision = Deny) matching then Deny
   else if List.exists (fun rule -> rule.decision = Allow) matching then Allow
   else p.default

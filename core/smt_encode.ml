@@ -25,11 +25,39 @@ let rec cond (c : Ir.condition) : string =
   | Ir.Or [] -> "false"
   | Ir.Or cs -> Printf.sprintf "(or %s)" (String.concat " " (List.map cond cs))
 
-(* The policy's "allowed" predicate under deny-overrides semantics (mirrors
-   {!Ir.evaluate}):  allowed = (not matched_deny) and (matched_allow or default).
-   [reach_via] filters which Allow rules count as reaching (the Deny side is
-   unfiltered) — this is how a structural property (e.g. rate-limit-on-public)
-   asks "reachable specifically via a rule of this kind". *)
+(* [selected] encodes "this rule is the one that SERVES the request": its routing
+   criteria match, and no strictly higher-priority rule's do. Real gateways are
+   winner-takes-all — one route is chosen on routing criteria alone, and only its
+   policy then applies — so a request that fails the winner's guard is denied, NOT
+   re-routed to something more permissive.
+
+   Two deliberate choices:
+
+   - Strict [>], so rules of EQUAL priority remain simultaneously selectable.
+     Equal priority means the connector could not establish an order (see
+     {!Ir.rule}); over such a tied set this degrades to exactly the old union,
+     which is a sound over-approximation rather than a guess.
+
+   - The suppression set ranges over ALL rules, not only those passing
+     [reach_via]. A higher-priority route really does take the request even when
+     a structural property is not counting it as a "reaching" rule; filtering it
+     here would let us claim reachability via a route that is in fact shadowed. *)
+let selected (all : Ir.rule list) (r : Ir.rule) : string =
+  match List.filter (fun (o : Ir.rule) -> o.priority > r.priority) all with
+  | [] -> cond r.match_
+  | higher ->
+    Printf.sprintf "(and %s %s)" (cond r.match_)
+      (String.concat " "
+         (List.map
+            (fun (o : Ir.rule) -> Printf.sprintf "(not %s)" (cond o.match_))
+            higher))
+
+(* The policy's "allowed" predicate (mirrors {!Ir.evaluate}):
+     allowed = (not matched_deny) and (matched_allow or default)
+   where a rule counts as matched when it both SERVES the request (selected) and
+   PERMITS it (guard). [reach_via] filters which Allow rules count as reaching
+   (the Deny side is unfiltered) — this is how a structural property (e.g.
+   rate-limit-on-public) asks "reachable specifically via a rule of this kind". *)
 let allowed_formula ~reach_via (p : Ir.policy) : string =
   let matched (want : Ir.decision) =
     let keep (r : Ir.rule) =
@@ -41,7 +69,10 @@ let allowed_formula ~reach_via (p : Ir.policy) : string =
     | _ ->
       Printf.sprintf "(or %s)"
         (String.concat " "
-           (List.map (fun (r : Ir.rule) -> cond (Ir.applies_when r)) rs))
+           (List.map
+              (fun (r : Ir.rule) ->
+                Printf.sprintf "(and %s %s)" (selected p.rules r) (cond r.guard))
+              rs))
   in
   let a = matched Ir.Allow in
   let d = matched Ir.Deny in

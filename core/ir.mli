@@ -71,11 +71,6 @@ type rule = {
           properties like rate-limit-on-public; ignored by {!evaluate}. *)
 }
 
-val applies_when : rule -> condition
-(** [match_ ∧ guard]: the condition under which a rule both serves a request and
-    permits it. This is the flat, order-insensitive reading of a rule; it ignores
-    priority and so does not model winner-takes-all selection. *)
-
 type policy = {
   rules   : rule list;
   default : decision;         (** decision when no rule applies *)
@@ -84,11 +79,17 @@ type policy = {
 val matches : condition -> request -> bool
 (** Concrete semantics of a condition against a concrete request. *)
 
+val selected : policy -> request -> rule -> bool
+(** Whether [rule] is the one that SERVES [request]: its routing criteria match
+    and no strictly higher-priority rule's do. Rules of equal priority are all
+    selectable, since equal priority encodes "order unknown". *)
+
 val evaluate : policy -> request -> decision
-(** Reference (ground-truth) decision function, using a {b deny-overrides}
-    combining rule: [Deny] if any matching rule is [Deny]; else [Allow] if any
-    matching rule is [Allow]; else [default]. Used for tests and to validate
-    SMT counterexamples against the concrete semantics. *)
+(** Reference (ground-truth) decision function. A rule counts when it both
+    {!selected} the request and permits it (its guard holds); those are then
+    combined {b deny-overrides}: [Deny] if any is [Deny]; else [Allow] if any is
+    [Allow]; else [default]. Kept in step with {!Smt_encode.allowed_formula} —
+    the two are the same semantics, one concrete and one symbolic. *)
 
 val string_of_decision : decision -> string
 val string_of_principal : principal -> string

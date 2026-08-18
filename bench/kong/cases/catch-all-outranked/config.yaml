@@ -1,0 +1,27 @@
+# Scenario: a protected /admin route alongside an open catch-all on /. This is a
+# SECURE config: Kong picks the serving route on routing criteria alone, longest
+# prefix first, so /admin wins and its key-auth runs. Failing auth returns 401 —
+# Kong never re-routes to the catch-all on auth failure.
+#
+# This case exists to pin the winner-takes-all encoding. Under the previous flat
+# union ("allowed if ANY rule permits") the anonymous request failed /admin's
+# guard, fell through to the catch-all, and the config was reported VIOLATED —
+# a false positive on a correctly-secured config, which is also the shape that
+# made shadowing impossible to express.
+# Expected: PROVED (no-anonymous-access).
+_format_version: "3.0"
+services:
+  - name: admin-api
+    url: http://admin-backend
+    routes:
+      - name: admin
+        paths:
+          - /admin
+        plugins:
+          - name: key-auth
+  - name: web
+    url: http://web-backend
+    routes:
+      - name: catch-all
+        paths:
+          - /
