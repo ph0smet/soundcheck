@@ -56,6 +56,8 @@ let counterexample ?(culprit = no_auth_culprit) ?(missing = no_auth_missing)
       path    = m.path;
       route   = Some route.name;
       service = Some service.name;
+      shadowed_route = None;
+      shadowed_service = None;
       note =
         Printf.sprintf
           "%s request %s %s is ALLOWED via route %S (service %S) — %s"
@@ -67,6 +69,8 @@ let counterexample ?(culprit = no_auth_culprit) ?(missing = no_auth_missing)
       path    = m.path;
       route   = None;
       service = None;
+      shadowed_route = None;
+      shadowed_service = None;
       note =
         Printf.sprintf
           "%s request %s %s is ALLOWED (no matching Kong route identified for \

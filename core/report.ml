@@ -2,12 +2,14 @@
    adapter renders identically — see report.mli. *)
 
 type counterexample = {
-  principal : string;
-  action    : string;
-  path      : string;
-  route     : string option;
-  service   : string option;
-  note      : string;
+  principal        : string;
+  action           : string;
+  path             : string;
+  route            : string option;
+  service          : string option;
+  shadowed_route   : string option;
+  shadowed_service : string option;
+  note             : string;
 }
 
 type outcome =
@@ -58,23 +60,30 @@ let jopt = function
   | Some s -> jstring s
   | None   -> "null"
 
+(* Bumped when the shape changes in a way a consumer must notice. Adding an
+   always-present field counts; every key below is emitted unconditionally
+   (null when absent) so a consumer never has to probe for existence. *)
+let schema_version = 1
+
 let counterexample_json ce =
   Printf.sprintf
-    "{\"principal\":%s,\"action\":%s,\"path\":%s,\"route\":%s,\"service\":%s}"
+    "{\"principal\":%s,\"action\":%s,\"path\":%s,\"route\":%s,\"service\":%s,\"shadowed_route\":%s,\"shadowed_service\":%s}"
     (jstring ce.principal) (jstring ce.action) (jstring ce.path)
     (jopt ce.route) (jopt ce.service)
+    (jopt ce.shadowed_route) (jopt ce.shadowed_service)
 
 let to_json t =
   let prop = jstring t.property_name in
+  let head =
+    Printf.sprintf "\"schema_version\":%d,\"property\":%s" schema_version prop
+  in
   match t.result with
   | Proved ->
-    Printf.sprintf
-      "{\"result\":\"proved\",\"property\":%s,\"counterexample\":null}" prop
+    Printf.sprintf "{\"result\":\"proved\",%s,\"counterexample\":null}" head
   | Violated ce ->
-    Printf.sprintf
-      "{\"result\":\"violated\",\"property\":%s,\"counterexample\":%s}"
-      prop (counterexample_json ce)
+    Printf.sprintf "{\"result\":\"violated\",%s,\"counterexample\":%s}" head
+      (counterexample_json ce)
   | Unknown reason ->
     Printf.sprintf
-      "{\"result\":\"unknown\",\"property\":%s,\"counterexample\":null,\"reason\":%s}"
-      prop (jstring reason)
+      "{\"result\":\"unknown\",%s,\"counterexample\":null,\"reason\":%s}" head
+      (jstring reason)

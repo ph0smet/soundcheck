@@ -1,1 +1,1 @@
-{"result":"violated","property":"rate-limit-on-public","counterexample":{"principal":"anonymous","action":"","path":"/login","route":"login","service":"public-api"}}
+{"result":"violated","schema_version":1,"property":"rate-limit-on-public","counterexample":{"principal":"anonymous","action":"","path":"/login","route":"login","service":"public-api","shadowed_route":null,"shadowed_service":null}}
