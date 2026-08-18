@@ -79,20 +79,47 @@ let allowed_formula ~reach_via (p : Ir.policy) : string =
   let def = match p.default with Ir.Allow -> "true" | Ir.Deny -> "false" in
   Printf.sprintf "(and (not %s) (or %s %s))" d a def
 
-let to_smtlib (p : Ir.policy) (prop : Property.t) : string =
-  let b = Buffer.create 512 in
+let preamble b title =
   Buffer.add_string b "; Soundcheck SMT-LIB2 query\n";
-  Buffer.add_string b
-    (Printf.sprintf "; property: %s — %s\n" prop.name prop.description);
+  Buffer.add_string b title;
   Buffer.add_string b "(set-logic ALL)\n";
   Buffer.add_string b "(declare-const path String)\n";
   Buffer.add_string b "(declare-const method String)\n";
-  Buffer.add_string b "(declare-const is_anon Bool)\n";
+  Buffer.add_string b "(declare-const is_anon Bool)\n"
+
+let epilogue b =
+  Buffer.add_string b "(check-sat)\n";
+  Buffer.add_string b "(get-value (path method is_anon))\n";
+  Buffer.contents b
+
+let to_smtlib (p : Ir.policy) (prop : Property.t) : string =
+  let b = Buffer.create 512 in
+  preamble b (Printf.sprintf "; property: %s — %s\n" prop.name prop.description);
   Buffer.add_string b "; the request is in the property's forbidden class:\n";
   Buffer.add_string b (Printf.sprintf "(assert %s)\n" (cond prop.forbidden_when));
   Buffer.add_string b "; ... yet the policy would allow it:\n";
   Buffer.add_string b
     (Printf.sprintf "(assert %s)\n" (allowed_formula ~reach_via:prop.reach_via p));
-  Buffer.add_string b "(check-sat)\n";
-  Buffer.add_string b "(get-value (path method is_anon))\n";
-  Buffer.contents b
+  epilogue b
+
+(* One shadowing pair:  selected_i ∧ match_k ∧ guard_i ∧ ¬guard_k.
+
+   A request the SHADOWING rule serves and permits, which the SHADOWED rule was
+   written to handle and would have denied. [selected] is shared with
+   {!allowed_formula}, so shadowing and reachability agree by construction about
+   which rule serves a request. *)
+let shadowing_query (p : Ir.policy) (pair : Shadowing.pair) : string =
+  let i = pair.shadowing and k = pair.shadowed in
+  let b = Buffer.create 512 in
+  preamble b
+    (Printf.sprintf "; property: %s — route %S shadowed by route %S\n"
+       Shadowing.name k.Ir.id i.Ir.id);
+  Buffer.add_string b "; the higher-priority route serves the request:\n";
+  Buffer.add_string b (Printf.sprintf "(assert %s)\n" (selected p.rules i));
+  Buffer.add_string b "; the shadowed route was written to handle it:\n";
+  Buffer.add_string b (Printf.sprintf "(assert %s)\n" (cond k.Ir.match_));
+  Buffer.add_string b "; the server lets it through ...\n";
+  Buffer.add_string b (Printf.sprintf "(assert %s)\n" (cond i.Ir.guard));
+  Buffer.add_string b "; ... where the shadowed route would have stopped it:\n";
+  Buffer.add_string b (Printf.sprintf "(assert (not %s))\n" (cond k.Ir.guard));
+  epilogue b

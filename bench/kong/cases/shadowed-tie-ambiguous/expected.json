@@ -1,0 +1,1 @@
+{"result":"violated","schema_version":1,"property":"no-shadowed-routes","counterexample":{"principal":"anonymous","action":"","path":"/api","route":"api-open","service":"api","shadowed_route":"api-guarded","shadowed_service":"api"}}

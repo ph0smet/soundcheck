@@ -26,6 +26,7 @@ let property_of dir : Verify.property =
   match name with
   | "no-anonymous-access" -> Verify.No_anonymous_access "/admin"
   | "rate-limit-on-public" -> Verify.Rate_limit_on_public
+  | "no-shadowed-routes" -> Verify.No_shadowed_routes
   | other -> failwith (Printf.sprintf "%s: unknown property %S" dir other)
 
 let () =

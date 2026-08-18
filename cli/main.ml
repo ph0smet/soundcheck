@@ -9,6 +9,7 @@ let usage () =
     "usage: soundcheck verify <config.yaml> [--property P] [--path-prefix PREFIX]\n\
     \                                       [--format human|json] [--emit-smt PATH]\n\
     \  --property     no-anonymous-access (default) | rate-limit-on-public\n\
+    \                 | no-shadowed-routes\n\
     \  --path-prefix  prefix for no-anonymous-access (default /admin)\n\
     \  --format       human (default) | json\n\
     \  --emit-smt     write the SMT-LIB2 query to PATH and keep it (audit artifact)\n\
@@ -44,9 +45,11 @@ let parse_property rest : Verify.property =
     | "--property" :: "no-anonymous-access" :: _ ->
       Verify.No_anonymous_access (parse_path_prefix rest)
     | "--property" :: "rate-limit-on-public" :: _ -> Verify.Rate_limit_on_public
+    | "--property" :: "no-shadowed-routes" :: _ -> Verify.No_shadowed_routes
     | "--property" :: other :: _ ->
       Printf.eprintf
-        "unknown --property %S (expected no-anonymous-access|rate-limit-on-public)\n"
+        "unknown --property %S (expected \
+         no-anonymous-access|rate-limit-on-public|no-shadowed-routes)\n"
         other;
       exit 2
     | _ :: tl -> find tl

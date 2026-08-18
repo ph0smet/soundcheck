@@ -1,0 +1,22 @@
+# Scenario: two routes on the SAME path, one guarded and one not — the residue of
+# a copy-paste or a half-finished migration. Their routing criteria are identical,
+# so neither outranks the other; Kong would break the tie on a creation timestamp
+# that a declarative config does not carry.
+#
+# The config therefore does not determine whether requests are authenticated.
+# Reporting this as proved would be a false proof about behaviour the file never
+# pins down, so ties are candidates and the finding says so in its wording.
+# Expected: VIOLATED (no-shadowed-routes), phrased as a tie rather than an outrank.
+_format_version: "3.0"
+services:
+  - name: api
+    url: http://api-backend
+    routes:
+      - name: api-guarded
+        paths:
+          - /api
+        plugins:
+          - name: key-auth
+      - name: api-open
+        paths:
+          - /api

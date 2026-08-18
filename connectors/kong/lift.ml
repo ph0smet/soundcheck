@@ -81,3 +81,46 @@ let counterexample ?(culprit = no_auth_culprit) ?(missing = no_auth_missing)
 (* Human one-liner, kept as the [note] of the structured lift (no duplication). *)
 let lift (cfg : Ast.config) (m : Solve.model) : string =
   (counterexample cfg m).note
+
+(* IR rule ids are Kong route names (a route split across paths keeps its name),
+   so this recovers the owning service for the report. *)
+let service_of_route (cfg : Ast.config) (route_name : string) : string option =
+  List.find_map
+    (fun (service : Ast.service) ->
+      if List.exists (fun (r : Ast.route) -> r.name = route_name) service.routes
+      then Some service.name
+      else None)
+    cfg.services
+
+(* Shadowing names TWO routes: the one that actually serves the request and the
+   one written to handle it. Saying only "this request got through" would lose
+   the point of the finding, which is that a guard you wrote is not covering what
+   it appears to cover. *)
+let shadowing_counterexample (cfg : Ast.config) (pair : Shadowing.pair)
+    (m : Solve.model) : Report.counterexample =
+  let serving = pair.shadowing.Ir.id and written = pair.shadowed.Ir.id in
+  let meth = if m.method_ = "" then "<any-method>" else m.method_ in
+  (* A tie is a weaker claim than an outranking: the config does not say which
+     route wins, so we must not assert that the permissive one does. *)
+  let relation =
+    if pair.shadowing.Ir.priority > pair.shadowed.Ir.priority then
+      Printf.sprintf "outranks route %S written to handle it" written
+    else
+      Printf.sprintf
+        "ties with route %S written to handle it (the config does not determine \
+         which wins, so either may serve)"
+        written
+  in
+  { Report.principal = (if m.is_anon then "anonymous" else "authenticated");
+    action = m.method_;
+    path = m.path;
+    route = Some serving;
+    service = service_of_route cfg serving;
+    shadowed_route = Some written;
+    shadowed_service = service_of_route cfg written;
+    note =
+      Printf.sprintf
+        "%s %s can be served by route %S, which is more permissive and %s — the \
+         guard on %S does not apply to this request."
+        meth m.path serving relation written;
+  }

@@ -1,0 +1,24 @@
+# Scenario: the safe arrangement, and the one this property must NOT flag. The
+# guarded route /admin is the longer prefix, so it outranks the open catch-all on
+# / and its key-auth genuinely applies. Nothing is shadowed: the MORE restrictive
+# route wins, which is the correct direction.
+#
+# Guards against the obvious way to get this property wrong — reporting any
+# overlap between a guarded and an unguarded route, regardless of which outranks.
+# Expected: PROVED (no-shadowed-routes).
+_format_version: "3.0"
+services:
+  - name: admin-api
+    url: http://admin-backend
+    routes:
+      - name: admin
+        paths:
+          - /admin
+        plugins:
+          - name: key-auth
+  - name: web
+    url: http://web-backend
+    routes:
+      - name: catch-all
+        paths:
+          - /

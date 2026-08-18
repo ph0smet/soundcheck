@@ -13,3 +13,9 @@
 val to_smtlib : Ir.policy -> Property.t -> string
 (** Full SMT-LIB2 script ending in [(check-sat)] and a [(get-value ...)] over the
     symbolic request fields, so a [sat] result yields a concrete counterexample. *)
+
+val shadowing_query : Ir.policy -> Shadowing.pair -> string
+(** Script for ONE candidate shadowing pair, satisfiable iff the shadowing rule
+    serves and permits a request the shadowed rule was written to handle and
+    would have denied. Shares the winner-takes-all selection encoding with
+    {!to_smtlib}, so both agree on which rule serves a request. *)
