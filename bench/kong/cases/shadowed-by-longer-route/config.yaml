@@ -1,0 +1,21 @@
+# Scenario: the operator attached key-auth to /internal, declaring it sensitive.
+# A longer sibling path, /internal/legacy, carries no auth and therefore outranks
+# it for that traffic — the guard never applies there.
+#
+# This is the case no-anonymous-access can only find if you already know to pass
+# --path-prefix /internal. Shadowing reads the intent out of the config (the
+# plugin someone attached) and needs no parameter.
+# Expected: VIOLATED (no-shadowed-routes), naming BOTH routes.
+_format_version: "3.0"
+services:
+  - name: internal-api
+    url: http://internal-backend
+    routes:
+      - name: internal
+        paths:
+          - /internal
+        plugins:
+          - name: key-auth
+      - name: internal-legacy
+        paths:
+          - /internal/legacy

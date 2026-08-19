@@ -112,13 +112,19 @@ let verify_tool () =
             J.obj
               [ "type", J.str "string";
                 "enum",
-                J.arr [ J.str "no-anonymous-access"; J.str "rate-limit-on-public" ];
+                J.arr
+                  [ J.str "no-anonymous-access"; J.str "rate-limit-on-public";
+                    J.str "no-shadowed-routes" ];
                 "description",
                 J.str
                   "Invariant to verify (default no-anonymous-access): \
                    no-anonymous-access = no anonymous request allowed under \
                    path_prefix; rate-limit-on-public = every anonymous-reachable \
-                   route has a rate-limiting plugin." ];
+                   route has a rate-limiting plugin; no-shadowed-routes = no \
+                   route's guard is bypassed by a more permissive route that \
+                   outranks it (needs no path_prefix; note that shadowing is \
+                   occasionally intentional, e.g. a deliberately public health \
+                   endpoint under an authenticated prefix)." ];
             "path_prefix",
             J.obj
               [ "type", J.str "string";
@@ -132,11 +138,12 @@ let verify_tool () =
     [ "name", J.str "verify";
       "description",
       J.str
-        "Verify a Kong decK config against a security property (no-anonymous-access \
-         or rate-limit-on-public). Returns the stable JSON result contract: \
-         result = proved | violated | unknown, with a concrete counterexample \
-         (principal / method / path / route / service) when violated — use it to \
-         correct the config and re-verify.";
+        "Verify a Kong decK config against a security property \
+         (no-anonymous-access, rate-limit-on-public, or no-shadowed-routes). \
+         Returns the stable JSON result contract: result = proved | violated | \
+         unknown, with a concrete counterexample (principal / method / path / \
+         route / service, plus shadowed_route for shadowing findings) when \
+         violated — use it to correct the config and re-verify.";
       "inputSchema", input_schema ]
 
 let tools_list_result () = J.obj [ "tools", J.arr [ verify_tool () ] ]
@@ -177,13 +184,15 @@ let tool_call json =
         match prop_name with
         | "no-anonymous-access" -> Some (Verify.No_anonymous_access path_prefix)
         | "rate-limit-on-public" -> Some Verify.Rate_limit_on_public
+        | "no-shadowed-routes" -> Some Verify.No_shadowed_routes
         | _ -> None
       in
       (match property with
        | None ->
          tool_error
            ("unknown property: " ^ prop_name
-          ^ " (expected no-anonymous-access|rate-limit-on-public)")
+          ^ " (expected \
+             no-anonymous-access|rate-limit-on-public|no-shadowed-routes)")
        | Some property -> (
          match Verify.run ~property config with
          | Error e -> tool_error ("config parse error: " ^ e)

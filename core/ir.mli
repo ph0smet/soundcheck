@@ -47,7 +47,23 @@ type condition =
 
 type rule = {
   id           : string;      (** connector-facing identifier (e.g. route name) *)
-  when_        : condition;    (** the rule applies to requests matching this *)
+  match_       : condition;
+      (** ROUTING only: which requests this rule is a candidate to serve (path,
+          method). Deliberately separate from {!guard}, because a real gateway
+          picks the serving route from routing criteria ALONE and only then
+          applies policy. Folding policy in here would let a request that fails
+          authentication "fall through" to a more permissive rule, which no
+          gateway does: it routes first, then returns 401. *)
+  guard        : condition;
+      (** POLICY applied once this rule serves the request (e.g. Requires_auth).
+          Failing the guard denies the request; it does not re-route it. *)
+  priority     : int;
+      (** Higher wins when several rules match. EQUAL priority means "order
+          unknown", not "same rank": the encoder only suppresses STRICTLY
+          higher-priority rules, so tied rules stay simultaneously selectable and
+          the encoding degrades to a sound union over the tied set. Connectors
+          must therefore assign distinct priorities only where the target's
+          ordering is actually known, and tie otherwise. *)
   decision     : decision;     (** effect produced when it applies *)
   rate_limited : bool;
       (** metadata (not a reachability guard): a rate-limiting / throttling plugin
@@ -63,11 +79,17 @@ type policy = {
 val matches : condition -> request -> bool
 (** Concrete semantics of a condition against a concrete request. *)
 
+val selected : policy -> request -> rule -> bool
+(** Whether [rule] is the one that SERVES [request]: its routing criteria match
+    and no strictly higher-priority rule's do. Rules of equal priority are all
+    selectable, since equal priority encodes "order unknown". *)
+
 val evaluate : policy -> request -> decision
-(** Reference (ground-truth) decision function, using a {b deny-overrides}
-    combining rule: [Deny] if any matching rule is [Deny]; else [Allow] if any
-    matching rule is [Allow]; else [default]. Used for tests and to validate
-    SMT counterexamples against the concrete semantics. *)
+(** Reference (ground-truth) decision function. A rule counts when it both
+    {!selected} the request and permits it (its guard holds); those are then
+    combined {b deny-overrides}: [Deny] if any is [Deny]; else [Allow] if any is
+    [Allow]; else [default]. Kept in step with {!Smt_encode.allowed_formula} —
+    the two are the same semantics, one concrete and one symbolic. *)
 
 val string_of_decision : decision -> string
 val string_of_principal : principal -> string

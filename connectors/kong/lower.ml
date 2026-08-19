@@ -34,31 +34,55 @@ let rate_limited (service : Ast.service) (route : Ast.route) : bool =
   in
   has route.plugins || has service.plugins
 
-let route_condition (service : Ast.service) (route : Ast.route) : Ir.condition =
-  let path_c =
-    match route.paths with
-    | [] -> Ir.True
-    | ps -> Ir.Or (List.map (fun p -> Ir.Path_prefix p) ps)
-  in
+(* Routing criteria only: which requests this route is a candidate to serve.
+   Policy (auth) is deliberately NOT folded in — see {!Ir.rule}. *)
+let match_condition (path : string option) (route : Ast.route) : Ir.condition =
+  let path_c = match path with None -> Ir.True | Some p -> Ir.Path_prefix p in
   let method_c =
     match route.methods with
     | [] -> Ir.True
     | ms -> Ir.Or (List.map (fun m -> Ir.Method_is m) ms)
   in
-  let auth_c = if requires_auth service route then Ir.Requires_auth else Ir.True in
-  Ir.And [ path_c; method_c; auth_c ]
+  Ir.And [ path_c; method_c ]
+
+let guard_condition (service : Ast.service) (route : Ast.route) : Ir.condition =
+  if requires_auth service route then Ir.Requires_auth else Ir.True
+
+(* Kong's traditional router prefers the LONGER prefix, so path length is a
+   priority we can justify. Its other ranking inputs (number of match criteria,
+   and regex_priority for regex routes, which we reject outright) are NOT modelled
+   here: guessing an order we do not know would be unsound, whereas leaving rules
+   tied is always safe because ties degrade to a union. A route with no paths
+   matches everything and is therefore the weakest possible candidate. *)
+let priority_of_path = function None -> 0 | Some p -> String.length p
+
+(* One IR rule per (route, path) rather than per route. A Kong route may carry
+   several paths of different lengths, which would leave a single rule with no
+   well-defined priority. Splitting keeps priority exact, and is behaviour-
+   preserving under the current flat-OR encoder since (or (or p1 p2)) = (or p1 p2).
+   Both rules keep the route's name as [id], so counterexample lifting is
+   unaffected. *)
+let rules_of_route (service : Ast.service) (route : Ast.route) : Ir.rule list =
+  let paths =
+    match route.paths with [] -> [ None ] | ps -> List.map (fun p -> Some p) ps
+  in
+  let guard = guard_condition service route in
+  let rate_limited = rate_limited service route in
+  List.map
+    (fun path : Ir.rule ->
+      { id = route.name;
+        match_ = match_condition path route;
+        guard;
+        priority = priority_of_path path;
+        decision = Ir.Allow;
+        rate_limited })
+    paths
 
 let to_policy (cfg : Ast.config) : Ir.policy =
   let rules =
     List.concat_map
       (fun (service : Ast.service) ->
-        List.map
-          (fun (route : Ast.route) : Ir.rule ->
-            { id = route.name;
-              when_ = route_condition service route;
-              decision = Ir.Allow;
-              rate_limited = rate_limited service route })
-          service.routes)
+        List.concat_map (rules_of_route service) service.routes)
       cfg.services
   in
   { rules; default = Ir.Deny }

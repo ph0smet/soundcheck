@@ -1,0 +1,1 @@
+{"result":"violated","schema_version":1,"property":"no-shadowed-routes","counterexample":{"principal":"anonymous","action":"","path":"/internal/legacy","route":"internal-legacy","service":"internal-api","shadowed_route":"internal","shadowed_service":"internal-api"}}

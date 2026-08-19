@@ -81,7 +81,7 @@ Requires OCaml 5.x, dune, the `yaml` opam library, and the **`z3` CLI binary** o
 brew install z3                 # or: apt install z3
 opam install dune yaml
 dune build
-dune test                       # runs the 16-case corpus regression gate
+dune test                       # runs the 21-case corpus regression gate
 ```
 
 Verify a config:
@@ -106,6 +106,7 @@ z3 -smt2 query.smt2
 usage: soundcheck verify <config.yaml> [--property P] [--path-prefix PREFIX]
                                        [--format human|json] [--emit-smt PATH]
   --property     no-anonymous-access (default) | rate-limit-on-public
+                 | no-shadowed-routes
   --path-prefix  prefix for no-anonymous-access (default /admin)
   --format       human (default) | json
   --emit-smt     write the SMT-LIB2 query to PATH and keep it (audit artifact)
@@ -122,16 +123,23 @@ identically by CI, the MCP tool, and eventually the repair loop.
 ```json
 {
   "result": "violated",
+  "schema_version": 1,
   "property": "no-anonymous-access",
   "counterexample": {
     "principal": "anonymous",
     "action": "GET",
     "path": "/admin",
     "route": "admin-route",
-    "service": "admin-api"
+    "service": "admin-api",
+    "shadowed_route": null,
+    "shadowed_service": null
   }
 }
 ```
+
+Every key is emitted unconditionally, `null` when absent, so a consumer never has to
+probe for existence. `shadowed_route` is populated only by `no-shadowed-routes`, which
+names two routes: the one that serves the request and the one written to handle it.
 
 On success, `"result": "proved"` with `"counterexample": null`. A config outside the
 supported fragment gets `"result": "unknown"` with a `"reason"` naming the routes
@@ -165,7 +173,7 @@ against the shared decision IR, so it applies to every connector that lowers int
 |---|---|---|
 | `no-anonymous-access` | shipped | Can any unauthenticated request reach a protected path prefix? |
 | `rate-limit-on-public` | shipped | Is every anonymously-reachable route covered by a rate-limiting plugin? |
-| `no-shadowed-routes` | planned | Does a permissive route intercept traffic a stricter route was written to handle? |
+| `no-shadowed-routes` | shipped | Does a permissive route intercept traffic a stricter route was written to handle? |
 | `admin-api-not-reachable` | planned | Is the admin surface reachable from an untrusted network zone? |
 
 `rate-limit-on-public` is encoded with a reduced-reachability filter on allow rules: the
@@ -173,6 +181,23 @@ solver is asked whether a request is reachable *specifically via an unthrottled 
 This fits a structural question into the same per-request existential the engine already
 emits, with no second query engine, and auth-required routes fall out as exempt for free
 since an anonymous request cannot reach them in the first place.
+
+`no-shadowed-routes` is the one property that takes **no parameter**. The others ask a
+question you have to know to ask: `--path-prefix /admin` only finds holes under `/admin`,
+which on a large config is most of the problem. Shadowing instead reads intent out of the
+config, since attaching an auth plugin to a route is the operator declaring it sensitive,
+and asks whether that guard actually covers the traffic the route's own match would
+accept:
+
+```
+∃ req.  selected_i(req) ∧ match_k(req) ∧ guard_i(req) ∧ ¬guard_k(req)
+```
+
+A request the higher-ranked rule `i` serves and lets through, which rule `k` was written
+to handle and would have stopped. It is asked once per candidate pair rather than once
+per config, since it quantifies over *which rule serves* a request rather than over
+requests alone. Pairs are pruned statically (rank, strictly weaker guard, distinct
+routes) and the first satisfiable one is reported with both routes named.
 
 ## Targets
 
@@ -192,10 +217,19 @@ This is an early project and the boundaries are worth stating plainly.
 
 - **Routing is modelled over path and method only.** Host, header and SNI matching, along
   with `strip_path` and `path_handling`, are out of scope for v0.
-- **Matching is currently a flat union** rather than the winner-takes-all priority order a
-  real gateway applies. This is a sound over-approximation, so it will not miss a
-  violation, but it can flag one the gateway would in practice route elsewhere. The
-  ordered encoding that fixes this is also the prerequisite for `no-shadowed-routes`.
+- **Route priority is derived from prefix length only.** Routing is winner-takes-all, as a
+  real gateway does it, but Kong also ranks on the number of match criteria, which is not
+  modelled. Rather than guess an order, unmodelled cases are left as **ties**, and a tie
+  means "order unknown" rather than "same rank". The two properties then treat ties in
+  opposite directions, both away from a false proof: reachability admits every tied rule
+  as selectable (over-approximating what is reachable), while shadowing treats a tie as a
+  candidate (over-approximating what might be shadowed, since the config does not
+  determine which route wins).
+- **`no-shadowed-routes` reports structure, not intent.** It finds guards that do not cover
+  what they appear to cover, and that shape is occasionally deliberate. A public
+  `/admin/health` for load balancers is the usual example. It is therefore opt-in via
+  `--property` and never part of a default run, and its findings are worth reviewing
+  rather than treating as automatic vulnerabilities.
 - **Regex paths are not modelled, and are rejected rather than approximated.** Paths are
   encoded as literal prefixes, so a config containing a regex route (a leading `~`, or
   pre-3.0 metacharacters) is refused as an unsupported fragment and reports `unknown`
@@ -211,14 +245,18 @@ This is an early project and the boundaries are worth stating plainly.
 
 ## Testing
 
-`bench/kong/cases/` holds 16 labeled cases, each a config plus a golden `expected.json`
+`bench/kong/cases/` holds 21 labeled cases, each a config plus a golden `expected.json`
 produced by the engine and hand-checked against intent. They span the real
 misconfiguration shapes: a missing plugin, service versus route-level auth inheritance, an
 open sibling route, a method-specific gap (`GET` guarded, `POST` open), a leak in a second
 service, a non-auth plugin mistaken for auth, an auth plugin left `enabled: false`, and the
-rate-limit variants. Three more pin the fragment boundary from both sides: regex paths
-(explicit and pre-3.0 implicit) must report `unknown`, while ordinary punctuation like dots
-and percent-escapes must still verify.
+rate-limit variants.
+
+The rest pin boundaries from *both* sides, which is where the value is. Regex paths must
+report `unknown` while ordinary punctuation like dots and percent-escapes must still
+verify. A guarded route outranking an open catch-all must come out `proved`, since that
+arrangement is correct and reporting it would be a false alarm. And a shadowed route must
+be found whether the shadowing route strictly outranks it or merely ties with it.
 
 `dune test` verifies every case in-process and diffs against its golden, failing on any
 mismatch. It runs on every PR via GitHub Actions.
@@ -227,13 +265,15 @@ mismatch. It runs on every PR via GitHub Actions.
 
 ```
 core/          shared engine, the reusable asset
-  ir.ml          decision model: principal, action, resource, context, decision
-  property.ml    invariant templates
+  ir.ml          decision model: match_/guard/priority, principal, action, resource
+  property.ml    invariant templates (one query over requests)
+  shadowing.ml   no-shadowed-routes: candidate rule pairs (one query per pair)
   smt_encode.ml  IR + property → SMT-LIB2
   solve.ml       Z3 orchestration + model extraction
   report.ml      Report.t + human/JSON serializers (the stable contract)
 connectors/    thin frontends (parse→IR, lift counterexample→config vocabulary)
   kong/          decK YAML, first connector
+    fragment.ml    decidability boundary: reject what the encoder cannot model
 cli/           soundcheck verify
 mcp/           soundcheck mcp, JSON-RPC 2.0 over stdio
 bench/         labeled corpus + regression gate
@@ -243,10 +283,11 @@ Connectors depend on core. **Core never depends on connectors.**
 
 ## Roadmap
 
-**Near term.** The winner-takes-all selection encoding, then the two remaining property
-templates, `no-shadowed-routes` and `admin-api-not-reachable`. Widening the supported
-path fragment to the decidable subset of regex, so those configs get a verdict instead
-of `unknown`.
+**Near term.** `admin-api-not-reachable`, the last of the four planned templates, which
+needs a new symbolic dimension (source zone) and the IR's so-far-unused `context` field.
+Widening the supported path fragment to the decidable subset of regex via `str.in_re`, so
+those configs get a verdict instead of `unknown`. Richer route priority, so fewer pairs
+fall back to a tie.
 
 **After that.** A reusable GitHub Action with PR annotations, then connector #2 for
 app-level authz and tenant isolation, which is expected to refine the IR from v0 to v1.

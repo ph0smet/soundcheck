@@ -1,1 +1,1 @@
-{"result":"violated","property":"no-anonymous-access","counterexample":{"principal":"anonymous","action":"POST","path":"/admin","route":"admin-write","service":"admin-api"}}
+{"result":"violated","schema_version":1,"property":"no-anonymous-access","counterexample":{"principal":"anonymous","action":"POST","path":"/admin","route":"admin-write","service":"admin-api","shadowed_route":null,"shadowed_service":null}}
