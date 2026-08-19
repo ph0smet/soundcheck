@@ -81,7 +81,7 @@ Requires OCaml 5.x, dune, the `yaml` opam library, and the **`z3` CLI binary** o
 brew install z3                 # or: apt install z3
 opam install dune yaml
 dune build
-dune test                       # runs the 13-case corpus regression gate
+dune test                       # runs the 16-case corpus regression gate
 ```
 
 Verify a config:
@@ -133,11 +133,11 @@ identically by CI, the MCP tool, and eventually the repair loop.
 }
 ```
 
-On success, `"result": "proved"` with `"counterexample": null`. A `"result": "unknown"`
-carries a `"reason"`, and today that is what the solver returning anything other than
-sat/unsat surfaces as. Routing *config* that falls outside the supported fragment into
-this same result, rather than letting it pass quietly, is the next change on the list. See
-[Scope and current limits](#scope-and-current-limits).
+On success, `"result": "proved"` with `"counterexample": null`. A config outside the
+supported fragment gets `"result": "unknown"` with a `"reason"` naming the routes
+responsible, never a quiet pass. That is a verdict rather than an error: the MCP tool
+returns it as a normal result too, so an agent can rewrite the offending route and
+re-verify.
 
 ## Using it against AI-generated config
 
@@ -196,10 +196,12 @@ This is an early project and the boundaries are worth stating plainly.
   real gateway applies. This is a sound over-approximation, so it will not miss a
   violation, but it can flag one the gateway would in practice route elsewhere. The
   ordered encoding that fixes this is also the prerequisite for `no-shadowed-routes`.
-- **Regex paths are not modelled yet.** Kong 3.x regex paths are currently encoded as
-  literal prefixes, so a route written that way can drop out of the analysis. Rejecting
-  them as an unsupported fragment is the next change on the list, followed by translating
-  the decidable subset to `str.in_re`.
+- **Regex paths are not modelled, and are rejected rather than approximated.** Paths are
+  encoded as literal prefixes, so a config containing a regex route (a leading `~`, or
+  pre-3.0 metacharacters) is refused as an unsupported fragment and reports `unknown`
+  naming the route. Rejection is whole-config: the route we cannot model may be the one
+  that decides the property. Translating the decidable subset to `str.in_re` is future
+  work; backreferences and lookaround will stay rejected permanently.
 - **Auth and rate-limiting plugins are recognised by name.** A custom or unlisted plugin
   is not counted, so a route it protects is treated as open and reported as violated. That
   errs toward a false alarm rather than a false clean bill, which is the direction this
@@ -209,12 +211,14 @@ This is an early project and the boundaries are worth stating plainly.
 
 ## Testing
 
-`bench/kong/cases/` holds 13 labeled cases, each a config plus a golden `expected.json`
+`bench/kong/cases/` holds 16 labeled cases, each a config plus a golden `expected.json`
 produced by the engine and hand-checked against intent. They span the real
 misconfiguration shapes: a missing plugin, service versus route-level auth inheritance, an
 open sibling route, a method-specific gap (`GET` guarded, `POST` open), a leak in a second
 service, a non-auth plugin mistaken for auth, an auth plugin left `enabled: false`, and the
-rate-limit variants.
+rate-limit variants. Three more pin the fragment boundary from both sides: regex paths
+(explicit and pre-3.0 implicit) must report `unknown`, while ordinary punctuation like dots
+and percent-escapes must still verify.
 
 `dune test` verifies every case in-process and diffs against its golden, failing on any
 mismatch. It runs on every PR via GitHub Actions.
@@ -239,9 +243,10 @@ Connectors depend on core. **Core never depends on connectors.**
 
 ## Roadmap
 
-**Near term.** Reject regex paths as an unsupported fragment, then land the
-winner-takes-all selection encoding and the two remaining property templates,
-`no-shadowed-routes` and `admin-api-not-reachable`.
+**Near term.** The winner-takes-all selection encoding, then the two remaining property
+templates, `no-shadowed-routes` and `admin-api-not-reachable`. Widening the supported
+path fragment to the decidable subset of regex, so those configs get a verdict instead
+of `unknown`.
 
 **After that.** A reusable GitHub Action with PR annotations, then connector #2 for
 app-level authz and tenant isolation, which is expected to refine the IR from v0 to v1.

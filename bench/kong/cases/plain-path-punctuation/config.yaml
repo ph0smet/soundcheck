@@ -1,0 +1,17 @@
+# Scenario: guards the other side of the fragment boundary. Dots, dashes,
+# underscores, a mid-path tilde and a percent-escape are all ordinary path
+# characters, not regex syntax, so these routes must still be verified rather
+# than dismissed as unsupported. Over-flagging is safe but makes the tool useless.
+# Expected: VIOLATED (no-anonymous-access) via route "admin-dotted" — the
+# fragment check let the config through and the real analysis ran.
+_format_version: "3.0"
+services:
+  - name: admin-api
+    url: http://admin-backend
+    routes:
+      - name: admin-dotted
+        paths:
+          - /admin/config.json
+      - name: assets
+        paths:
+          - /a-b_c/~user/50%25
