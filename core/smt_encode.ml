@@ -16,6 +16,7 @@ let rec cond (c : Ir.condition) : string =
   | Ir.True -> "true"
   | Ir.Path_prefix p -> Printf.sprintf "(str.prefixof %s path)" (smt_str p)
   | Ir.Path_exact p -> Printf.sprintf "(= path %s)" (smt_str p)
+  | Ir.Path_regex re -> Printf.sprintf "(str.in_re path %s)" (Regex.to_smt re)
   | Ir.Method_is m -> Printf.sprintf "(= method %s)" (smt_str m)
   | Ir.Is_anonymous -> "is_anon"
   | Ir.Requires_auth -> "(not is_anon)"

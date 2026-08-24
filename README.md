@@ -81,7 +81,7 @@ Requires OCaml 5.x, dune, the `yaml` opam library, and the **`z3` CLI binary** o
 brew install z3                 # or: apt install z3
 opam install dune yaml
 dune build
-dune test                       # runs the 21-case corpus regression gate
+dune test                       # runs the 24-case corpus regression gate
 ```
 
 Verify a config:
@@ -230,12 +230,20 @@ This is an early project and the boundaries are worth stating plainly.
   `/admin/health` for load balancers is the usual example. It is therefore opt-in via
   `--property` and never part of a default run, and its findings are worth reviewing
   rather than treating as automatic vulnerabilities.
-- **Regex paths are not modelled, and are rejected rather than approximated.** Paths are
-  encoded as literal prefixes, so a config containing a regex route (a leading `~`, or
-  pre-3.0 metacharacters) is refused as an unsupported fragment and reports `unknown`
-  naming the route. Rejection is whole-config: the route we cannot model may be the one
-  that decides the property. Translating the decidable subset to `str.in_re` is future
-  work; backreferences and lookaround will stay rejected permanently.
+- **Regex paths are modelled for the regular subset; the rest is rejected, not
+  approximated.** Literals, `.`, character classes, `?`/`*`/`+`, bounded repetition,
+  alternation and grouping translate to `str.in_re`. Backreferences are not regular at
+  all, and possessive quantifiers and atomic groups change the accepted language
+  (`a*+a` never matches `aa`), so those report `unknown` naming the route and the
+  construct. Rejection is whole-config: the route we cannot model may be the one that
+  decides the property.
+- **A config containing any regex path loses route ranking.** Kong ranks regex routes by
+  a separate `regex_priority` and against prefix routes by its own rules, none of which
+  a pattern's text reveals. A wrong guess is unsound in *both* directions, since
+  ranking a route too high hides violations behind it and too low hides violations
+  through it. Such configs are therefore levelled to a tie, degrading to the flat union,
+  which can over-report but never miss. Precision is given up exactly where the facts
+  are missing.
 - **Auth and rate-limiting plugins are recognised by name.** A custom or unlisted plugin
   is not counted, so a route it protects is treated as open and reported as violated. That
   errs toward a false alarm rather than a false clean bill, which is the direction this
@@ -245,18 +253,27 @@ This is an early project and the boundaries are worth stating plainly.
 
 ## Testing
 
-`bench/kong/cases/` holds 21 labeled cases, each a config plus a golden `expected.json`
+`bench/kong/cases/` holds 24 labeled cases, each a config plus a golden `expected.json`
 produced by the engine and hand-checked against intent. They span the real
 misconfiguration shapes: a missing plugin, service versus route-level auth inheritance, an
 open sibling route, a method-specific gap (`GET` guarded, `POST` open), a leak in a second
 service, a non-auth plugin mistaken for auth, an auth plugin left `enabled: false`, and the
 rate-limit variants.
 
-The rest pin boundaries from *both* sides, which is where the value is. Regex paths must
-report `unknown` while ordinary punctuation like dots and percent-escapes must still
-verify. A guarded route outranking an open catch-all must come out `proved`, since that
-arrangement is correct and reporting it would be a false alarm. And a shadowed route must
-be found whether the shadowing route strictly outranks it or merely ties with it.
+The rest pin boundaries from *both* sides, which is where the value is. A guarded route
+outranking an open catch-all must come out `proved`, since that arrangement is correct and
+reporting it would be a false alarm. A shadowed route must be found whether the shadowing
+route strictly outranks it or merely ties with it. A regex route must be verified when its
+pattern is in the subset and `unknown` when it is not. The guarded regex case must
+come out `proved`, which is what stops the encoder passing by over-approximating every
+pattern to "anything". One case turns on a single `$`: with it the languages are disjoint
+and nothing is shadowed, without it the open route swallows a guarded path.
+
+`test/regex_agree.ml` is a differential test rather than a golden one. For each pattern it
+compares `Regex.matches_full` against Z3's answer for `str.in_re`, because the verifier
+relies on both readings agreeing: the encoder to find counterexamples, the matcher to
+confirm they are genuine. A one-character error in the translation is caught by several
+cases at once.
 
 `dune test` verifies every case in-process and diffs against its golden, failing on any
 mismatch. It runs on every PR via GitHub Actions.
@@ -268,6 +285,7 @@ core/          shared engine, the reusable asset
   ir.ml          decision model: match_/guard/priority, principal, action, resource
   property.ml    invariant templates (one query over requests)
   shadowing.ml   no-shadowed-routes: candidate rule pairs (one query per pair)
+  regex.ml       regex AST: parser, SMT translation, concrete matcher
   smt_encode.ml  IR + property → SMT-LIB2
   solve.ml       Z3 orchestration + model extraction
   report.ml      Report.t + human/JSON serializers (the stable contract)
@@ -285,9 +303,9 @@ Connectors depend on core. **Core never depends on connectors.**
 
 **Near term.** `admin-api-not-reachable`, the last of the four planned templates, which
 needs a new symbolic dimension (source zone) and the IR's so-far-unused `context` field.
-Widening the supported path fragment to the decidable subset of regex via `str.in_re`, so
-those configs get a verdict instead of `unknown`. Richer route priority, so fewer pairs
-fall back to a tie.
+Route ranking for regex paths, so those configs stop falling back to a flat union, most
+likely by asking the solver about language inclusion rather than inventing a number.
+Richer prefix ranking too, so fewer pairs fall back to a tie.
 
 **After that.** A reusable GitHub Action with PR annotations, then connector #2 for
 app-level authz and tenant isolation, which is expected to refine the IR from v0 to v1.

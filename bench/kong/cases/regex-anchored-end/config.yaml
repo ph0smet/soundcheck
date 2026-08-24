@@ -1,0 +1,22 @@
+# Scenario: Kong leaves the END of a regex path unanchored, so ~/admin/\d+ also
+# serves /admin/1/secret. An explicit '$' pins the end, and the route then serves
+# ONLY exactly-matching paths.
+#
+# Here the open regex route sits alongside a guarded deeper route. With the '$'
+# the two languages are disjoint and nothing is shadowed. Drop the '$' and the
+# open route swallows /admin/1/secret, bypassing the key-auth written for it —
+# so this case fails if the trailing anchor is ignored.
+# Expected: PROVED (no-shadowed-routes).
+_format_version: "3.0"
+services:
+  - name: admin-api
+    url: http://admin-backend
+    routes:
+      - name: admin-deep
+        paths:
+          - /admin/1/secret
+        plugins:
+          - name: key-auth
+      - name: admin-re
+        paths:
+          - "~/admin/\\d+$"

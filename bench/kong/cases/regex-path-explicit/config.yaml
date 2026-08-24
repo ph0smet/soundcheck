@@ -1,8 +1,12 @@
 # Scenario: the admin route is written as a Kong 3.x regex path (leading '~') and
-# has no auth plugin. The encoder models paths as literal prefixes, so encoding
-# this one literally would make it match nothing and drop it from the analysis,
-# yielding a false PROVED on a wide-open route.
-# Expected: UNKNOWN (unsupported fragment), naming the offending route.
+# has no auth plugin. The regex is inside the supported fragment, so it is now
+# translated to str.in_re and verified rather than refused.
+#
+# Kong anchors a regex path at the START but not the end (traditional router
+# matches with ngx.re's "a" = PCRE_ANCHORED; the traditional_compatible
+# translation prepends "^"), so the pattern must match a PREFIX of the path — the
+# lowering appends Star Any to say so. This case previously reported UNKNOWN.
+# Expected: VIOLATED (no-anonymous-access), witness under /admin/<digits>.
 _format_version: "3.0"
 services:
   - name: admin-api

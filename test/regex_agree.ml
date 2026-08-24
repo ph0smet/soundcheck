@@ -64,8 +64,29 @@ let must_reject =
     ("/unbalanced(", "unbalanced paren");
     ("/[unterminated", "unterminated class") ]
 
+(* Anchoring is a fact about the pattern, not the language, so it is asserted
+   directly. Kong leaves the END of a regex path unanchored unless the author
+   writes [$]; a leading [^] is redundant because Kong anchors the start anyway. *)
+let anchor_cases =
+  [ ("/admin/\\d+", false); ("/admin/\\d+$", true); ("^/admin/\\d+", false);
+    ("^/admin/\\d+$", true); ("/lit\\$", false) ]
+
 let () =
   let failures = ref 0 in
+  List.iter
+    (fun (pattern, expected) ->
+      match Regex.parse pattern with
+      | Error why ->
+        incr failures;
+        Printf.printf "[FAIL]  %-24s should parse, got: %s\n" pattern why
+      | Ok { anchored_end; _ } ->
+        if anchored_end <> expected then begin
+          incr failures;
+          Printf.printf "[FAIL]  %-24s anchored_end=%b expected %b\n" pattern
+            anchored_end expected
+        end
+        else Printf.printf "[ok]    %-24s anchored_end=%b\n" pattern anchored_end)
+    anchor_cases;
   List.iter
     (fun (pattern, subjects) ->
       match Regex.parse pattern with

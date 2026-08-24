@@ -1,0 +1,12 @@
+# Scenario: a regex path using a BACKREFERENCE, which recognises a non-regular
+# language — there is no automaton for it and therefore no sound translation.
+# The fragment boundary still has to exist after widening; it just moved.
+# Expected: UNKNOWN, naming the route and the construct.
+_format_version: "3.0"
+services:
+  - name: admin-api
+    url: http://admin-backend
+    routes:
+      - name: admin-backref
+        paths:
+          - "~/admin/(a+)\\1"
