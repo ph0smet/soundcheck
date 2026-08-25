@@ -3,10 +3,6 @@
 
 open Soundcheck_core
 
-let starts_with ~prefix s =
-  let lp = String.length prefix in
-  String.length s >= lp && String.sub s 0 lp = prefix
-
 (* The route (and its service) serving [path] that is the culprit for the finding
    — i.e. the one the solver's model exploited. [culprit] captures what makes a
    path-matching route the offender: for no-anonymous-access it is "not requiring
@@ -23,9 +19,11 @@ let offending_route ~culprit (cfg : Ast.config) (path : string)
             match acc with
             | Some _ -> acc
             | None ->
+              (* Via {!Lower.path_matches}, so regex routes are recognised here
+                 exactly as the encoder models them. *)
               let path_matches =
                 route.paths = []
-                || List.exists (fun pre -> starts_with ~prefix:pre path) route.paths
+                || List.exists (fun p -> Lower.path_matches p path) route.paths
               in
               if path_matches && culprit service route then Some (service, route)
               else None)

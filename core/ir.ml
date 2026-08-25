@@ -19,6 +19,7 @@ type condition =
   | True
   | Path_prefix of string
   | Path_exact  of string
+  | Path_regex  of Regex.t
   | Method_is   of string
   | Is_anonymous
   | Requires_auth
@@ -49,6 +50,7 @@ let rec matches (c : condition) (r : request) : bool =
   | True -> true
   | Path_prefix p -> starts_with ~prefix:p r.resource
   | Path_exact p -> r.resource = p
+  | Path_regex re -> Regex.matches_full re r.resource
   | Method_is m -> r.action = m
   | Is_anonymous -> (match r.principal with Anonymous -> true | Authenticated _ -> false)
   | Requires_auth -> (match r.principal with Authenticated _ -> true | Anonymous -> false)

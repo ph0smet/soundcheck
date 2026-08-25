@@ -38,6 +38,14 @@ type condition =
   | True
   | Path_prefix of string     (** [resource] starts with the given prefix *)
   | Path_exact  of string
+  | Path_regex  of Regex.t
+      (** [resource] belongs to the language, in full. A connector whose target
+          matches a regex against a {e prefix} of the path expresses that by
+          appending [Regex.Star Regex.Any] itself, keeping the anchoring
+          convention in the connector where it belongs. Note [Path_prefix p] is
+          the special case [Path_regex (Concat [Lit p; Star Any])] — proven
+          equivalent, but kept separate because [str.prefixof] is the cheaper
+          encoding for the common literal case. *)
   | Method_is   of string
   | Is_anonymous              (** [principal] = [Anonymous] *)
   | Requires_auth             (** [principal] is [Authenticated _] *)

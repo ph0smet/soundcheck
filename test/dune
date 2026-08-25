@@ -5,3 +5,9 @@
 (executable
  (name mcp_smoke)
  (libraries soundcheck_core soundcheck_mcp))
+
+; Differential test: the concrete matcher vs the SMT translation. Shells out to
+; z3, so it is a (test) — `dune test` runs it alongside the corpus gate.
+(test
+ (name regex_agree)
+ (libraries soundcheck_core unix))

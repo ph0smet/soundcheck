@@ -1,7 +1,8 @@
 # Scenario: a pre-3.0 config, where the regex marker was implicit — Kong compiled
 # a path as a regex if it contained characters outside the plain-path set. No
-# leading '~' here, but the metacharacters make it a regex all the same.
-# Expected: UNKNOWN (unsupported fragment), naming the offending route.
+# leading '~' here, but the metacharacters make it a regex all the same, and it
+# is inside the supported fragment so it gets a verdict.
+# Expected: VIOLATED (no-anonymous-access).
 _format_version: "2.1"
 services:
   - name: admin-api
