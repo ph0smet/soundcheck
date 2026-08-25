@@ -1,0 +1,21 @@
+# Scenario: a guarded REGEX route against a LONGER open literal prefix whose
+# language it covers. Kong compares submatch_weight first, and a regex path sets
+# HAS_REGEX_URI, so the regex route outranks every prefix route however long the
+# prefix is. The open literal therefore never serves.
+#
+# Counterintuitive enough to be worth pinning: rank the two by path length
+# instead, as a naive model would, and the open route wins and this turns
+# VIOLATED.
+# Expected: PROVED (no-anonymous-access).
+_format_version: "3.0"
+services:
+  - name: admin-api
+    url: http://admin-backend
+    routes:
+      - name: admin-regex
+        paths: ["~/admin/\\d+"]
+        plugins:
+          - name: key-auth
+      - name: admin-literal
+        paths:
+          - /admin/5

@@ -34,17 +34,17 @@ let rec cond (c : Ir.condition) : string =
 
    Two deliberate choices:
 
-   - Strict [>], so rules of EQUAL priority remain simultaneously selectable.
-     Equal priority means the connector could not establish an order (see
-     {!Ir.rule}); over such a tied set this degrades to exactly the old union,
-     which is a sound over-approximation rather than a guess.
+   - Only STRICT {!Ir.outranks} suppresses, so rules the connector could not order
+     — equal or incomparable — remain simultaneously selectable. Over such a set
+     this degrades to exactly the old union, a sound over-approximation rather
+     than a guess.
 
    - The suppression set ranges over ALL rules, not only those passing
      [reach_via]. A higher-priority route really does take the request even when
      a structural property is not counting it as a "reaching" rule; filtering it
      here would let us claim reachability via a route that is in fact shadowed. *)
 let selected (all : Ir.rule list) (r : Ir.rule) : string =
-  match List.filter (fun (o : Ir.rule) -> o.priority > r.priority) all with
+  match List.filter (fun (o : Ir.rule) -> Ir.outranks o.priority r.priority) all with
   | [] -> cond r.match_
   | higher ->
     Printf.sprintf "(and %s %s)" (cond r.match_)

@@ -18,7 +18,7 @@ let () =
     Ir.{ id = "admin-route";
          match_ = Path_prefix admin_prefix;
          guard;
-         priority = String.length admin_prefix;
+         priority = { Ir.shape = 0; tier = 0; rank = String.length admin_prefix };
          decision = Allow;
          rate_limited = false }
   in
