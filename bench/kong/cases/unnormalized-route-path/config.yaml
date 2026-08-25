@@ -1,0 +1,21 @@
+# Scenario: documents a KNOWN IMPRECISION, deliberately, so that fixing it later
+# is a visible golden flip rather than a silent change.
+#
+# Kong normalizes the request URI (percent-decoding, dot-segment removal, slash
+# merging) before router matching, but does NOT normalize declared route paths.
+# A normalized URI therefore never contains %2e, so this route is DEAD in real
+# Kong: nothing can ever match it.
+#
+# Soundcheck's symbolic path ranges over all strings, including ones Kong would
+# never present to the router, so it treats the route as live and reports a
+# violation through it. That is a FALSE ALARM, not a missed violation — the safe
+# direction. Constraining the symbolic path to normalized form would remove it.
+# Expected: VIOLATED (no-anonymous-access) — imprecise but sound.
+_format_version: "3.0"
+services:
+  - name: admin-api
+    url: http://admin-backend
+    routes:
+      - name: admin-encoded
+        paths:
+          - /admin/%2e%2e/secret
