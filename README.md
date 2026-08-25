@@ -81,7 +81,7 @@ Requires OCaml 5.x, dune, the `yaml` opam library, and the **`z3` CLI binary** o
 brew install z3                 # or: apt install z3
 opam install dune yaml
 dune build
-dune test                       # runs the 24-case corpus regression gate
+dune test                       # runs the 25-case corpus regression gate
 ```
 
 Verify a config:
@@ -244,6 +244,15 @@ This is an early project and the boundaries are worth stating plainly.
   through it. Such configs are therefore levelled to a tie, degrading to the flat union,
   which can over-report but never miss. Precision is given up exactly where the facts
   are missing.
+- **Request-path normalization is not modelled, which costs precision rather than
+  soundness.** Kong normalizes the request URI (percent-decoding, dot-segment removal,
+  slash merging) before matching, but does *not* normalize declared route paths.
+  Soundcheck's symbolic path ranges over all strings, so it considers paths Kong would
+  never hand the router. Because the encoding is pointwise and our matching agrees with
+  Kong's at every normalized path, a proof still covers every real request; what can
+  happen is the reverse: a witness that is not a normalized path, or a finding through a
+  route like `/admin/%2e%2e/secret` that Kong could never match. False alarms, not missed
+  violations.
 - **Auth and rate-limiting plugins are recognised by name.** A custom or unlisted plugin
   is not counted, so a route it protects is treated as open and reported as violated. That
   errs toward a false alarm rather than a false clean bill, which is the direction this
@@ -253,7 +262,7 @@ This is an early project and the boundaries are worth stating plainly.
 
 ## Testing
 
-`bench/kong/cases/` holds 24 labeled cases, each a config plus a golden `expected.json`
+`bench/kong/cases/` holds 25 labeled cases, each a config plus a golden `expected.json`
 produced by the engine and hand-checked against intent. They span the real
 misconfiguration shapes: a missing plugin, service versus route-level auth inheritance, an
 open sibling route, a method-specific gap (`GET` guarded, `POST` open), a leak in a second
