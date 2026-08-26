@@ -9,6 +9,7 @@ type counterexample = {
   service          : string option;
   shadowed_route   : string option;
   shadowed_service : string option;
+  source_ip        : int32;
   note             : string;
 }
 
@@ -63,12 +64,13 @@ let jopt = function
 (* Bumped when the shape changes in a way a consumer must notice. Adding an
    always-present field counts; every key below is emitted unconditionally
    (null when absent) so a consumer never has to probe for existence. *)
-let schema_version = 1
+let schema_version = 2
 
 let counterexample_json ce =
   Printf.sprintf
-    "{\"principal\":%s,\"action\":%s,\"path\":%s,\"route\":%s,\"service\":%s,\"shadowed_route\":%s,\"shadowed_service\":%s}"
+    "{\"principal\":%s,\"action\":%s,\"path\":%s,\"source_ip\":%s,\"route\":%s,\"service\":%s,\"shadowed_route\":%s,\"shadowed_service\":%s}"
     (jstring ce.principal) (jstring ce.action) (jstring ce.path)
+    (jstring (Cidr.string_of_ip ce.source_ip))
     (jopt ce.route) (jopt ce.service)
     (jopt ce.shadowed_route) (jopt ce.shadowed_service)
 

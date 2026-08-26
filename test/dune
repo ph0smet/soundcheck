@@ -11,3 +11,8 @@
 (test
  (name regex_agree)
  (libraries soundcheck_core unix))
+
+; Unit tests for CIDR parsing/membership — pure logic, gated by `dune test`.
+(test
+ (name cidr_t)
+ (libraries soundcheck_core))

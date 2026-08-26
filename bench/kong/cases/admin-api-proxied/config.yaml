@@ -1,0 +1,21 @@
+# Scenario: the classic Kong footgun — a service pointed at the Admin API
+# (localhost:8001) and exposed through the public proxy with no source
+# restriction. Anyone who can reach the proxy can reconfigure the gateway.
+#
+# The property needs no path parameter: intent is read from the config, since a
+# service whose upstream is the admin port is by definition the admin surface.
+# Expected: VIOLATED (admin-api-not-reachable), with an untrusted source address.
+_format_version: "3.0"
+services:
+  - name: kong-admin
+    url: http://localhost:8001
+    routes:
+      - name: admin-proxy
+        paths:
+          - /kong-admin
+  - name: public-api
+    url: http://backend:8080
+    routes:
+      - name: public
+        paths:
+          - /public

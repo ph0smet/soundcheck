@@ -27,6 +27,10 @@ type request = {
   action    : action;
   resource  : resource;
   context   : context;
+  source    : int32;
+      (** IPv4 source address of the connection. A dedicated field rather than a
+          [context] binding because it is a typed symbolic dimension the encoder
+          reasons about, not an opaque attribute. *)
 }
 
 (** The effect of a policy decision. ([effect] itself is a reserved keyword in
@@ -49,6 +53,7 @@ type condition =
   | Method_is   of string
   | Is_anonymous              (** [principal] = [Anonymous] *)
   | Requires_auth             (** [principal] is [Authenticated _] *)
+  | Source_in   of Cidr.t     (** [source] falls inside the address block *)
   | Not of condition
   | And of condition list
   | Or  of condition list
@@ -89,11 +94,18 @@ type rule = {
           otherwise: a wrong order is unsound in both directions, since ranking a
           rule too high hides violations behind it and too low hides violations
           through it. *)
-  decision     : decision;     (** effect produced when it applies *)
-  rate_limited : bool;
+  decision      : decision;    (** effect produced when it applies *)
+  rate_limited  : bool;
       (** metadata (not a reachability guard): a rate-limiting / throttling plugin
           is attached to this rule's route or its service. Consumed by structural
           properties like rate-limit-on-public; ignored by {!evaluate}. *)
+  targets_admin : bool;
+      (** metadata: this rule's route proxies to the target's administrative API.
+          Consumed by admin-api-not-reachable; ignored by {!evaluate}.
+
+          Two such booleans is the point at which a third should instead become a
+          general label set on the rule — noted here so the next connector does
+          not simply add a fourth. *)
 }
 
 type policy = {

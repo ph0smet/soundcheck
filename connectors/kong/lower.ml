@@ -65,7 +65,8 @@ let path_condition (p : string) : Ir.condition =
    finding with no route attached. *)
 let path_matches (kong_path : string) (concrete : string) : bool =
   Ir.matches (path_condition kong_path)
-    { Ir.principal = Ir.Anonymous; action = ""; resource = concrete; context = [] }
+    { Ir.principal = Ir.Anonymous; action = ""; resource = concrete;
+      context = []; source = 0l }
 
 (* Routing criteria only: which requests this route is a candidate to serve.
    Policy (auth) is deliberately NOT folded in — see {!Ir.rule}. *)
@@ -78,8 +79,75 @@ let match_condition (path : string option) (route : Ast.route) : Ir.condition =
   in
   Ir.And [ path_c; method_c ]
 
+(* Kong's Admin API listens on 8001 (http) and 8444 (https) by default. A service
+   whose upstream is that port is proxying the Admin API through the public proxy
+   — the classic Kong footgun this property exists to catch.
+
+   Port-based recognition is a known-name lookup in the same spirit as the plugin
+   lists, and errs the same way: an unusual admin port is NOT recognised, so such
+   a route is treated as ordinary and the property stays quiet about it. That is
+   the false-negative direction for THIS property, which is why the port list is
+   documented rather than buried. *)
+let admin_ports = [ "8001"; "8444" ]
+
+let targets_admin_api (service : Ast.service) : bool =
+  let url = service.url in
+  (* take the ":port" that follows the host, before any path *)
+  let after_scheme =
+    match String.index_opt url ':' with
+    | Some i when i + 3 <= String.length url && String.sub url i 3 = "://" ->
+      String.sub url (i + 3) (String.length url - i - 3)
+    | _ -> url
+  in
+  let authority =
+    match String.index_opt after_scheme '/' with
+    | Some i -> String.sub after_scheme 0 i
+    | None -> after_scheme
+  in
+  match String.rindex_opt authority ':' with
+  | None -> false
+  | Some i ->
+    let port = String.sub authority (i + 1) (String.length authority - i - 1) in
+    List.mem port admin_ports
+
+(* ip-restriction as a policy guard: it runs after routing, so it constrains who
+   may be served, not which route serves.
+
+   Kong checks DENY FIRST (a listed address is refused outright), then treats
+   ALLOW as a whitelist (when non-empty, anything unlisted is refused). An address
+   that fails to parse — IPv6, or malformed — is dropped from the condition, which
+   WEAKENS the guard and therefore over-reports rather than proving too much. *)
+let cidrs_of (entries : string list) : Ir.condition list =
+  List.filter_map
+    (fun e -> match Cidr.parse e with Ok c -> Some (Ir.Source_in c) | Error _ -> None)
+    entries
+
+let ip_restriction_condition (service : Ast.service) (route : Ast.route) :
+    Ir.condition =
+  let plugins =
+    List.filter
+      (fun (p : Ast.plugin) -> p.enabled && p.name = "ip-restriction")
+      (route.plugins @ service.plugins)
+  in
+  let conds =
+    List.concat_map
+      (fun (p : Ast.plugin) ->
+        let denied = cidrs_of p.deny in
+        let allowed = cidrs_of p.allow in
+        (if denied = [] then [] else [ Ir.Not (Ir.Or denied) ])
+        @ if allowed = [] then [] else [ Ir.Or allowed ])
+      plugins
+  in
+  match conds with [] -> Ir.True | cs -> Ir.And cs
+
 let guard_condition (service : Ast.service) (route : Ast.route) : Ir.condition =
-  if requires_auth service route then Ir.Requires_auth else Ir.True
+  let auth = if requires_auth service route then Ir.Requires_auth else Ir.True in
+  match
+    List.filter (fun c -> c <> Ir.True) [ auth; ip_restriction_condition service route ]
+  with
+  | [] -> Ir.True
+  | [ c ] -> c
+  | cs -> Ir.And cs
 
 (* Route ranking, read off Kong's own comparator (kong/router/traditional.lua
    [sort_routes]) rather than guessed:
@@ -125,6 +193,7 @@ let rules_of_route (service : Ast.service) (route : Ast.route) : Ir.rule list =
   in
   let guard = guard_condition service route in
   let rate_limited = rate_limited service route in
+  let targets_admin = targets_admin_api service in
   List.map
     (fun path : Ir.rule ->
       { id = route.name;
@@ -132,7 +201,8 @@ let rules_of_route (service : Ast.service) (route : Ast.route) : Ir.rule list =
         guard;
         priority = priority_of ~regex_priority:route.regex_priority route path;
         decision = Ir.Allow;
-        rate_limited })
+        rate_limited;
+        targets_admin })
     paths
 
 let to_policy (cfg : Ast.config) : Ir.policy =

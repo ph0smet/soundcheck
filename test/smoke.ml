@@ -20,7 +20,8 @@ let () =
          guard;
          priority = { Ir.shape = 0; tier = 0; rank = String.length admin_prefix };
          decision = Allow;
-         rate_limited = false }
+         rate_limited = false;
+         targets_admin = false }
   in
   let insecure : Ir.policy =
     { rules = [ route ~guard:Ir.True ]; default = Ir.Deny }

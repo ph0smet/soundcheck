@@ -15,6 +15,7 @@ type property =
   | No_anonymous_access of string  (** path prefix that must require auth *)
   | Rate_limit_on_public
   | No_shadowed_routes
+  | Admin_api_not_reachable of Cidr.t  (** trusted source block *)
 
 (* The core property template plus the connector lift that explains its
    counterexample in Kong's own vocabulary. The lift's [culprit] mirrors the
@@ -40,6 +41,17 @@ let resolve (cfg : Ast.config) :
               not (Lower.requires_auth s r) && not (Lower.rate_limited s r))
             ~missing:
               "no rate-limiting plugin is attached to the route or its service."
+            cfg m )
+  | Admin_api_not_reachable trusted ->
+    Some
+      ( Property.admin_api_not_reachable ~trusted,
+        fun m ->
+          Lift.counterexample
+            ~culprit:(fun s _ -> Lower.targets_admin_api s)
+            ~show_source:true
+            ~missing:
+              "its service proxies the Kong Admin API, and no ip-restriction \
+               confines this source address to the trusted block."
             cfg m )
   | No_shadowed_routes -> None
 

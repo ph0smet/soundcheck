@@ -81,7 +81,7 @@ Requires OCaml 5.x, dune, the `yaml` opam library, and the **`z3` CLI binary** o
 brew install z3                 # or: apt install z3
 opam install dune yaml
 dune build
-dune test                       # runs the 27-case corpus regression gate
+dune test                       # runs the 31-case corpus regression gate
 ```
 
 Verify a config:
@@ -106,8 +106,9 @@ z3 -smt2 query.smt2
 usage: soundcheck verify <config.yaml> [--property P] [--path-prefix PREFIX]
                                        [--format human|json] [--emit-smt PATH]
   --property     no-anonymous-access (default) | rate-limit-on-public
-                 | no-shadowed-routes
+                 | no-shadowed-routes | admin-api-not-reachable
   --path-prefix  prefix for no-anonymous-access (default /admin)
+  --trusted-cidr for admin-api-not-reachable (default 127.0.0.1/32)
   --format       human (default) | json
   --emit-smt     write the SMT-LIB2 query to PATH and keep it (audit artifact)
 ```
@@ -123,12 +124,13 @@ identically by CI, the MCP tool, and eventually the repair loop.
 ```json
 {
   "result": "violated",
-  "schema_version": 1,
+  "schema_version": 2,
   "property": "no-anonymous-access",
   "counterexample": {
     "principal": "anonymous",
     "action": "GET",
     "path": "/admin",
+    "source_ip": "0.0.0.0",
     "route": "admin-route",
     "service": "admin-api",
     "shadowed_route": null,
@@ -140,6 +142,8 @@ identically by CI, the MCP tool, and eventually the repair loop.
 Every key is emitted unconditionally, `null` when absent, so a consumer never has to
 probe for existence. `shadowed_route` is populated only by `no-shadowed-routes`, which
 names two routes: the one that serves the request and the one written to handle it.
+`source_ip` is meaningful only for properties that constrain it; elsewhere the solver
+picked it freely.
 
 On success, `"result": "proved"` with `"counterexample": null`. A config outside the
 supported fragment gets `"result": "unknown"` with a `"reason"` naming the routes
@@ -174,7 +178,7 @@ against the shared decision IR, so it applies to every connector that lowers int
 | `no-anonymous-access` | shipped | Can any unauthenticated request reach a protected path prefix? |
 | `rate-limit-on-public` | shipped | Is every anonymously-reachable route covered by a rate-limiting plugin? |
 | `no-shadowed-routes` | shipped | Does a permissive route intercept traffic a stricter route was written to handle? |
-| `admin-api-not-reachable` | planned | Is the admin surface reachable from an untrusted network zone? |
+| `admin-api-not-reachable` | shipped | Can a request from outside a trusted address block reach a route proxying the Admin API? |
 
 `rate-limit-on-public` is encoded with a reduced-reachability filter on allow rules: the
 solver is asked whether a request is reachable *specifically via an unthrottled rule*.
@@ -255,6 +259,15 @@ This is an early project and the boundaries are worth stating plainly.
   happen is the reverse: a witness that is not a normalized path, or a finding through a
   route like `/admin/%2e%2e/secret` that Kong could never match. False alarms, not missed
   violations.
+- **The Admin API is recognised by upstream port** (8001 and 8444, Kong's defaults). A
+  gateway on a non-default admin port is not recognised, and `admin-api-not-reachable`
+  then stays quiet about it. That is the *false-negative* direction for this one property,
+  which is why the port list is documented rather than buried.
+- **Source addresses are IPv4 and are the connection peer.** `ip-restriction` reads the
+  raw connection address and ignores `X-Forwarded-For`, so behind a load balancer every
+  request appears to come from the balancer; the model inherits that. IPv6 entries are
+  rejected by the CIDR parser rather than ignored, and an unparseable entry is dropped
+  from the guard, which weakens it and so over-reports.
 - **Auth and rate-limiting plugins are recognised by name.** A custom or unlisted plugin
   is not counted, so a route it protects is treated as open and reported as violated. That
   errs toward a false alarm rather than a false clean bill, which is the direction this
@@ -264,7 +277,7 @@ This is an early project and the boundaries are worth stating plainly.
 
 ## Testing
 
-`bench/kong/cases/` holds 27 labeled cases, each a config plus a golden `expected.json`
+`bench/kong/cases/` holds 31 labeled cases, each a config plus a golden `expected.json`
 produced by the engine and hand-checked against intent. They span the real
 misconfiguration shapes: a missing plugin, service versus route-level auth inheritance, an
 open sibling route, a method-specific gap (`GET` guarded, `POST` open), a leak in a second
@@ -299,6 +312,7 @@ core/          shared engine, the reusable asset
   regex.ml       regex AST: parser, SMT translation, concrete matcher
   smt_encode.ml  IR + property → SMT-LIB2
   solve.ml       Z3 orchestration + model extraction
+  cidr.ml        IPv4 blocks: parsing, membership, bitvector encoding
   report.ml      Report.t + human/JSON serializers (the stable contract)
 connectors/    thin frontends (parse→IR, lift counterexample→config vocabulary)
   kong/          decK YAML, first connector

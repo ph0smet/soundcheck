@@ -24,13 +24,31 @@ type pair = {
   shadowed  : Ir.rule;  (** lower priority: the rule written to handle it *)
 }
 
-(* [a] is strictly weaker than [b] when b constrains requests that a lets
-   through. With the v0 condition set the only guards a connector produces are
-   [True] and [Requires_auth], so this is the one meaningful pairing; it is a
-   function rather than a literal so widening the guard vocabulary has one place
-   to change. Being conservative here costs findings, never soundness. *)
+(* A guard read as the SET of constraints it imposes: [True] imposes nothing, a
+   conjunction imposes each conjunct, anything else is one opaque constraint. *)
+let rec constraints (c : Ir.condition) : Ir.condition list =
+  match c with
+  | Ir.True -> []
+  | Ir.And cs -> List.concat_map constraints cs
+  | c -> [ c ]
+
+let subset xs ys = List.for_all (fun x -> List.mem x ys) xs
+
+(* [a] is strictly weaker than [b] when b imposes everything a does and more, so
+   b stops requests a lets through.
+
+   Deliberately set-based rather than a match on specific pairs. An earlier
+   version tested literally for ([True], [Requires_auth]) and silently stopped
+   finding anything the moment guards gained a second conjunct — a false PROVED,
+   caught only because the corpus pinned two shadowing cases. Comparing constraint
+   sets keeps working as the guard vocabulary grows.
+
+   Still conservative: constraints are compared structurally, so two different
+   spellings of the same restriction look unrelated. That costs findings, never
+   soundness. *)
 let strictly_weaker (a : Ir.condition) (b : Ir.condition) : bool =
-  match (a, b) with Ir.True, Ir.Requires_auth -> true | _ -> false
+  let ca = constraints a and cb = constraints b in
+  subset ca cb && not (subset cb ca)
 
 (* Pairs worth asking the solver about. Pruning is purely static and only removes
    pairs whose query could not be interesting:
