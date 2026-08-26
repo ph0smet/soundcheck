@@ -172,9 +172,27 @@ let guard_condition (service : Ast.service) (route : Ast.route) : Ir.condition =
    left incomparable rather than ranked against each other. Equal regex_priority
    also leaves two regex routes tied, since the next tiebreak (max_uri_length over
    a pattern) is not something we can justify. *)
-let priority_of ~(regex_priority : int) (route : Ast.route) (path : string option)
-    : Ir.priority =
-  let shape = if route.methods = [] then 0 else 1 in
+(* Routing criteria Kong matches on that we do NOT model: hosts, SNIs, headers.
+   Ignoring them makes [match_] an OVER-approximation, which is safe where it
+   appears positively but NOT where it appears negated, in the suppression term
+   of {!Ir.selected}. Over-approximating a suppressor's match shrinks everything
+   below it and can hide a violation — a false proof, demonstrated on a config
+   where a host-scoped guarded route suppressed an open one.
+
+   So a rule carrying an unmodelled routing constraint is given a UNIQUE shape,
+   making it incomparable with every other rule: it neither suppresses nor is
+   suppressed, and the encoding degrades to the sound union around it. Precision
+   is lost exactly where the config says something we cannot read. *)
+let unmodelled_match (route : Ast.route) : bool =
+  route.hosts <> [] || route.snis <> [] || route.has_headers
+
+let priority_of ~(regex_priority : int) ~(index : int) (route : Ast.route)
+    (path : string option) : Ir.priority =
+  let shape =
+    if unmodelled_match route then -(index + 1)
+    else if route.methods = [] then 0
+    else 1
+  in
   match path with
   | None -> { Ir.shape; tier = 0; rank = 0 }
   | Some p when Fragment.is_regex_path p ->
@@ -187,7 +205,8 @@ let priority_of ~(regex_priority : int) (route : Ast.route) (path : string optio
    preserving under the current flat-OR encoder since (or (or p1 p2)) = (or p1 p2).
    Both rules keep the route's name as [id], so counterexample lifting is
    unaffected. *)
-let rules_of_route (service : Ast.service) (route : Ast.route) : Ir.rule list =
+let rules_of_route ~(index : int) (service : Ast.service) (route : Ast.route) :
+    Ir.rule list =
   let paths =
     match route.paths with [] -> [ None ] | ps -> List.map (fun p -> Some p) ps
   in
@@ -199,17 +218,22 @@ let rules_of_route (service : Ast.service) (route : Ast.route) : Ir.rule list =
       { id = route.name;
         match_ = match_condition path route;
         guard;
-        priority = priority_of ~regex_priority:route.regex_priority route path;
+        priority = priority_of ~regex_priority:route.regex_priority ~index route path;
         decision = Ir.Allow;
         rate_limited;
         targets_admin })
     paths
 
 let to_policy (cfg : Ast.config) : Ir.policy =
+  (* [index] is a config-wide route counter, used only to hand unmodelled-match
+     routes a shape nothing else shares. *)
+  let index = ref (-1) in
   let rules =
     List.concat_map
       (fun (service : Ast.service) ->
-        List.concat_map (rules_of_route service) service.routes)
+        List.concat_map
+          (fun route -> incr index; rules_of_route ~index:!index service route)
+          service.routes)
       cfg.services
   in
   { rules; default = Ir.Deny }

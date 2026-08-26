@@ -81,7 +81,7 @@ Requires OCaml 5.x, dune, the `yaml` opam library, and the **`z3` CLI binary** o
 brew install z3                 # or: apt install z3
 opam install dune yaml
 dune build
-dune test                       # runs the 31-case corpus regression gate
+dune test                       # runs the 32-case corpus regression gate
 ```
 
 Verify a config:
@@ -220,7 +220,13 @@ are untouched, and the property templates above come along for free.
 This is an early project and the boundaries are worth stating plainly.
 
 - **Routing is modelled over path and method only.** Host, header and SNI matching, along
-  with `strip_path` and `path_handling`, are out of scope for v0.
+  with `strip_path` and `path_handling`, are out of scope for v0. A route carrying one of
+  those is therefore given a rank incomparable with every other route, so it neither
+  suppresses nor is suppressed. That is not caution: ignoring a routing constraint makes
+  `match_` an over-approximation, which is harmless where it appears positively but not
+  where it appears *negated* in the suppression term, and an over-approximated suppressor
+  hides whatever sits below it. Surveying Kong's own repositories found hosts on ~64% of
+  routes, so this is a common shape rather than a corner case.
 - **Route priority is derived from prefix length only.** Routing is winner-takes-all, as a
   real gateway does it, but Kong also ranks on the number of match criteria, which is not
   modelled. Rather than guess an order, unmodelled cases are left as **ties**, and a tie
@@ -277,7 +283,7 @@ This is an early project and the boundaries are worth stating plainly.
 
 ## Testing
 
-`bench/kong/cases/` holds 31 labeled cases, each a config plus a golden `expected.json`
+`bench/kong/cases/` holds 32 labeled cases, each a config plus a golden `expected.json`
 produced by the engine and hand-checked against intent. They span the real
 misconfiguration shapes: a missing plugin, service versus route-level auth inheritance, an
 open sibling route, a method-specific gap (`GET` guarded, `POST` open), a leak in a second
