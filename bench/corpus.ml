@@ -85,7 +85,8 @@ let request_of (ce : Report.counterexample) : Ir.request =
        else Ir.Authenticated "user");
     action = ce.action;
     resource = ce.path;
-    context = [] }
+    context = [];
+    source = ce.source_ip }
 
 (* Is the reported counterexample a genuine one? Checked with {!Ir.evaluate}, the
    concrete reference semantics, which is independent of the SMT encoding — so

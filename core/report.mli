@@ -16,6 +16,10 @@ type counterexample = {
           request but is outranked by [route]. [None] for properties that name a
           single location. *)
   shadowed_service : string option;
+  source_ip        : int32;
+      (** IPv4 source address of the violating request, rendered dotted-quad in
+          JSON. Meaningful only for properties that constrain it; otherwise the
+          solver was free to pick any value. *)
   note             : string;  (** human-readable, connector-lifted explanation *)
 }
 (** A concrete violating request, lifted into the connector's vocabulary.
@@ -44,8 +48,9 @@ val to_json : t -> string
 (** The stable, versioned JSON contract:
     {[ { "result": "violated|proved|unknown", "schema_version": 1,
          "property": "...",
-         "counterexample": { "principal", "action", "path", "route", "service",
-                             "shadowed_route", "shadowed_service" } } ]}
+         "counterexample": { "principal", "action", "path", "source_ip",
+                             "route", "service", "shadowed_route",
+                             "shadowed_service" } } ]}
     Every key is emitted unconditionally, [null] when absent, so consumers never
     probe for existence. [counterexample] is [null] for [Proved]; for [Unknown] a
     ["reason"] field carries the explanation. Emitted with a hand-rolled encoder

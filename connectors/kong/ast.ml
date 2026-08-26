@@ -5,7 +5,16 @@
 (* [enabled] mirrors Kong's own field, which defaults to true when omitted. A
    plugin with [enabled = false] is configured but NOT enforced by Kong, so it
    must not count as authentication (or as a rate limit) during lowering. *)
-type plugin = { name : string; enabled : bool }
+type plugin = {
+  name    : string;
+  enabled : bool;
+  allow   : string list;
+      (* ip-restriction's config.allow — IPs or CIDRs. A whitelist: when present,
+         anything not listed is refused. Empty for other plugins. *)
+  deny    : string list;
+      (* ip-restriction's config.deny — checked BEFORE allow, so a listed address
+         is refused outright. Empty for other plugins. *)
+}
 
 type route = {
   name           : string;
@@ -20,6 +29,7 @@ type route = {
 
 type service = {
   name    : string;
+  url     : string;        (* upstream the service proxies to *)
   routes  : route list;
   plugins : plugin list;   (* service-level plugins (apply to all its routes) *)
 }

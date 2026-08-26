@@ -22,7 +22,15 @@ let plugins_of (v : Yaml.value option) : Ast.plugin list =
     List.filter_map
       (fun x ->
         match member "name" x with
-        | Some (`String n) -> Some ({ name = n; enabled = enabled_of x } : Ast.plugin)
+        | Some (`String n) ->
+          let cfg = member "config" x in
+          let list_in key =
+            match cfg with Some c -> string_list (member key c) | None -> []
+          in
+          Some
+            ({ name = n; enabled = enabled_of x;
+               allow = list_in "allow"; deny = list_in "deny" }
+              : Ast.plugin)
         | _ -> None)
       xs
   | _ -> []
@@ -49,6 +57,7 @@ let route_of (v : Yaml.value) : Ast.route =
 let service_of (v : Yaml.value) : Ast.service =
   {
     name = name_of v ~default:"<unnamed-service>";
+    url = (match member "url" v with Some (`String u) -> u | _ -> "");
     routes =
       (match member "routes" v with Some (`A xs) -> List.map route_of xs | _ -> []);
     plugins = plugins_of (member "plugins" v);

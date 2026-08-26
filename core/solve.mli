@@ -4,6 +4,7 @@ type model = {
   path    : string;
   method_ : string;
   is_anon : bool;
+  src_ip  : int32;   (** IPv4 source address of the violating request *)
 }
 (** A concrete counterexample request extracted from a [sat] model. *)
 

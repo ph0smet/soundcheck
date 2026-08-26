@@ -44,8 +44,18 @@ let no_auth_missing =
    [culprit] selects the offending route and [missing] names what it lacks, so
    the same lift serves different properties (auth vs rate-limiting). *)
 let counterexample ?(culprit = no_auth_culprit) ?(missing = no_auth_missing)
-    (cfg : Ast.config) (m : Solve.model) : Report.counterexample =
+    ?(show_source = false) (cfg : Ast.config) (m : Solve.model) :
+    Report.counterexample =
   let principal = if m.is_anon then "anonymous" else "authenticated" in
+  (* [show_source] adds the address to the human note only, for properties whose
+     whole point is WHERE the request came from. It must not touch [principal]:
+     that is a structured field with its own vocabulary. Naming an address the
+     property never constrained would be noise, since the solver picked it
+     freely. *)
+  let origin =
+    if show_source then Printf.sprintf "from %s, " (Cidr.string_of_ip m.src_ip)
+    else ""
+  in
   let meth = if m.method_ = "" then "<any-method>" else m.method_ in
   match offending_route ~culprit cfg m.path with
   | Some (service, route) ->
@@ -56,10 +66,11 @@ let counterexample ?(culprit = no_auth_culprit) ?(missing = no_auth_missing)
       service = Some service.name;
       shadowed_route = None;
       shadowed_service = None;
+      source_ip = m.src_ip;
       note =
         Printf.sprintf
-          "%s request %s %s is ALLOWED via route %S (service %S) — %s"
-          principal meth m.path route.name service.name missing;
+          "%s%s request %s %s is ALLOWED via route %S (service %S) — %s"
+          origin principal meth m.path route.name service.name missing;
     }
   | None ->
     { Report.principal;
@@ -69,6 +80,7 @@ let counterexample ?(culprit = no_auth_culprit) ?(missing = no_auth_missing)
       service = None;
       shadowed_route = None;
       shadowed_service = None;
+      source_ip = m.src_ip;
       note =
         Printf.sprintf
           "%s request %s %s is ALLOWED (no matching Kong route identified for \
@@ -116,6 +128,7 @@ let shadowing_counterexample (cfg : Ast.config) (pair : Shadowing.pair)
     service = service_of_route cfg serving;
     shadowed_route = Some written;
     shadowed_service = service_of_route cfg written;
+    source_ip = m.src_ip;
     note =
       Printf.sprintf
         "%s %s can be served by route %S, which is more permissive and %s — the \

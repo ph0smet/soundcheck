@@ -2,6 +2,7 @@ type model = {
   path    : string;
   method_ : string;
   is_anon : bool;
+  src_ip  : int32;
 }
 
 type result =
@@ -79,6 +80,34 @@ let extract_bool hay key =
     else if j + 5 <= n && String.sub hay j 5 = "false" then Some false
     else None
 
+(* A bitvector value from [get-value]. z3 prints these as #x0a000001 or, for
+   widths that are not a multiple of four, #b0101... — both are handled. *)
+let extract_bv hay key =
+  let tag = "(" ^ key ^ " " in
+  match find_sub hay tag with
+  | None -> None
+  | Some i ->
+    let j = skip_ws hay (i + String.length tag) in
+    let n = String.length hay in
+    if j + 2 < n && hay.[j] = '#' && (hay.[j + 1] = 'x' || hay.[j + 1] = 'b') then begin
+      let base = if hay.[j + 1] = 'x' then 16 else 2 in
+      let k = ref (j + 2) in
+      let acc = ref 0L in
+      let digit c =
+        if c >= '0' && c <= '9' then Some (Char.code c - Char.code '0')
+        else if c >= 'a' && c <= 'f' then Some (Char.code c - Char.code 'a' + 10)
+        else if c >= 'A' && c <= 'F' then Some (Char.code c - Char.code 'A' + 10)
+        else None
+      in
+      let ok = ref true in
+      while !k < n && (match digit hay.[!k] with
+                       | Some d when d < base -> acc := Int64.add (Int64.mul !acc (Int64.of_int base)) (Int64.of_int d); true
+                       | _ -> false) do incr k done;
+      if !k = j + 2 then ok := false;
+      if !ok then Some (Int64.to_int32 !acc) else None
+    end
+    else None
+
 (* Is the first non-whitespace token exactly [word]? *)
 let first_token_is hay word =
   let i = skip_ws hay 0 in
@@ -104,7 +133,8 @@ let check ?(z3 = "z3") ?emit_smt (smtlib : string) : result =
     let path = Option.value ~default:"" (extract_string out "path") in
     let method_ = Option.value ~default:"" (extract_string out "method") in
     let is_anon = Option.value ~default:false (extract_bool out "is_anon") in
-    Violated { path; method_; is_anon }
+    let src_ip = Option.value ~default:0l (extract_bv out "src_ip") in
+    Violated { path; method_; is_anon; src_ip }
   else Unknown (String.trim out)
 
 let string_of_result = function
