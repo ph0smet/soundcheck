@@ -53,6 +53,21 @@ type condition =
   | And of condition list
   | Or  of condition list
 
+type priority = {
+  shape : int;
+      (** Rules of different shape are INCOMPARABLE — no order is claimed between
+          them at all. Use it for target distinctions whose relative ranking is
+          genuinely unknown (e.g. Kong orders routes into categories by which
+          criteria they use, and that category order is not modelled). *)
+  tier  : int;  (** higher wins, within one shape *)
+  rank  : int;  (** higher wins, within one tier *)
+}
+
+val outranks : priority -> priority -> bool
+(** Strictly outranks: same shape, and lexicographically greater on (tier, rank).
+    False for equal or incomparable priorities, which is what makes an unknown
+    order degrade to a union rather than a guess. *)
+
 type rule = {
   id           : string;      (** connector-facing identifier (e.g. route name) *)
   match_       : condition;
@@ -65,13 +80,15 @@ type rule = {
   guard        : condition;
       (** POLICY applied once this rule serves the request (e.g. Requires_auth).
           Failing the guard denies the request; it does not re-route it. *)
-  priority     : int;
-      (** Higher wins when several rules match. EQUAL priority means "order
-          unknown", not "same rank": the encoder only suppresses STRICTLY
-          higher-priority rules, so tied rules stay simultaneously selectable and
-          the encoding degrades to a sound union over the tied set. Connectors
-          must therefore assign distinct priorities only where the target's
-          ordering is actually known, and tie otherwise. *)
+  priority     : priority;
+      (** Which rule wins when several match. The encoder suppresses only rules
+          that STRICTLY {!outranks} another, so anything the connector cannot
+          order — equal or incomparable — stays simultaneously selectable and the
+          encoding degrades to a sound union. Connectors must order two rules only
+          where the target's own ordering is known, and leave them unordered
+          otherwise: a wrong order is unsound in both directions, since ranking a
+          rule too high hides violations behind it and too low hides violations
+          through it. *)
   decision     : decision;     (** effect produced when it applies *)
   rate_limited : bool;
       (** metadata (not a reachability guard): a rate-limiting / throttling plugin
@@ -89,8 +106,8 @@ val matches : condition -> request -> bool
 
 val selected : policy -> request -> rule -> bool
 (** Whether [rule] is the one that SERVES [request]: its routing criteria match
-    and no strictly higher-priority rule's do. Rules of equal priority are all
-    selectable, since equal priority encodes "order unknown". *)
+    and no rule that {!outranks} it does. Rules whose order is unknown — equal or
+    incomparable — are all selectable. *)
 
 val evaluate : policy -> request -> decision
 (** Reference (ground-truth) decision function. A rule counts when it both

@@ -1,0 +1,21 @@
+# Scenario: two regex routes with the SAME language, one guarded and one open.
+# Which serves is decided by Kong's declared regex_priority field, and the
+# guarded route declares the higher value, so the open route never serves.
+#
+# Pins that the declared number is read rather than a tie assumed: set both
+# priorities equal and the order becomes undetermined, either may serve, and this
+# turns VIOLATED.
+# Expected: PROVED (no-anonymous-access).
+_format_version: "3.0"
+services:
+  - name: admin-api
+    url: http://admin-backend
+    routes:
+      - name: admin-guarded
+        paths: ["~/admin/\\d+"]
+        regex_priority: 100
+        plugins:
+          - name: key-auth
+      - name: admin-open
+        paths: ["~/admin/\\d+"]
+        regex_priority: 1

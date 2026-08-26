@@ -39,12 +39,14 @@ let strictly_weaker (a : Ir.condition) (b : Ir.condition) : bool =
    - a strictly weaker guard on i, else serving the request is no loss;
    - different routes — a route split across several paths cannot shadow itself.
 
-   Note [>=], not [>]. Equal priority means the connector could not establish an
-   order (Kong breaks such ties on a creation timestamp that a declarative config
-   does not carry), so for two overlapping rules EITHER may serve. If the weaker
-   one does, the guard is bypassed. Requiring a strict outranking here would
-   report [proved] for a config whose behaviour is genuinely undetermined, which
-   is the false-proof direction. Reporting it costs a review; missing it does not.
+   Note the test is "k does not outrank i", not "i outranks k". That admits three
+   cases: i genuinely outranks k, the two are equal, and the two are incomparable.
+   The latter two both mean the connector could not establish an order (Kong
+   breaks such ties on a creation timestamp a declarative config does not carry),
+   so EITHER may serve — and if the weaker one does, the guard is bypassed.
+   Requiring a strict outranking would report [proved] for a config whose
+   behaviour is genuinely undetermined, which is the false-proof direction.
+   Reporting it costs a review; missing it does not.
 
    This is the opposite of the choice {!Smt_encode.selected} makes about ties, and
    deliberately so: there, admitting both rules over-approximates what is
@@ -59,7 +61,7 @@ let candidates (p : Ir.policy) : pair list =
       List.filter_map
         (fun (k : Ir.rule) ->
           if
-            i.Ir.priority >= k.Ir.priority
+            (not (Ir.outranks k.Ir.priority i.Ir.priority))
             && i.Ir.id <> k.Ir.id
             && i.Ir.decision = Ir.Allow
             && k.Ir.decision = Ir.Allow

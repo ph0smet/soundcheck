@@ -8,10 +8,14 @@
 type plugin = { name : string; enabled : bool }
 
 type route = {
-  name    : string;
-  paths   : string list;
-  methods : string list;   (* empty = any method *)
-  plugins : plugin list;   (* route-level plugins *)
+  name           : string;
+  paths          : string list;
+  methods        : string list;   (* empty = any method *)
+  plugins        : plugin list;   (* route-level plugins *)
+  regex_priority : int;
+      (* Kong's declared tiebreak between REGEX routes (schema default 0); it is
+         not consulted for plain-prefix routes. Reading the number the config
+         states beats inferring one. *)
 }
 
 type service = {

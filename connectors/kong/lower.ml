@@ -81,36 +81,37 @@ let match_condition (path : string option) (route : Ast.route) : Ir.condition =
 let guard_condition (service : Ast.service) (route : Ast.route) : Ir.condition =
   if requires_auth service route then Ir.Requires_auth else Ir.True
 
-(* Kong's traditional router prefers the LONGER prefix, so path length is a
-   priority we can justify. Its other ranking inputs (number of match criteria,
-   and regex_priority) are NOT modelled: guessing an order we do not know would be
-   unsound, whereas leaving rules tied is always safe because ties degrade to a
-   union. A route with no paths matches everything and is the weakest candidate. *)
-let priority_of_path = function None -> 0 | Some p -> String.length p
+(* Route ranking, read off Kong's own comparator (kong/router/traditional.lua
+   [sort_routes]) rather than guessed:
 
-(* REGEX PATHS GET NO PRIORITY, AND THAT IS A SOUNDNESS REQUIREMENT, not caution.
-   Pattern length says nothing about how Kong ranks a regex route (real Kong uses a
-   separate regex_priority field and orders regexes against prefixes by its own
-   rules), so any number we invent here is a guess — and a wrong guess is unsound
-   in BOTH directions:
+     submatch_weight DESC  >  header count DESC  >  regex_priority DESC
+       >  max_uri_length DESC  >  created_at ASC
 
-   - too high, and the regex route suppresses others, shrinking their [sel] and
-     hiding violations reachable through them;
-   - too low, and higher-priority prefixes suppress the regex route, hiding
-     violations reachable through it.
+   and [MATCH_SUBRULES] has only three flags — HAS_REGEX_URI, PLAIN_HOSTS_ONLY,
+   HAS_WILDCARD_HOST_PORT. Two concern hosts, which we do not model; the third
+   means a REGEX PATH RAISES submatch_weight. Since that term is compared first,
+   a regex route outranks every plain-prefix route no matter how long the prefix
+   is — surprising, but it is what the source says. Methods contribute nothing to
+   submatch_weight, so they cannot disturb prefix ordering.
 
-   Either way a false proof. The only safe assignment when the order is unknown is
-   a TIE, and because selection suppresses strictly higher priorities only, tying
-   everything degrades that config to the flat union — a sound over-approximation
-   that can over-report but never miss. So a config containing any regex path is
-   levelled: precision is lost exactly where we lack the facts to be precise. *)
-let has_regex_path (cfg : Ast.config) : bool =
-  List.exists
-    (fun (s : Ast.service) ->
-      List.exists
-        (fun (r : Ast.route) -> List.exists Fragment.is_regex_path r.paths)
-        s.routes)
-    cfg.services
+   Hence [tier]: regex routes sit above prefix routes. Within regex routes the
+   declared [regex_priority] is the rank (Kong consults it only for regex routes).
+   Within prefix routes the rank is path length, which is [max_uri_length].
+
+   [shape] carries what we still cannot order. Kong groups routes into CATEGORIES
+   by which criteria they use and iterates categories in an order we have not
+   modelled, so a route constraining methods and one not constraining them are
+   left incomparable rather than ranked against each other. Equal regex_priority
+   also leaves two regex routes tied, since the next tiebreak (max_uri_length over
+   a pattern) is not something we can justify. *)
+let priority_of ~(regex_priority : int) (route : Ast.route) (path : string option)
+    : Ir.priority =
+  let shape = if route.methods = [] then 0 else 1 in
+  match path with
+  | None -> { Ir.shape; tier = 0; rank = 0 }
+  | Some p when Fragment.is_regex_path p ->
+    { Ir.shape; tier = 1; rank = regex_priority }
+  | Some p -> { Ir.shape; tier = 0; rank = String.length p }
 
 (* One IR rule per (route, path) rather than per route. A Kong route may carry
    several paths of different lengths, which would leave a single rule with no
@@ -118,8 +119,7 @@ let has_regex_path (cfg : Ast.config) : bool =
    preserving under the current flat-OR encoder since (or (or p1 p2)) = (or p1 p2).
    Both rules keep the route's name as [id], so counterexample lifting is
    unaffected. *)
-let rules_of_route ~ranked (service : Ast.service) (route : Ast.route) :
-    Ir.rule list =
+let rules_of_route (service : Ast.service) (route : Ast.route) : Ir.rule list =
   let paths =
     match route.paths with [] -> [ None ] | ps -> List.map (fun p -> Some p) ps
   in
@@ -130,17 +130,16 @@ let rules_of_route ~ranked (service : Ast.service) (route : Ast.route) :
       { id = route.name;
         match_ = match_condition path route;
         guard;
-        priority = (if ranked then priority_of_path path else 0);
+        priority = priority_of ~regex_priority:route.regex_priority route path;
         decision = Ir.Allow;
         rate_limited })
     paths
 
 let to_policy (cfg : Ast.config) : Ir.policy =
-  let ranked = not (has_regex_path cfg) in
   let rules =
     List.concat_map
       (fun (service : Ast.service) ->
-        List.concat_map (rules_of_route ~ranked service) service.routes)
+        List.concat_map (rules_of_route service) service.routes)
       cfg.services
   in
   { rules; default = Ir.Deny }

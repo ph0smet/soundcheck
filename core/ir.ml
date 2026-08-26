@@ -27,11 +27,24 @@ type condition =
   | And of condition list
   | Or  of condition list
 
+type priority = {
+  shape : int;
+  tier  : int;
+  rank  : int;
+}
+
+(* Strictly outranks. Rules of different [shape] are INCOMPARABLE, not equal:
+   the connector could not establish any order between them, so neither
+   suppresses the other and the encoding degrades to the sound union over that
+   pair. Within one shape the order is lexicographic on (tier, rank). *)
+let outranks (a : priority) (b : priority) : bool =
+  a.shape = b.shape && (a.tier > b.tier || (a.tier = b.tier && a.rank > b.rank))
+
 type rule = {
   id           : string;
   match_       : condition;
   guard        : condition;
-  priority     : int;
+  priority     : priority;
   decision     : decision;
   rate_limited : bool;
 }
@@ -65,7 +78,7 @@ let selected (p : policy) (r : request) (rule : rule) : bool =
   matches rule.match_ r
   && not
        (List.exists
-          (fun (o : rule) -> o.priority > rule.priority && matches o.match_ r)
+          (fun (o : rule) -> outranks o.priority rule.priority && matches o.match_ r)
           p.rules)
 
 let evaluate (p : policy) (r : request) : decision =

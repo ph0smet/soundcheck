@@ -30,12 +30,20 @@ let plugins_of (v : Yaml.value option) : Ast.plugin list =
 let name_of v ~default =
   match member "name" v with Some (`String s) -> s | _ -> default
 
+(* YAML numbers arrive as floats; Kong's schema default is 0 when absent. *)
+let int_field key v ~default =
+  match member key v with
+  | Some (`Float f) -> int_of_float f
+  | Some (`String s) -> (try int_of_string (String.trim s) with _ -> default)
+  | _ -> default
+
 let route_of (v : Yaml.value) : Ast.route =
   {
     name = name_of v ~default:"<unnamed-route>";
     paths = string_list (member "paths" v);
     methods = string_list (member "methods" v);
     plugins = plugins_of (member "plugins" v);
+    regex_priority = int_field "regex_priority" v ~default:0;
   }
 
 let service_of (v : Yaml.value) : Ast.service =
