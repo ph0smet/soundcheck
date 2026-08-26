@@ -21,6 +21,9 @@ type route = {
   paths          : string list;
   methods        : string list;   (* empty = any method *)
   plugins        : plugin list;   (* route-level plugins *)
+  hosts          : string list;   (* NOT modelled — see Lower.unmodelled_match *)
+  snis           : string list;   (* NOT modelled *)
+  has_headers    : bool;          (* NOT modelled *)
   regex_priority : int;
       (* Kong's declared tiebreak between REGEX routes (schema default 0); it is
          not consulted for plain-prefix routes. Reading the number the config

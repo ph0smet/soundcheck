@@ -1,5 +1,13 @@
 (test
  (name corpus)
+ (modules corpus)
  (libraries soundcheck_core soundcheck_kong)
  (deps
   (source_tree kong/cases)))
+
+; Ad-hoc survey of external decK configs — not a gate, run by hand against a
+; directory of real configs. See the header of survey.ml.
+(executable
+ (name survey)
+ (modules survey)
+ (libraries soundcheck_core soundcheck_kong yaml))

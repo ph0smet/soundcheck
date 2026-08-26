@@ -51,6 +51,9 @@ let route_of (v : Yaml.value) : Ast.route =
     paths = string_list (member "paths" v);
     methods = string_list (member "methods" v);
     plugins = plugins_of (member "plugins" v);
+    hosts = string_list (member "hosts" v);
+    snis = string_list (member "snis" v);
+    has_headers = (match member "headers" v with Some (`O (_ :: _)) -> true | _ -> false);
     regex_priority = int_field "regex_priority" v ~default:0;
   }
 

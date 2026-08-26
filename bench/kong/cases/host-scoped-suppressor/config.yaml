@@ -1,0 +1,30 @@
+# Scenario: a SOUNDNESS regression test, found by surveying real decK configs
+# (hosts appear on ~64% of routes in Kong's own repositories, so this is not a
+# corner case).
+#
+# admin-guarded is scoped to one host AND requires auth, and being a regex route
+# it outranks the open prefix route. Kong only lets it serve requests whose Host
+# is admin.internal; every other host falls through to admin-open, unauthenticated.
+#
+# Soundcheck does not model hosts, which makes match_ an over-approximation. That
+# is harmless where match_ appears positively, but it also appears NEGATED in the
+# suppression term, and over-approximating a suppressor hides what is below it.
+# This config previously reported PROVED — a false proof. Routes carrying an
+# unmodelled routing constraint are now incomparable, so they neither suppress
+# nor are suppressed.
+# Expected: VIOLATED (no-anonymous-access) via route "admin-open".
+_format_version: "3.0"
+services:
+  - name: admin-api
+    url: http://admin-backend
+    routes:
+      - name: admin-guarded
+        hosts:
+          - admin.internal
+        paths:
+          - "~/admin"
+        plugins:
+          - name: key-auth
+      - name: admin-open
+        paths:
+          - /admin
