@@ -45,6 +45,13 @@ let property_of dir : Verify.property * Property.t option =
   | "rate-limit-on-public" ->
     (Verify.Rate_limit_on_public, Some Property.rate_limit_on_public)
   | "no-shadowed-routes" -> (Verify.No_shadowed_routes, None)
+  | "admin-api-not-reachable" ->
+    (* Corpus cases use a fixed trusted block so the golden is stable. *)
+    let trusted =
+      match Cidr.parse "10.0.0.0/8" with Ok c -> c | Error e -> failwith e
+    in
+    ( Verify.Admin_api_not_reachable trusted,
+      Some (Property.admin_api_not_reachable ~trusted) )
   | other -> failwith (Printf.sprintf "%s: unknown property %S" dir other)
 
 (* Replace the string value of ["key"] with a placeholder. The JSON comes from our

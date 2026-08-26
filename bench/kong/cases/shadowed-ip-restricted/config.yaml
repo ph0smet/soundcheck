@@ -1,0 +1,24 @@
+# Scenario: shadowing where the bypassed guard is a SOURCE restriction rather
+# than authentication. An open deeper route outranks an ip-restricted one, so
+# traffic the restriction was written to confine is served without it.
+#
+# Pins that the guard comparison is set-based over constraints rather than a
+# match on specific pairs: an earlier version tested literally for
+# (True, Requires_auth) and would report PROVED here, finding nothing.
+# Expected: VIOLATED (no-shadowed-routes), naming both routes.
+_format_version: "3.0"
+services:
+  - name: api
+    url: http://backend:8080
+    routes:
+      - name: api-guarded
+        paths:
+          - /api
+        plugins:
+          - name: ip-restriction
+            config:
+              allow:
+                - 10.0.0.0/8
+      - name: api-open
+        paths:
+          - /api/public/feed

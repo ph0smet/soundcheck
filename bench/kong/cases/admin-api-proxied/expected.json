@@ -1,0 +1,1 @@
+{"result":"violated","schema_version":2,"property":"admin-api-not-reachable","counterexample":{"principal":"authenticated","action":"","path":"/kong-admin","source_ip":"245.0.0.0","route":"admin-proxy","service":"kong-admin","shadowed_route":null,"shadowed_service":null}}

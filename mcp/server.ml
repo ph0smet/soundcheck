@@ -114,7 +114,7 @@ let verify_tool () =
                 "enum",
                 J.arr
                   [ J.str "no-anonymous-access"; J.str "rate-limit-on-public";
-                    J.str "no-shadowed-routes" ];
+                    J.str "no-shadowed-routes"; J.str "admin-api-not-reachable" ];
                 "description",
                 J.str
                   "Invariant to verify (default no-anonymous-access): \
@@ -124,14 +124,23 @@ let verify_tool () =
                    route's guard is bypassed by a more permissive route that \
                    outranks it (needs no path_prefix; note that shadowing is \
                    occasionally intentional, e.g. a deliberately public health \
-                   endpoint under an authenticated prefix)." ];
+                   endpoint under an authenticated prefix); \
+                   admin-api-not-reachable = no request from outside \
+                   trusted_cidr may reach a route proxying the Kong Admin API." ];
             "path_prefix",
             J.obj
               [ "type", J.str "string";
                 "description",
                 J.str
                   "For no-anonymous-access: the path prefix that must require \
-                   authentication (default /admin)." ] ];
+                   authentication (default /admin)." ];
+            "trusted_cidr",
+            J.obj
+              [ "type", J.str "string";
+                "description",
+                J.str
+                  "For admin-api-not-reachable: the IPv4 block allowed to reach \
+                   the admin API (default 127.0.0.1/32)." ] ];
         "required", J.arr [ J.str "config" ] ]
   in
   J.obj
@@ -185,6 +194,15 @@ let tool_call json =
         | "no-anonymous-access" -> Some (Verify.No_anonymous_access path_prefix)
         | "rate-limit-on-public" -> Some Verify.Rate_limit_on_public
         | "no-shadowed-routes" -> Some Verify.No_shadowed_routes
+        | "admin-api-not-reachable" -> (
+          let raw =
+            match string_field "trusted_cidr" args with
+            | Some c -> c
+            | None -> "127.0.0.1/32"
+          in
+          match Cidr.parse raw with
+          | Ok c -> Some (Verify.Admin_api_not_reachable c)
+          | Error _ -> None)
         | _ -> None
       in
       (match property with
@@ -192,7 +210,8 @@ let tool_call json =
          tool_error
            ("unknown property: " ^ prop_name
           ^ " (expected \
-             no-anonymous-access|rate-limit-on-public|no-shadowed-routes)")
+             no-anonymous-access|rate-limit-on-public|no-shadowed-routes|\
+             admin-api-not-reachable, and a valid trusted_cidr)")
        | Some property -> (
          match Verify.run ~property config with
          | Error e -> tool_error ("config parse error: " ^ e)

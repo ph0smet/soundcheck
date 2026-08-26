@@ -1,0 +1,18 @@
+# Scenario: the same Admin API route, but ip-restriction confines it to the
+# trusted block. The guard cannot hold for an address outside 10.0.0.0/8, so the
+# route is exempt for free — the same way auth-required routes fall out of
+# rate-limit-on-public.
+# Expected: PROVED (admin-api-not-reachable) for trusted 10.0.0.0/8.
+_format_version: "3.0"
+services:
+  - name: kong-admin
+    url: http://localhost:8001
+    routes:
+      - name: admin-proxy
+        paths:
+          - /kong-admin
+        plugins:
+          - name: ip-restriction
+            config:
+              allow:
+                - 10.0.0.0/8

@@ -9,8 +9,9 @@ let usage () =
     "usage: soundcheck verify <config.yaml> [--property P] [--path-prefix PREFIX]\n\
     \                                       [--format human|json] [--emit-smt PATH]\n\
     \  --property     no-anonymous-access (default) | rate-limit-on-public\n\
-    \                 | no-shadowed-routes\n\
+    \                 | no-shadowed-routes | admin-api-not-reachable\n\
     \  --path-prefix  prefix for no-anonymous-access (default /admin)\n\
+    \  --trusted-cidr for admin-api-not-reachable (default 127.0.0.1/32)\n\
     \  --format       human (default) | json\n\
     \  --emit-smt     write the SMT-LIB2 query to PATH and keep it (audit artifact)\n\
      \n\
@@ -40,12 +41,29 @@ let parse_path_prefix rest =
   in
   find rest
 
+let parse_trusted_cidr rest =
+  let raw =
+    let rec find = function
+      | "--trusted-cidr" :: v :: _ -> v
+      | _ :: tl -> find tl
+      | [] -> "127.0.0.1/32"
+    in
+    find rest
+  in
+  match Cidr.parse raw with
+  | Ok c -> c
+  | Error e ->
+    Printf.eprintf "bad --trusted-cidr %S: %s\n" raw e;
+    exit 2
+
 let parse_property rest : Verify.property =
   let rec find = function
     | "--property" :: "no-anonymous-access" :: _ ->
       Verify.No_anonymous_access (parse_path_prefix rest)
     | "--property" :: "rate-limit-on-public" :: _ -> Verify.Rate_limit_on_public
     | "--property" :: "no-shadowed-routes" :: _ -> Verify.No_shadowed_routes
+    | "--property" :: "admin-api-not-reachable" :: _ ->
+      Verify.Admin_api_not_reachable (parse_trusted_cidr rest)
     | "--property" :: other :: _ ->
       Printf.eprintf
         "unknown --property %S (expected \

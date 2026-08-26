@@ -1,0 +1,19 @@
+# Scenario: ip-restriction used as a DENY list rather than an allow list. Kong
+# checks deny first and refuses listed addresses, but everything unlisted still
+# gets through — so blocking one bad block leaves the whole rest of the internet
+# able to reach the Admin API. A deny list is not a substitute for an allow list.
+# Expected: VIOLATED (admin-api-not-reachable), via some address outside the
+# denied block and outside the trusted one.
+_format_version: "3.0"
+services:
+  - name: kong-admin
+    url: http://localhost:8001
+    routes:
+      - name: admin-proxy
+        paths:
+          - /kong-admin
+        plugins:
+          - name: ip-restriction
+            config:
+              deny:
+                - 203.0.113.0/24
