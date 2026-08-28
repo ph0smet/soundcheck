@@ -1,0 +1,19 @@
+# Scenario: Kong's OWN recommended pattern, from the "Secure the Admin API"
+# hardening guide — expose the Admin API through a route carrying an auth plugin,
+# as an alternative to restricting the network.
+#
+# Pins that the property agrees with that guidance rather than overshooting it.
+# Forbid every untrusted-source request and this arrangement is reported as a
+# violation, which would flag Kong's own documentation. Requiring the request to
+# be ANONYMOUS exempts it for free: the guard cannot hold for an anonymous caller.
+# Expected: PROVED (admin-api-not-reachable).
+_format_version: "3.0"
+services:
+  - name: admin-api
+    url: http://localhost:8001
+    routes:
+      - name: admin-proxy
+        paths:
+          - /admin-api
+        plugins:
+          - name: key-auth

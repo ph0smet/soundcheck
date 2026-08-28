@@ -40,8 +40,13 @@ val rate_limit_on_public : t
     anonymous request cannot reach them). *)
 
 val admin_api_not_reachable : trusted:Cidr.t -> t
-(** Template: no request originating outside [trusted] may reach a route that
-    proxies the administrative API. Encoded as reachability from an untrusted
-    source via an admin-targeting allow rule ([reach_via] = [targets_admin]);
-    routes that already restrict source addresses are exempt for free, since their
-    guard cannot hold for an address they do not permit. *)
+(** Template: no {e anonymous} request originating outside [trusted] may reach a
+    route that proxies the administrative API. Encoded as reachability from an
+    untrusted source via an admin-targeting allow rule
+    ([reach_via] = [targets_admin]).
+
+    Both of Kong's sanctioned protections are then exempt for free — an
+    ip-restricted route's guard cannot hold for an outside address, and an
+    auth-required route's guard cannot hold for an anonymous request. Dropping the
+    anonymity requirement would flag "expose the Admin API behind key-auth", which
+    Kong's own hardening guide recommends. *)

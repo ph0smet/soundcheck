@@ -50,8 +50,8 @@ let resolve (cfg : Ast.config) :
             ~culprit:(fun s _ -> Lower.targets_admin_api s)
             ~show_source:true
             ~missing:
-              "its service proxies the Kong Admin API, and no ip-restriction \
-               confines this source address to the trusted block."
+              "its service proxies the Kong Admin API, with neither an auth \
+               plugin nor an ip-restriction confining it."
             cfg m )
   | No_shadowed_routes -> None
 

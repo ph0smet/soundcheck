@@ -22,23 +22,29 @@ let rate_limit_on_public =
     ~reach_via:(fun (r : Ir.rule) -> not r.rate_limited)
     Ir.Is_anonymous
 
-(* Admin API reachable from outside a trusted address block.
+(* Admin API reachable, unauthenticated, from outside a trusted address block.
 
    Reuses the reduced-reachability trick: [reach_via] narrows the allowed-predicate
    to rules whose route proxies the administrative API, so a satisfying model is
-   "a request from an untrusted address that reaches an admin-targeting route".
-   The forbidden class is therefore just "source outside [trusted]" — the "which
-   routes count" half lives in [reach_via], not in the request predicate.
+   "an anonymous request from an untrusted address that reaches an admin-targeting
+   route". The "which routes count" half lives in [reach_via], not in the request
+   predicate.
 
-   A route that already restricts source addresses is exempt for free: its guard
-   cannot hold for an address outside what it permits, exactly as auth-required
-   routes fall out of rate-limit-on-public. *)
+   [Is_anonymous] is in the forbidden class deliberately, and it is what makes the
+   property agree with Kong's own guidance rather than overshoot it. Kong's "Secure
+   the Admin API" documents TWO sanctioned protections: restrict the network, or
+   expose the Admin API through a route carrying an auth plugin. Forbidding every
+   untrusted-source request would flag that second pattern — Kong's own
+   recommendation — as a violation. Requiring the request to be anonymous exempts
+   both protections for free: an ip-restricted route's guard cannot hold for an
+   outside address, and an auth-required route's guard cannot hold for an
+   anonymous one. What remains flagged is an admin surface with neither. *)
 let admin_api_not_reachable ~(trusted : Cidr.t) =
   must_deny
     ~reach_via:(fun (r : Ir.rule) -> r.targets_admin)
     ~name:"admin-api-not-reachable"
     ~description:
       (Printf.sprintf
-         "The admin API must not be reachable from outside %s"
+         "The admin API must not be reachable, unauthenticated, from outside %s"
          (Cidr.to_string trusted))
-    (Ir.Not (Ir.Source_in trusted))
+    (Ir.And [ Ir.Not (Ir.Source_in trusted); Ir.Is_anonymous ])

@@ -81,7 +81,7 @@ Requires OCaml 5.x, dune, the `yaml` opam library, and the **`z3` CLI binary** o
 brew install z3                 # or: apt install z3
 opam install dune yaml
 dune build
-dune test                       # runs the 32-case corpus regression gate
+dune test                       # runs the 33-case corpus regression gate
 ```
 
 Verify a config:
@@ -178,13 +178,20 @@ against the shared decision IR, so it applies to every connector that lowers int
 | `no-anonymous-access` | shipped | Can any unauthenticated request reach a protected path prefix? |
 | `rate-limit-on-public` | shipped | Is every anonymously-reachable route covered by a rate-limiting plugin? |
 | `no-shadowed-routes` | shipped | Does a permissive route intercept traffic a stricter route was written to handle? |
-| `admin-api-not-reachable` | shipped | Can a request from outside a trusted address block reach a route proxying the Admin API? |
+| `admin-api-not-reachable` | shipped | Can an *anonymous* request from outside a trusted address block reach a route proxying the Admin API? |
 
 `rate-limit-on-public` is encoded with a reduced-reachability filter on allow rules: the
 solver is asked whether a request is reachable *specifically via an unthrottled rule*.
 This fits a structural question into the same per-request existential the engine already
 emits, with no second query engine, and auth-required routes fall out as exempt for free
 since an anonymous request cannot reach them in the first place.
+
+`admin-api-not-reachable` is scoped to agree with Kong's own hardening guide, which
+sanctions two protections for the Admin API: restrict the network, or put the route behind
+an auth plugin. Requiring the violating request to be *anonymous* exempts both for free:
+an ip-restricted route's guard cannot hold for an outside address, and an auth-required
+route's guard cannot hold for an anonymous caller. Without that, the property would report
+a violation on the exact configuration Kong documents as correct.
 
 `no-shadowed-routes` is the one property that takes **no parameter**. The others ask a
 question you have to know to ask: `--path-prefix /admin` only finds holes under `/admin`,
@@ -283,7 +290,7 @@ This is an early project and the boundaries are worth stating plainly.
 
 ## Testing
 
-`bench/kong/cases/` holds 32 labeled cases, each a config plus a golden `expected.json`
+`bench/kong/cases/` holds 33 labeled cases, each a config plus a golden `expected.json`
 produced by the engine and hand-checked against intent. They span the real
 misconfiguration shapes: a missing plugin, service versus route-level auth inheritance, an
 open sibling route, a method-specific gap (`GET` guarded, `POST` open), a leak in a second
