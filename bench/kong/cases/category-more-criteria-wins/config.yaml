@@ -1,0 +1,25 @@
+# Scenario: Kong groups routes into CATEGORIES by which criteria they use and
+# walks them in order of match_weight — the COUNT of criteria kinds — before any
+# within-category tiebreak. So a URI+METHOD route outranks a URI-only route
+# whatever their paths look like.
+#
+# Here the guarded route only claims GET, so GET /admin is served by it and
+# refused, while every other method falls through to the open route. Both facts
+# have to hold: rank the two as unordered and the guarded route stops suppressing
+# anything, rank them the other way and the GET hole disappears.
+# Expected: VIOLATED (no-anonymous-access) via route "any-open", non-GET.
+_format_version: "3.0"
+services:
+  - name: api
+    url: http://backend
+    routes:
+      - name: get-guarded
+        paths:
+          - /admin
+        methods:
+          - GET
+        plugins:
+          - name: key-auth
+      - name: any-open
+        paths:
+          - /admin

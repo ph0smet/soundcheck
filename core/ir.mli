@@ -59,19 +59,23 @@ type condition =
   | Or  of condition list
 
 type priority = {
-  shape : int;
-      (** Rules of different shape are INCOMPARABLE — no order is claimed between
-          them at all. Use it for target distinctions whose relative ranking is
-          genuinely unknown (e.g. Kong orders routes into categories by which
-          criteria they use, and that category order is not modelled). *)
-  tier  : int;  (** higher wins, within one shape *)
-  rank  : int;  (** higher wins, within one tier *)
+  comparable : bool;
+      (** [false] marks a rule the connector cannot order against anything,
+          because one of its match criteria is not modelled. Such a rule neither
+          suppresses nor is suppressed. This is a soundness requirement, not
+          caution: an unmodelled criterion makes [match_] an over-approximation,
+          harmless where it appears positively but hiding violations where it
+          appears negated in the suppression term. *)
+  key        : int list;
+      (** The target's own ordering, most significant first, higher wins. A list
+          rather than named fields because targets rank on several levels and the
+          number of them is the target's business — Kong uses six. *)
 }
 
 val outranks : priority -> priority -> bool
-(** Strictly outranks: same shape, and lexicographically greater on (tier, rank).
-    False for equal or incomparable priorities, which is what makes an unknown
-    order degrade to a union rather than a guess. *)
+(** Strictly outranks: both comparable, and lexicographically greater on [key].
+    False for equal, incomparable, or differently-shaped keys, which is what makes
+    an unknown order degrade to a union rather than a guess. *)
 
 type rule = {
   id           : string;      (** connector-facing identifier (e.g. route name) *)

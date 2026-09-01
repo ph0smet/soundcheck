@@ -81,7 +81,7 @@ Requires OCaml 5.x, dune, the `yaml` opam library, and the **`z3` CLI binary** o
 brew install z3                 # or: apt install z3
 opam install dune yaml
 dune build
-dune test                       # runs the 33-case corpus regression gate
+dune test                       # runs the 34-case corpus regression gate
 ```
 
 Verify a config:
@@ -254,15 +254,15 @@ This is an early project and the boundaries are worth stating plainly.
   (`a*+a` never matches `aa`), so those report `unknown` naming the route and the
   construct. Rejection is whole-config: the route we cannot model may be the one that
   decides the property.
-- **Route ranking follows Kong's comparator, and stops where that comparator does.** A
-  regex path raises `submatch_weight`, which Kong compares first, so a regex route
-  outranks every prefix route however long the prefix. Regex routes are then ordered by
-  the declared `regex_priority`, and prefix routes by path length. What is *not* modelled
-  is left deliberately unordered rather than guessed: Kong groups routes into categories
-  by which criteria they use and iterates those in an order we have not established, so
-  a route constraining methods and one not constraining them are incomparable. Unordered
-  rules never suppress each other, degrading to the flat union, which can over-report but
-  never miss.
+- **Route ranking follows Kong's own two layers.** Routes are grouped into categories by
+  which criteria they use, and categories are walked by criteria *count* first, so a
+  route matching on path and method outranks one matching on path alone whatever their
+  paths look like. Within a category the order is `submatch_weight` (a regex path raises
+  it, so a regex route outranks a prefix route however long the prefix), then
+  `regex_priority`, then path length. `created_at` breaks Kong's remaining ties and is
+  absent from a declarative config, so rules equal on everything above it stay tied.
+  A rule whose match criteria include something unmodelled is left unordered against
+  everything, so it neither suppresses nor is suppressed.
 - **Request-path normalization is not modelled, which costs precision rather than
   soundness.** Kong normalizes the request URI (percent-decoding, dot-segment removal,
   slash merging) before matching, but does *not* normalize declared route paths.
@@ -290,7 +290,7 @@ This is an early project and the boundaries are worth stating plainly.
 
 ## Testing
 
-`bench/kong/cases/` holds 33 labeled cases, each a config plus a golden `expected.json`
+`bench/kong/cases/` holds 34 labeled cases, each a config plus a golden `expected.json`
 produced by the engine and hand-checked against intent. They span the real
 misconfiguration shapes: a missing plugin, service versus route-level auth inheritance, an
 open sibling route, a method-specific gap (`GET` guarded, `POST` open), a leak in a second

@@ -1,0 +1,1 @@
+{"result":"violated","schema_version":2,"property":"no-anonymous-access","counterexample":{"principal":"anonymous","action":"","path":"/admin","source_ip":"0.0.0.0","route":"any-open","service":"api","shadowed_route":null,"shadowed_service":null}}
