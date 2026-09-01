@@ -188,7 +188,7 @@ let () =
   Printf.printf "\nROUTING DIMENSIONS (of %d routes)\n" !routes;
   Printf.printf "  methods   %5d  (%.1f%%)   modelled\n" !with_methods
     (pct !with_methods !routes);
-  Printf.printf "  hosts     %5d  (%.1f%%)   NOT modelled\n" !with_hosts
+  Printf.printf "  hosts     %5d  (%.1f%%)   modelled\n" !with_hosts
     (pct !with_hosts !routes);
   Printf.printf "  headers   %5d  (%.1f%%)   NOT modelled\n" !with_headers
     (pct !with_headers !routes);
