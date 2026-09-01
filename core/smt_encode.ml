@@ -21,6 +21,7 @@ let rec cond (c : Ir.condition) : string =
   | Ir.Is_anonymous -> "is_anon"
   | Ir.Requires_auth -> "(not is_anon)"
   | Ir.Source_in c -> Cidr.to_smt ~var:"src_ip" c
+  | Ir.Host_matches re -> Printf.sprintf "(str.in_re host %s)" (Regex.to_smt re)
   | Ir.Not c -> Printf.sprintf "(not %s)" (cond c)
   | Ir.And [] -> "true"
   | Ir.And cs -> Printf.sprintf "(and %s)" (String.concat " " (List.map cond cs))
@@ -90,11 +91,12 @@ let preamble b title =
   Buffer.add_string b "(declare-const is_anon Bool)\n";
   (* A bitvector, so CIDR membership is a mask-and-compare rather than string
      arithmetic. Declared for every query; unused by properties that ignore it. *)
-  Buffer.add_string b "(declare-const src_ip (_ BitVec 32))\n"
+  Buffer.add_string b "(declare-const src_ip (_ BitVec 32))\n";
+  Buffer.add_string b "(declare-const host String)\n"
 
 let epilogue b =
   Buffer.add_string b "(check-sat)\n";
-  Buffer.add_string b "(get-value (path method is_anon src_ip))\n";
+  Buffer.add_string b "(get-value (path method is_anon src_ip host))\n";
   Buffer.contents b
 
 let to_smtlib (p : Ir.policy) (prop : Property.t) : string =

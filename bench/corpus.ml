@@ -93,7 +93,8 @@ let request_of (ce : Report.counterexample) : Ir.request =
     action = ce.action;
     resource = ce.path;
     context = [];
-    source = ce.source_ip }
+    source = ce.source_ip;
+    host = ce.host }
 
 (* Is the reported counterexample a genuine one? Checked with {!Ir.evaluate}, the
    concrete reference semantics, which is independent of the SMT encoding — so

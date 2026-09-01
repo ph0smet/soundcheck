@@ -66,6 +66,7 @@ let counterexample ?(culprit = no_auth_culprit) ?(missing = no_auth_missing)
       service = Some service.name;
       shadowed_route = None;
       shadowed_service = None;
+      host = m.host;
       source_ip = m.src_ip;
       note =
         Printf.sprintf
@@ -80,6 +81,7 @@ let counterexample ?(culprit = no_auth_culprit) ?(missing = no_auth_missing)
       service = None;
       shadowed_route = None;
       shadowed_service = None;
+      host = m.host;
       source_ip = m.src_ip;
       note =
         Printf.sprintf
@@ -128,6 +130,7 @@ let shadowing_counterexample (cfg : Ast.config) (pair : Shadowing.pair)
     service = service_of_route cfg serving;
     shadowed_route = Some written;
     shadowed_service = service_of_route cfg written;
+    host = m.host;
     source_ip = m.src_ip;
     note =
       Printf.sprintf

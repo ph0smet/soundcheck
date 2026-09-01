@@ -3,6 +3,7 @@ type model = {
   method_ : string;
   is_anon : bool;
   src_ip  : int32;
+  host    : string;
 }
 
 type result =
@@ -134,7 +135,8 @@ let check ?(z3 = "z3") ?emit_smt (smtlib : string) : result =
     let method_ = Option.value ~default:"" (extract_string out "method") in
     let is_anon = Option.value ~default:false (extract_bool out "is_anon") in
     let src_ip = Option.value ~default:0l (extract_bv out "src_ip") in
-    Violated { path; method_; is_anon; src_ip }
+    let host = Option.value ~default:"" (extract_string out "host") in
+    Violated { path; method_; is_anon; src_ip; host }
   else Unknown (String.trim out)
 
 let string_of_result = function

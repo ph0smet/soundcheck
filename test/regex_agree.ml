@@ -11,6 +11,7 @@
    [(str.in_re "subject" <translated>)], and fail on any disagreement. *)
 
 open Soundcheck_core
+open Soundcheck_kong
 
 let z3_says (re : Regex.t) (subject : string) : bool =
   let file = Filename.temp_file "regex_agree" ".smt2" in
@@ -71,8 +72,57 @@ let anchor_cases =
   [ ("/admin/\\d+", false); ("/admin/\\d+$", true); ("^/admin/\\d+", false);
     ("^/admin/\\d+$", true); ("/lit\\$", false) ]
 
+(* Kong host patterns compile to a regex; the same two readings must agree about
+   them as about paths. Checks the production path both ways: the concrete side
+   through Ir.matches, the symbolic side through Smt_encode.cond. *)
+let host_cases =
+  [ ("*.example.com", [ ("a.example.com", true); ("example.com", false);
+                        ("a.b.example.com", true); ("a.example.com:8443", true);
+                        ("evilexample.com", false) ]);
+    ("example.com", [ ("example.com", true); ("example.com:8443", true);
+                      ("a.example.com", false); ("example.comx", false) ]);
+    ("example.*", [ ("example.com", true); ("example.", false);
+                    ("myexample.com", false) ]) ]
+
+let host_z3 (cond : Ir.condition) (h : string) : bool =
+  let file = Filename.temp_file "host_agree" ".smt2" in
+  let oc = open_out file in
+  Printf.fprintf oc
+    "(set-logic ALL)\n(declare-const host String)\n(assert (= host %s))\n\
+     (assert %s)\n(check-sat)\n"
+    (Regex.smt_string h) (Smt_encode.cond cond);
+  close_out oc;
+  let ic = Unix.open_process_in (Printf.sprintf "z3 -smt2 %s" (Filename.quote file)) in
+  let out = String.trim (In_channel.input_all ic) in
+  ignore (Unix.close_process_in ic);
+  (try Sys.remove file with _ -> ());
+  out = "sat"
+
 let () =
   let failures = ref 0 in
+  List.iter
+    (fun (pattern, subjects) ->
+      match Lower.host_condition [ pattern ] with
+      | None -> incr failures; Printf.printf "[FAIL]  host %s produced no condition\n" pattern
+      | Some cond ->
+        List.iter
+          (fun (h, expected) ->
+            let req : Ir.request =
+              { principal = Ir.Anonymous; action = ""; resource = "";
+                context = []; source = 0l; host = h }
+            in
+            let concrete = Ir.matches cond req in
+            let symbolic = host_z3 cond h in
+            if concrete <> expected || symbolic <> expected then begin
+              incr failures;
+              Printf.printf
+                "[FAIL]  host %-16s subject %-22s concrete=%b z3=%b expected=%b\n"
+                pattern h concrete symbolic expected
+            end)
+          subjects;
+        Printf.printf "[ok]    host %-16s (%d subjects agree)\n" pattern
+          (List.length subjects))
+    host_cases;
   List.iter
     (fun (pattern, expected) ->
       match Regex.parse pattern with

@@ -31,6 +31,9 @@ type request = {
       (** IPv4 source address of the connection. A dedicated field rather than a
           [context] binding because it is a typed symbolic dimension the encoder
           reasons about, not an opaque attribute. *)
+  host      : string;
+      (** Request Host. Already lowercase: the server lowercases it before routing
+          (nginx's [$host]), so a pattern is compared against a lowercase subject. *)
 }
 
 (** The effect of a policy decision. ([effect] itself is a reserved keyword in
@@ -54,6 +57,10 @@ type condition =
   | Is_anonymous              (** [principal] = [Anonymous] *)
   | Requires_auth             (** [principal] is [Authenticated _] *)
   | Source_in   of Cidr.t     (** [source] falls inside the address block *)
+  | Host_matches of Regex.t
+      (** [host] belongs to the language, in full. Kong compiles both plain and
+          wildcard host patterns down to a regex, so one condition covers both and
+          the connector owns the translation. *)
   | Not of condition
   | And of condition list
   | Or  of condition list

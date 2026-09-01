@@ -12,6 +12,7 @@ type request = {
   resource  : resource;
   context   : context;
   source    : int32;   (* IPv4 source address of the connection *)
+  host      : string;  (* request Host, already lowercased by the server *)
 }
 
 type decision = Allow | Deny
@@ -25,6 +26,7 @@ type condition =
   | Is_anonymous
   | Requires_auth
   | Source_in   of Cidr.t
+  | Host_matches of Regex.t
   | Not of condition
   | And of condition list
   | Or  of condition list
@@ -81,6 +83,7 @@ let rec matches (c : condition) (r : request) : bool =
   | Is_anonymous -> (match r.principal with Anonymous -> true | Authenticated _ -> false)
   | Requires_auth -> (match r.principal with Authenticated _ -> true | Anonymous -> false)
   | Source_in c -> Cidr.contains c r.source
+  | Host_matches re -> Regex.matches_full re r.host
   | Not c -> not (matches c r)
   | And cs -> List.for_all (fun c -> matches c r) cs
   | Or cs -> List.exists (fun c -> matches c r) cs

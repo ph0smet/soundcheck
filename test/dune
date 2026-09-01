@@ -10,7 +10,7 @@
 ; z3, so it is a (test) — `dune test` runs it alongside the corpus gate.
 (test
  (name regex_agree)
- (libraries soundcheck_core unix))
+ (libraries soundcheck_core soundcheck_kong unix))
 
 ; Unit tests for CIDR parsing/membership — pure logic, gated by `dune test`.
 (test

@@ -1,1 +1,1 @@
-{"result":"violated","schema_version":2,"property":"no-shadowed-routes","counterexample":{"principal":"anonymous","action":"","path":"/api","source_ip":"0.0.0.0","route":"api-open","service":"api","shadowed_route":"api-guarded","shadowed_service":"api"}}
+{"result":"violated","schema_version":3,"property":"no-shadowed-routes","counterexample":{"principal":"anonymous","action":"","path":"/api","host":"","source_ip":"0.0.0.0","route":"api-open","service":"api","shadowed_route":"api-guarded","shadowed_service":"api"}}
