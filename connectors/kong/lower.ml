@@ -172,32 +172,75 @@ let guard_condition (service : Ast.service) (route : Ast.route) : Ir.condition =
    left incomparable rather than ranked against each other. Equal regex_priority
    also leaves two regex routes tied, since the next tiebreak (max_uri_length over
    a pattern) is not something we can justify. *)
-(* Routing criteria Kong matches on that we do NOT model: hosts, SNIs, headers.
-   Ignoring them makes [match_] an OVER-approximation, which is safe where it
-   appears positively but NOT where it appears negated, in the suppression term
-   of {!Ir.selected}. Over-approximating a suppressor's match shrinks everything
-   below it and can hide a violation — a false proof, demonstrated on a config
-   where a host-scoped guarded route suppressed an open one.
+(* Route ranking, transcribed from Kong's own two layers rather than guessed.
 
-   So a rule carrying an unmodelled routing constraint is given a UNIQUE shape,
-   making it incomparable with every other rule: it neither suppresses nor is
-   suppressed, and the encoding degrades to the sound union around it. Precision
-   is lost exactly where the config says something we cannot read. *)
+   Layer 1, [sort_categories]: routes are grouped into CATEGORIES by which
+   criteria they use, and categories are walked in order of
+     match_weight DESC  >  category_bit DESC
+   where match_weight is simply the COUNT of criteria kinds used. So a host+path
+   route beats a path-only route regardless of path length — this layer dominates
+   everything below it.
+
+   Layer 2, [sort_routes], within a category:
+     submatch_weight DESC > header count DESC > regex_priority DESC
+       > max_uri_length DESC > created_at ASC
+
+   [created_at] is absent from a declarative config, so rules equal on everything
+   above it stay tied, which is the sound reading.
+
+   Criteria bits and subrule bits are verbatim from kong/router/traditional.lua. *)
+let rule_host = 0x40
+let rule_header = 0x20
+let rule_uri = 0x10
+let rule_method = 0x08
+let rule_sni = 0x04
+
+let sub_regex_uri = 0x01
+let sub_plain_hosts_only = 0x02
+let sub_wildcard_host_port = 0x04
+
+let is_wildcard_host h = String.contains h '*'
+
+(* A wildcard host "includes a port" when a colon follows the host part. *)
+let wildcard_host_has_port h = is_wildcard_host h && String.contains h ':'
+
+(* Criteria Kong matches on that we do NOT model: hosts, SNIs, headers, and the
+   stream-only sources/destinations. A rule carrying one is marked incomparable —
+   see {!Ir.priority}. Hosts are listed here only until they are modelled. *)
 let unmodelled_match (route : Ast.route) : bool =
   route.hosts <> [] || route.snis <> [] || route.has_headers
+  || route.has_sources_or_destinations
 
-let priority_of ~(regex_priority : int) ~(index : int) (route : Ast.route)
-    (path : string option) : Ir.priority =
-  let shape =
-    if unmodelled_match route then -(index + 1)
-    else if route.methods = [] then 0
-    else 1
+let priority_of ~(regex_priority : int) (route : Ast.route) (path : string option)
+    : Ir.priority =
+  let has_uri = path <> None in
+  let has_method = route.methods <> [] in
+  let has_host = route.hosts <> [] in
+  let has_sni = route.snis <> [] in
+  let bit b present = if present then b else 0 in
+  let category_bit =
+    bit rule_uri has_uri lor bit rule_method has_method lor bit rule_host has_host
+    lor bit rule_header route.has_headers lor bit rule_sni has_sni
   in
-  match path with
-  | None -> { Ir.shape; tier = 0; rank = 0 }
-  | Some p when Fragment.is_regex_path p ->
-    { Ir.shape; tier = 1; rank = regex_priority }
-  | Some p -> { Ir.shape; tier = 0; rank = String.length p }
+  let match_weight =
+    List.length
+      (List.filter Fun.id
+         [ has_uri; has_method; has_host; route.has_headers; has_sni ])
+  in
+  let is_regex = match path with Some p -> Fragment.is_regex_path p | None -> false in
+  let submatch_weight =
+    bit sub_regex_uri is_regex
+    lor bit sub_plain_hosts_only
+          (has_host && not (List.exists is_wildcard_host route.hosts))
+    lor bit sub_wildcard_host_port
+          (List.exists wildcard_host_has_port route.hosts)
+  in
+  (* regex_priority is consulted only for regex-URI routes; using 0 otherwise lets
+     the comparison fall through to the next level, exactly as Kong's guard does. *)
+  let rp = if is_regex then regex_priority else 0 in
+  let uri_length = match path with Some p -> String.length p | None -> 0 in
+  { Ir.comparable = not (unmodelled_match route);
+    key = [ match_weight; category_bit; submatch_weight; 0; rp; uri_length ] }
 
 (* One IR rule per (route, path) rather than per route. A Kong route may carry
    several paths of different lengths, which would leave a single rule with no
@@ -205,8 +248,7 @@ let priority_of ~(regex_priority : int) ~(index : int) (route : Ast.route)
    preserving under the current flat-OR encoder since (or (or p1 p2)) = (or p1 p2).
    Both rules keep the route's name as [id], so counterexample lifting is
    unaffected. *)
-let rules_of_route ~(index : int) (service : Ast.service) (route : Ast.route) :
-    Ir.rule list =
+let rules_of_route (service : Ast.service) (route : Ast.route) : Ir.rule list =
   let paths =
     match route.paths with [] -> [ None ] | ps -> List.map (fun p -> Some p) ps
   in
@@ -218,22 +260,17 @@ let rules_of_route ~(index : int) (service : Ast.service) (route : Ast.route) :
       { id = route.name;
         match_ = match_condition path route;
         guard;
-        priority = priority_of ~regex_priority:route.regex_priority ~index route path;
+        priority = priority_of ~regex_priority:route.regex_priority route path;
         decision = Ir.Allow;
         rate_limited;
         targets_admin })
     paths
 
 let to_policy (cfg : Ast.config) : Ir.policy =
-  (* [index] is a config-wide route counter, used only to hand unmodelled-match
-     routes a shape nothing else shares. *)
-  let index = ref (-1) in
   let rules =
     List.concat_map
       (fun (service : Ast.service) ->
-        List.concat_map
-          (fun route -> incr index; rules_of_route ~index:!index service route)
-          service.routes)
+        List.concat_map (rules_of_route service) service.routes)
       cfg.services
   in
   { rules; default = Ir.Deny }

@@ -30,17 +30,27 @@ type condition =
   | Or  of condition list
 
 type priority = {
-  shape : int;
-  tier  : int;
-  rank  : int;
+  comparable : bool;
+  key        : int list;
 }
 
-(* Strictly outranks. Rules of different [shape] are INCOMPARABLE, not equal:
-   the connector could not establish any order between them, so neither
-   suppresses the other and the encoding degrades to the sound union over that
-   pair. Within one shape the order is lexicographic on (tier, rank). *)
+(* Lexicographic, higher wins, first difference decides. Keys of differing length
+   are treated as unordered rather than padded — a length mismatch means the
+   connector built them from different rules and no comparison is meaningful. *)
+let rec lex_gt (xs : int list) (ys : int list) : bool =
+  match (xs, ys) with
+  | [], [] -> false
+  | x :: xs', y :: ys' -> if x <> y then x > y else lex_gt xs' ys'
+  | _ -> false
+
+(* Strictly outranks. An INCOMPARABLE rule neither outranks nor is outranked by
+   anything, so it never suppresses and is never suppressed, and the encoding
+   degrades to the sound union around it. Connectors mark a rule incomparable
+   when they cannot model one of its match criteria: ignoring a criterion makes
+   [match_] an over-approximation, which is harmless where it appears positively
+   but hides violations where it appears negated in the suppression term. *)
 let outranks (a : priority) (b : priority) : bool =
-  a.shape = b.shape && (a.tier > b.tier || (a.tier = b.tier && a.rank > b.rank))
+  a.comparable && b.comparable && lex_gt a.key b.key
 
 type rule = {
   id           : string;

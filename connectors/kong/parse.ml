@@ -54,6 +54,10 @@ let route_of (v : Yaml.value) : Ast.route =
     hosts = string_list (member "hosts" v);
     snis = string_list (member "snis" v);
     has_headers = (match member "headers" v with Some (`O (_ :: _)) -> true | _ -> false);
+    has_sources_or_destinations =
+      (match (member "sources" v, member "destinations" v) with
+       | Some (`A (_ :: _)), _ | _, Some (`A (_ :: _)) -> true
+       | _ -> false);
     regex_priority = int_field "regex_priority" v ~default:0;
   }
 

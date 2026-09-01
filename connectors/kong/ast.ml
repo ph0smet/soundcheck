@@ -24,6 +24,10 @@ type route = {
   hosts          : string list;   (* NOT modelled — see Lower.unmodelled_match *)
   snis           : string list;   (* NOT modelled *)
   has_headers    : bool;          (* NOT modelled *)
+  has_sources_or_destinations : bool;
+      (* stream (TCP/TLS) routing criteria — NOT modelled, and they also count
+         toward Kong's category match_weight, so a route carrying them cannot be
+         ranked either *)
   regex_priority : int;
       (* Kong's declared tiebreak between REGEX routes (schema default 0); it is
          not consulted for plain-prefix routes. Reading the number the config
