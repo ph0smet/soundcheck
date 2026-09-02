@@ -1,0 +1,26 @@
+# Scenario: the precision that modelling hosts buys back. Both routes are scoped
+# to the same host, so they share a category; the guarded one has a regex path,
+# which raises submatch_weight above the plain-path route, so it serves every
+# request the narrower route would have. Nothing reaches the unguarded route.
+#
+# While hosts were unmodelled these routes were left unordered and neither could
+# suppress the other, so the union let the narrow open route through and this
+# reported VIOLATED — a false alarm on a correctly-scoped config.
+# Expected: PROVED (no-anonymous-access).
+_format_version: "3.0"
+services:
+  - name: api
+    url: http://backend
+    routes:
+      - name: admin-guarded
+        hosts:
+          - admin.example.com
+        paths:
+          - "~/admin"
+        plugins:
+          - name: key-auth
+      - name: admin-narrow
+        hosts:
+          - admin.example.com
+        paths:
+          - /admin/5

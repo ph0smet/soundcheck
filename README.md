@@ -81,7 +81,7 @@ Requires OCaml 5.x, dune, the `yaml` opam library, and the **`z3` CLI binary** o
 brew install z3                 # or: apt install z3
 opam install dune yaml
 dune build
-dune test                       # runs the 34-case corpus regression gate
+dune test                       # runs the 35-case corpus regression gate
 ```
 
 Verify a config:
@@ -124,12 +124,13 @@ identically by CI, the MCP tool, and eventually the repair loop.
 ```json
 {
   "result": "violated",
-  "schema_version": 2,
+  "schema_version": 3,
   "property": "no-anonymous-access",
   "counterexample": {
     "principal": "anonymous",
     "action": "GET",
     "path": "/admin",
+    "host": "",
     "source_ip": "0.0.0.0",
     "route": "admin-route",
     "service": "admin-api",
@@ -142,8 +143,8 @@ identically by CI, the MCP tool, and eventually the repair loop.
 Every key is emitted unconditionally, `null` when absent, so a consumer never has to
 probe for existence. `shadowed_route` is populated only by `no-shadowed-routes`, which
 names two routes: the one that serves the request and the one written to handle it.
-`source_ip` is meaningful only for properties that constrain it; elsewhere the solver
-picked it freely.
+`host` and `source_ip` are meaningful only where the config or property constrains
+them; elsewhere the solver picked them freely.
 
 On success, `"result": "proved"` with `"counterexample": null`. A config outside the
 supported fragment gets `"result": "unknown"` with a `"reason"` naming the routes
@@ -226,14 +227,15 @@ are untouched, and the property templates above come along for free.
 
 This is an early project and the boundaries are worth stating plainly.
 
-- **Routing is modelled over path and method only.** Host, header and SNI matching, along
-  with `strip_path` and `path_handling`, are out of scope for v0. A route carrying one of
-  those is therefore given a rank incomparable with every other route, so it neither
+- **Routing is modelled over path, method and host.** Header and SNI matching, stream
+  `sources`/`destinations`, and `strip_path` / `path_handling` remain out of scope. A route
+  carrying one of those is given a rank incomparable with every other route, so it neither
   suppresses nor is suppressed. That is not caution: ignoring a routing constraint makes
   `match_` an over-approximation, which is harmless where it appears positively but not
   where it appears *negated* in the suppression term, and an over-approximated suppressor
-  hides whatever sits below it. Surveying Kong's own repositories found hosts on ~64% of
-  routes, so this is a common shape rather than a corner case.
+  hides whatever sits below it. A route whose host contains uppercase is treated the same
+  way, since the server lowercases the Host before routing and such a route can never
+  match.
 - **Route priority is derived from prefix length only.** Routing is winner-takes-all, as a
   real gateway does it, but Kong also ranks on the number of match criteria, which is not
   modelled. Rather than guess an order, unmodelled cases are left as **ties**, and a tie
@@ -290,7 +292,7 @@ This is an early project and the boundaries are worth stating plainly.
 
 ## Testing
 
-`bench/kong/cases/` holds 34 labeled cases, each a config plus a golden `expected.json`
+`bench/kong/cases/` holds 35 labeled cases, each a config plus a golden `expected.json`
 produced by the engine and hand-checked against intent. They span the real
 misconfiguration shapes: a missing plugin, service versus route-level auth inheritance, an
 open sibling route, a method-specific gap (`GET` guarded, `POST` open), a leak in a second

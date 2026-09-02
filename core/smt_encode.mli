@@ -10,6 +10,11 @@
     - [method]  : the action, as an SMT [String]
     - [is_anon] : whether the principal is anonymous, as a [Bool] *)
 
+val cond : Ir.condition -> string
+(** One condition as an SMT-LIB2 boolean over the symbolic request constants.
+    Exposed so tests can check a single condition against its concrete reading
+    without building a whole policy. *)
+
 val to_smtlib : Ir.policy -> Property.t -> string
 (** Full SMT-LIB2 script ending in [(check-sat)] and a [(get-value ...)] over the
     symbolic request fields, so a [sat] result yields a concrete counterexample. *)

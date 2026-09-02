@@ -66,7 +66,49 @@ let path_condition (p : string) : Ir.condition =
 let path_matches (kong_path : string) (concrete : string) : bool =
   Ir.matches (path_condition kong_path)
     { Ir.principal = Ir.Anonymous; action = ""; resource = concrete;
-      context = []; source = 0l }
+      context = []; source = 0l; host = "" }
+
+(* Kong compiles a host pattern to a regex at load time and matches it against the
+   request Host. Transcribed from kong/router/traditional.lua:
+
+     wildcard_host_regex = host:gsub("%.", "\\."):gsub("%*", ".+") .. "$"
+     -- and, when the pattern carries no port:
+     wildcard_host_regex = wildcard_host_regex:gsub("%$$", "(?::\\d+)?$")
+     re_find(host_with_port, wildcard_host_regex, "ajo")
+
+   Four things that follow, none of them guessable from the docs:
+
+   - [*] becomes [.+], ONE or more. So "*.example.com" does NOT match
+     "example.com" — the wildcard requires a label to be present.
+   - dots are literal, not "any character".
+   - the "a" flag anchors the match at the START, and the pattern ends in [$], so
+     a wildcard host is anchored at BOTH ends. (Contrast a regex PATH, where only
+     the start is anchored.)
+   - a pattern without a port still matches a Host that carries one, via the
+     appended optional [(?::\d+)?].
+
+   A PLAIN host is an exact table lookup against both the Host and the Host with
+   its port stripped, which is the same language as the wildcard form with no
+   wildcard in it: the literal, optionally followed by a port. *)
+let host_condition (hosts : string list) : Ir.condition option =
+  let port_suffix =
+    (* (?::\d+)? — an optional ":" followed by one or more digits *)
+    Regex.Opt (Regex.Concat [ Regex.Lit ":"; Regex.Plus (Regex.Class (false, [ ('0', '9') ])) ])
+  in
+  let of_host (h : string) : Ir.condition =
+    let has_port = String.contains h ':' in
+    (* split on '*' and rebuild: literals stay literal, each '*' becomes .+ *)
+    let parts = String.split_on_char '*' h in
+    let rec interleave = function
+      | [] -> []
+      | [ last ] -> [ Regex.Lit last ]
+      | p :: rest -> Regex.Lit p :: Regex.Plus Regex.Any :: interleave rest
+    in
+    let body = Regex.Concat (interleave parts) in
+    let re = if has_port then body else Regex.Concat [ body; port_suffix ] in
+    Ir.Host_matches re
+  in
+  match hosts with [] -> None | hs -> Some (Ir.Or (List.map of_host hs))
 
 (* Routing criteria only: which requests this route is a candidate to serve.
    Policy (auth) is deliberately NOT folded in — see {!Ir.rule}. *)
@@ -77,7 +119,8 @@ let match_condition (path : string option) (route : Ast.route) : Ir.condition =
     | [] -> Ir.True
     | ms -> Ir.Or (List.map (fun m -> Ir.Method_is m) ms)
   in
-  Ir.And [ path_c; method_c ]
+  let host_c = host_condition route.hosts in
+  Ir.And (List.filter_map Fun.id [ Some path_c; Some method_c; host_c ])
 
 (* Kong's Admin API listens on 8001 (http) and 8444 (https) by default. A service
    whose upstream is that port is proxying the Admin API through the public proxy
@@ -208,8 +251,12 @@ let wildcard_host_has_port h = is_wildcard_host h && String.contains h ':'
    stream-only sources/destinations. A rule carrying one is marked incomparable —
    see {!Ir.priority}. Hosts are listed here only until they are modelled. *)
 let unmodelled_match (route : Ast.route) : bool =
-  route.hosts <> [] || route.snis <> [] || route.has_headers
-  || route.has_sources_or_destinations
+  route.snis <> [] || route.has_headers || route.has_sources_or_destinations
+  (* An uppercase host can never match: the server lowercases the Host before
+     routing, while route hosts are stored as written. Rather than lowercase it —
+     which would over-approximate the match, unsafe in the suppression position —
+     such a route is left unranked. *)
+  || List.exists (fun h -> String.lowercase_ascii h <> h) route.hosts
 
 let priority_of ~(regex_priority : int) (route : Ast.route) (path : string option)
     : Ir.priority =
