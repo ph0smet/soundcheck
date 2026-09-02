@@ -114,7 +114,7 @@ usage: soundcheck verify <config.yaml> [--property P] [--path-prefix PREFIX]
 ```
 
 Exit codes are designed to gate a pipeline: `0` proved, `1` parse error, `2` usage,
-`3` violated, `4` unknown.
+`3` violated, `4` unknown, `5` vacuous.
 
 ## The JSON contract
 
@@ -124,7 +124,7 @@ identically by CI, the MCP tool, and eventually the repair loop.
 ```json
 {
   "result": "violated",
-  "schema_version": 3,
+  "schema_version": 4,
   "property": "no-anonymous-access",
   "counterexample": {
     "principal": "anonymous",
@@ -146,11 +146,13 @@ names two routes: the one that serves the request and the one written to handle 
 `host` and `source_ip` are meaningful only where the config or property constrains
 them; elsewhere the solver picked them freely.
 
-On success, `"result": "proved"` with `"counterexample": null`. A config outside the
-supported fragment gets `"result": "unknown"` with a `"reason"` naming the routes
-responsible, never a quiet pass. That is a verdict rather than an error: the MCP tool
-returns it as a normal result too, so an agent can rewrite the offending route and
-re-verify.
+On success, `"result": "proved"` with `"counterexample": null`. If a property's
+forbidden request class is empty, Soundcheck instead returns `"result": "vacuous"`;
+this is not a proof about the config and exits nonzero. A config outside the supported
+fragment gets `"result": "unknown"` with a `"reason"` naming the routes responsible,
+never a quiet pass. Both are verdicts rather than tool errors: the MCP tool returns
+them as normal results so an agent can correct the property or rewrite the offending
+route and re-verify.
 
 ## Using it against AI-generated config
 

@@ -1,1 +1,1 @@
-{"result":"violated","schema_version":3,"property":"rate-limit-on-public","counterexample":{"principal":"anonymous","action":"","path":"/search","host":"","source_ip":"0.0.0.0","route":"search","service":"public-api","shadowed_route":null,"shadowed_service":null}}
+{"result":"violated","schema_version":4,"property":"rate-limit-on-public","counterexample":{"principal":"anonymous","action":"","path":"/search","host":"","source_ip":"0.0.0.0","route":"search","service":"public-api","shadowed_route":null,"shadowed_service":null}}

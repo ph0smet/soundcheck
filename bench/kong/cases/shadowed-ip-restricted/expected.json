@@ -1,1 +1,1 @@
-{"result":"violated","schema_version":3,"property":"no-shadowed-routes","counterexample":{"principal":"authenticated","action":"","path":"/api/public/feed","host":"","source_ip":"245.0.0.0","route":"api-open","service":"api","shadowed_route":"api-guarded","shadowed_service":"api"}}
+{"result":"violated","schema_version":4,"property":"no-shadowed-routes","counterexample":{"principal":"authenticated","action":"","path":"/api/public/feed","host":"","source_ip":"245.0.0.0","route":"api-open","service":"api","shadowed_route":"api-guarded","shadowed_service":"api"}}

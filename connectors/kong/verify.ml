@@ -105,11 +105,19 @@ let run ?emit_smt ~(property : property) (config : string) :
         match resolve cfg property with
         | None -> run_shadowing ?emit_smt cfg policy
         | Some (prop, lift) -> (
-          let smt = Smt_encode.to_smtlib policy prop in
-          match Solve.check ?emit_smt smt with
-          | Solve.Proved -> Report.Proved
-          | Solve.Violated m -> Report.Violated (lift m)
-          | Solve.Unknown s -> Report.Unknown s))
+          let preflight =
+            Smt_encode.condition_query ~name:prop.name
+              ~description:prop.description prop.forbidden_when
+          in
+          match Solve.check ?emit_smt preflight with
+          | Solve.Proved -> Report.Vacuous
+          | Solve.Unknown s -> Report.Unknown s
+          | Solve.Violated _ -> (
+            let smt = Smt_encode.to_smtlib policy prop in
+            match Solve.check ?emit_smt smt with
+            | Solve.Proved -> Report.Proved
+            | Solve.Violated m -> Report.Violated (lift m)
+            | Solve.Unknown s -> Report.Unknown s)))
     in
     Ok { Report.result = outcome;
          property_name = name;

@@ -16,6 +16,7 @@ type counterexample = {
 
 type outcome =
   | Proved
+  | Vacuous
   | Violated of counterexample
   | Unknown of string
 
@@ -31,6 +32,10 @@ let to_human t =
   match t.result with
   | Proved ->
     Printf.sprintf "PROVED   %s\n         %s" t.property_name t.property_description
+  | Vacuous ->
+    Printf.sprintf
+      "VACUOUS  %s\n         The property's forbidden request class is empty; no config was verified."
+      t.property_name
   | Violated ce ->
     Printf.sprintf "VIOLATED %s\n         %s" t.property_name ce.note
   | Unknown reason ->
@@ -65,7 +70,7 @@ let jopt = function
 (* Bumped when the shape changes in a way a consumer must notice. Adding an
    always-present field counts; every key below is emitted unconditionally
    (null when absent) so a consumer never has to probe for existence. *)
-let schema_version = 3
+let schema_version = 4
 
 let counterexample_json ce =
   Printf.sprintf
@@ -83,6 +88,8 @@ let to_json t =
   match t.result with
   | Proved ->
     Printf.sprintf "{\"result\":\"proved\",%s,\"counterexample\":null}" head
+  | Vacuous ->
+    Printf.sprintf "{\"result\":\"vacuous\",%s,\"counterexample\":null}" head
   | Violated ce ->
     Printf.sprintf "{\"result\":\"violated\",%s,\"counterexample\":%s}" head
       (counterexample_json ce)

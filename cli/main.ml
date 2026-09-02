@@ -1,5 +1,6 @@
 (* Soundcheck CLI (v0): verify a Kong declarative config against a security
-   property. Exit codes: 0 proved, 1 parse error, 3 violated, 2 usage, 4 unknown. *)
+   property. Exit codes: 0 proved, 1 parse error, 2 usage, 3 violated, 4 unknown,
+   5 vacuous. *)
 
 open Soundcheck_core
 open Soundcheck_kong
@@ -88,6 +89,7 @@ let parse_emit_smt rest =
 
 let exit_code : Report.outcome -> int = function
   | Report.Proved -> 0
+  | Report.Vacuous -> 5
   | Report.Violated _ -> 3
   | Report.Unknown _ -> 4
 

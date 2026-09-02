@@ -1,1 +1,1 @@
-{"result":"violated","schema_version":3,"property":"admin-api-not-reachable","counterexample":{"principal":"anonymous","action":"","path":"/kong-admin","host":"","source_ip":"0.0.0.0","route":"admin-proxy","service":"kong-admin","shadowed_route":null,"shadowed_service":null}}
+{"result":"violated","schema_version":4,"property":"admin-api-not-reachable","counterexample":{"principal":"anonymous","action":"","path":"/kong-admin","host":"","source_ip":"0.0.0.0","route":"admin-proxy","service":"kong-admin","shadowed_route":null,"shadowed_service":null}}

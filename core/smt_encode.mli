@@ -15,6 +15,12 @@ val cond : Ir.condition -> string
     Exposed so tests can check a single condition against its concrete reading
     without building a whole policy. *)
 
+val condition_query :
+  name:string -> description:string -> Ir.condition -> string
+(** Full SMT-LIB2 script asking whether a condition is satisfiable. Used to
+    reject a must-deny property whose forbidden request class is empty before
+    interpreting [unsat] against a policy as a proof. *)
+
 val to_smtlib : Ir.policy -> Property.t -> string
 (** Full SMT-LIB2 script ending in [(check-sat)] and a [(get-value ...)] over the
     symbolic request fields, so a [sat] result yields a concrete counterexample. *)
