@@ -1,6 +1,6 @@
 (* Soundcheck CLI (v0): verify a Kong declarative config against a security
    property. Exit codes: 0 proved, 1 parse error, 2 usage, 3 violated, 4 unknown,
-   5 vacuous. *)
+   5 vacuous, 6 inconsistent contract. *)
 
 open Soundcheck_core
 open Soundcheck_kong
@@ -8,13 +8,17 @@ open Soundcheck_kong
 let usage () =
   prerr_endline
     "usage: soundcheck verify <config.yaml> [--property P] [--path-prefix PREFIX]\n\
+    \                                       [--method METHOD] [--host HOST]\n\
     \                                       [--format human|json] [--emit-smt PATH]\n\
     \  --property     no-anonymous-access (default) | rate-limit-on-public\n\
     \                 | no-shadowed-routes | admin-api-not-reachable\n\
+    \                 | authenticated-access\n\
     \  --path-prefix  prefix for no-anonymous-access (default /admin)\n\
     \  --trusted-cidr for admin-api-not-reachable (default 127.0.0.1/32)\n\
+    \  --method       optional exact method for authenticated-access (default all)\n\
+    \  --host         optional exact host for authenticated-access (default all)\n\
     \  --format       human (default) | json\n\
-    \  --emit-smt     write the SMT-LIB2 query to PATH and keep it (audit artifact)\n\
+    \  --emit-smt     write a single-property SMT-LIB2 query to PATH (not contracts)\n\
      \n\
      usage: soundcheck mcp\n\
     \  Runs the MCP server (JSON-RPC over stdio) exposing the `verify` tool.";
@@ -42,6 +46,14 @@ let parse_path_prefix rest =
   in
   find rest
 
+let parse_optional flag rest =
+  let rec find = function
+    | name :: value :: _ when name = flag -> Some value
+    | _ :: tl -> find tl
+    | [] -> None
+  in
+  find rest
+
 let parse_trusted_cidr rest =
   let raw =
     let rec find = function
@@ -65,10 +77,16 @@ let parse_property rest : Verify.property =
     | "--property" :: "no-shadowed-routes" :: _ -> Verify.No_shadowed_routes
     | "--property" :: "admin-api-not-reachable" :: _ ->
       Verify.Admin_api_not_reachable (parse_trusted_cidr rest)
+    | "--property" :: "authenticated-access" :: _ ->
+      Verify.Authenticated_access
+        { path_prefix = parse_path_prefix rest;
+          method_ = parse_optional "--method" rest;
+          host = parse_optional "--host" rest }
     | "--property" :: other :: _ ->
       Printf.eprintf
         "unknown --property %S (expected \
-         no-anonymous-access|rate-limit-on-public|no-shadowed-routes)\n"
+         no-anonymous-access|rate-limit-on-public|no-shadowed-routes|\
+         admin-api-not-reachable|authenticated-access)\n"
         other;
       exit 2
     | _ :: tl -> find tl
@@ -90,6 +108,7 @@ let parse_emit_smt rest =
 let exit_code : Report.outcome -> int = function
   | Report.Proved -> 0
   | Report.Vacuous -> 5
+  | Report.Inconsistent _ -> 6
   | Report.Violated _ -> 3
   | Report.Unknown _ -> 4
 
@@ -108,7 +127,7 @@ let run_verify file rest =
   | Ok config ->
     (match Verify.run ?emit_smt ~property config with
      | Error e ->
-       Printf.eprintf "parse error: %s\n" e;
+       Printf.eprintf "verification error: %s\n" e;
        exit 1
      | Ok report ->
        let rendered =

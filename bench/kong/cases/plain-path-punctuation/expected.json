@@ -1,1 +1,1 @@
-{"result":"violated","schema_version":4,"property":"no-anonymous-access","counterexample":{"principal":"anonymous","action":"","path":"/admin/config.json","host":"","source_ip":"0.0.0.0","route":"admin-dotted","service":"admin-api","shadowed_route":null,"shadowed_service":null}}
+{"result":"violated","schema_version":5,"property":"no-anonymous-access","clause":null,"counterexample":{"principal":"anonymous","action":"","path":"/admin/config.json","host":"","source_ip":"0.0.0.0","route":"admin-dotted","service":"admin-api","shadowed_route":null,"shadowed_service":null}}

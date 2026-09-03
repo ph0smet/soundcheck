@@ -1,0 +1,3 @@
+# The safety half passes, but deleting every route must not satisfy the contract:
+# authenticated GET /admin traffic is required to remain functional.
+services: []

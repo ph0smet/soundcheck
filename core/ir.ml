@@ -108,6 +108,14 @@ let evaluate (p : policy) (r : request) : decision =
   else if List.exists (fun rule -> rule.decision = Allow) matching then Allow
   else p.default
 
+let definitely_allows (p : policy) (r : request) : bool =
+  match List.filter (selected p r) p.rules with
+  | [] -> p.default = Allow
+  | possible_winners ->
+    List.for_all
+      (fun rule -> rule.decision = Allow && matches rule.guard r)
+      possible_winners
+
 let string_of_decision = function Allow -> "Allow" | Deny -> "Deny"
 
 let string_of_principal = function

@@ -1,1 +1,1 @@
-{"result":"proved","schema_version":4,"property":"admin-api-not-reachable","counterexample":null}
+{"result":"proved","schema_version":5,"property":"admin-api-not-reachable","clause":null,"counterexample":null}

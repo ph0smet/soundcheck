@@ -20,3 +20,11 @@
 (test
  (name vacuous_t)
  (libraries soundcheck_core soundcheck_kong))
+
+(test
+ (name contract_t)
+ (libraries soundcheck_core))
+
+(test
+ (name functionality_t)
+ (libraries soundcheck_core soundcheck_kong))

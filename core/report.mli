@@ -29,9 +29,20 @@ type counterexample = {
     [route]/[service] are populated by connectors that have that notion; core
     carries them as opaque strings and never depends on any connector. *)
 
+type clause_kind = Must_deny | Must_allow
+
+type clause = {
+  name        : string;
+  description : string;
+  kind        : clause_kind;
+}
+(** The particular clause of a multi-clause contract responsible for an
+    outcome. Legacy single-property reports leave this absent. *)
+
 type outcome =
   | Proved                     (** property holds for all requests *)
   | Vacuous                    (** the property's forbidden request class is empty *)
+  | Inconsistent of string     (** the frozen contract contradicts itself *)
   | Violated of counterexample (** a concrete request the policy allows but the property forbids *)
   | Unknown of string          (** solver was inconclusive; string is the reason *)
 
@@ -39,6 +50,7 @@ type t = {
   result               : outcome;
   property_name        : string;
   property_description  : string;
+  clause               : clause option;
 }
 
 val to_human : t -> string
@@ -50,13 +62,17 @@ val schema_version : int
 
 val to_json : t -> string
 (** The stable, versioned JSON contract:
-    {[ { "result": "violated|proved|vacuous|unknown", "schema_version": 4,
+    {[ { "result": "violated|proved|vacuous|inconsistent|unknown",
+         "schema_version": 5,
          "property": "...",
+         "clause": { "name": "...", "description": "...",
+                     "kind": "must_deny|must_allow" },
          "counterexample": { "principal", "action", "path", "host",
                              "source_ip", "route", "service",
                              "shadowed_route", "shadowed_service" } } ]}
     Every key is emitted unconditionally, [null] when absent, so consumers never
-    probe for existence. [counterexample] is [null] for [Proved] and [Vacuous];
-    for [Unknown] a ["reason"] field carries the explanation. Emitted with a
-    hand-rolled encoder (no external JSON dependency) since the schema is small
-    and flat. *)
+    probe for existence. [clause] is [null] for a legacy single property.
+    [counterexample] is [null] for [Proved], [Vacuous], and [Inconsistent]; for
+    [Unknown] and [Inconsistent] a ["reason"] field carries the explanation.
+    Emitted with a hand-rolled encoder (no external JSON dependency) since the
+    schema is small and flat. *)

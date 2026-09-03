@@ -138,9 +138,12 @@ IDE plugin, or CI all plug in via whichever surface fits.
 - All logic stays in `soundcheck_core`; every adapter (`cli/`, `mcp/`, `http/`)
   stays thin — never bake verification logic into an adapter.
 - The **JSON result schema is a stable, versioned contract**, e.g.
-  `{ "result": "violated|proved|vacuous|unknown", "property": "...",
+  `{ "result": "violated|proved|vacuous|inconsistent|unknown", "property": "...",
      "counterexample": { "principal": "...", "method": "...", "path": "...",
      "route": "...", "service": "..." } }`.
+- Functionality is expressed as a frozen multi-clause contract, not inferred
+  from the config under repair. `authenticated-access` pairs anonymous denial
+  with definite authenticated allowance over one explicit path/method/host scope.
 - `mcp/` lives **in this monorepo** (sibling of `cli/`), ideally as a subcommand
   of the single `soundcheck` binary (`soundcheck verify` vs `soundcheck mcp`) —
   one distributable, no extra runtime.

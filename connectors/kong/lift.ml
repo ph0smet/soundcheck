@@ -104,6 +104,49 @@ let service_of_route (cfg : Ast.config) (route_name : string) : string option =
       else None)
     cfg.services
 
+(* A functionality counterexample is a required request that is not guaranteed
+   to work. Name one possible winner that rejects it when available; otherwise
+   the request falls through to the policy's denying default. *)
+let functionality_counterexample (cfg : Ast.config) (policy : Ir.policy)
+    (m : Solve.model) : Report.counterexample =
+  let request : Ir.request =
+    { principal = (if m.is_anon then Anonymous else Authenticated "user");
+      action = m.method_;
+      resource = m.path;
+      context = [];
+      source = m.src_ip;
+      host = m.host }
+  in
+  let rejecting =
+    List.find_opt
+      (fun (rule : Ir.rule) ->
+        Ir.selected policy request rule
+        && (rule.decision = Deny || not (Ir.matches rule.guard request)))
+      policy.rules
+  in
+  let route = Option.map (fun (rule : Ir.rule) -> rule.id) rejecting in
+  let service = Option.bind route (service_of_route cfg) in
+  let principal = if m.is_anon then "anonymous" else "authenticated" in
+  let meth = if m.method_ = "" then "<any-method>" else m.method_ in
+  let reason =
+    match route with
+    | Some name ->
+      Printf.sprintf "route %S may serve it and reject it" name
+    | None -> "no route serves it, so the denying default applies"
+  in
+  { Report.principal;
+    action = m.method_;
+    path = m.path;
+    route;
+    service;
+    shadowed_route = None;
+    shadowed_service = None;
+    host = m.host;
+    source_ip = m.src_ip;
+    note =
+      Printf.sprintf "%s request %s %s is NOT DEFINITELY ALLOWED — %s."
+        principal meth m.path reason }
+
 (* Shadowing names TWO routes: the one that actually serves the request and the
    one written to handle it. Saying only "this request got through" would lose
    the point of the finding, which is that a guard you wrote is not covering what
