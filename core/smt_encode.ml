@@ -99,6 +99,13 @@ let epilogue b =
   Buffer.add_string b "(get-value (path method is_anon src_ip host))\n";
   Buffer.contents b
 
+let condition_query ~name ~description condition =
+  let b = Buffer.create 256 in
+  preamble b (Printf.sprintf "; property preflight: %s — %s\n" name description);
+  Buffer.add_string b "; the property's forbidden request class is inhabited:\n";
+  Buffer.add_string b (Printf.sprintf "(assert %s)\n" (cond condition));
+  epilogue b
+
 let to_smtlib (p : Ir.policy) (prop : Property.t) : string =
   let b = Buffer.create 512 in
   preamble b (Printf.sprintf "; property: %s — %s\n" prop.name prop.description);

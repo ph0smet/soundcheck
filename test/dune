@@ -16,3 +16,7 @@
 (test
  (name cidr_t)
  (libraries soundcheck_core))
+
+(test
+ (name vacuous_t)
+ (libraries soundcheck_core soundcheck_kong))

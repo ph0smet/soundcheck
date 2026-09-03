@@ -138,7 +138,7 @@ IDE plugin, or CI all plug in via whichever surface fits.
 - All logic stays in `soundcheck_core`; every adapter (`cli/`, `mcp/`, `http/`)
   stays thin — never bake verification logic into an adapter.
 - The **JSON result schema is a stable, versioned contract**, e.g.
-  `{ "result": "violated|proved|unknown", "property": "...",
+  `{ "result": "violated|proved|vacuous|unknown", "property": "...",
      "counterexample": { "principal": "...", "method": "...", "path": "...",
      "route": "...", "service": "..." } }`.
 - `mcp/` lives **in this monorepo** (sibling of `cli/`), ideally as a subcommand

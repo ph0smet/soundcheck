@@ -150,15 +150,17 @@ let verify_tool () =
         "Verify a Kong decK config against a security property \
          (no-anonymous-access, rate-limit-on-public, or no-shadowed-routes). \
          Returns the stable JSON result contract: result = proved | violated | \
-         unknown, with a concrete counterexample (principal / method / path / \
+         vacuous | unknown, with a concrete counterexample (principal / method / \
+         path / \
          route / service, plus shadowed_route for shadowing findings) when \
          violated — use it to correct the config and re-verify.";
       "inputSchema", input_schema ]
 
 let tools_list_result () = J.obj [ "tools", J.arr [ verify_tool () ] ]
 
-(* An MCP tool result. A verification outcome (proved/violated/unknown) is a
-   *successful* tool call — the report is returned both as text (for clients that
+(* An MCP tool result. A verification outcome
+   (proved/violated/vacuous/unknown) is a *successful* tool call — the report is
+   returned both as text (for clients that
    read [content]) and as [structuredContent] (raw object, for clients that
    consume it directly). [isError] is reserved for tool-execution failures (bad
    arguments, unparseable config), NOT for a "violated" verdict. *)

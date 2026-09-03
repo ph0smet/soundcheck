@@ -31,6 +31,7 @@ type counterexample = {
 
 type outcome =
   | Proved                     (** property holds for all requests *)
+  | Vacuous                    (** the property's forbidden request class is empty *)
   | Violated of counterexample (** a concrete request the policy allows but the property forbids *)
   | Unknown of string          (** solver was inconclusive; string is the reason *)
 
@@ -49,12 +50,13 @@ val schema_version : int
 
 val to_json : t -> string
 (** The stable, versioned JSON contract:
-    {[ { "result": "violated|proved|unknown", "schema_version": 1,
+    {[ { "result": "violated|proved|vacuous|unknown", "schema_version": 4,
          "property": "...",
          "counterexample": { "principal", "action", "path", "host",
                              "source_ip", "route", "service",
                              "shadowed_route", "shadowed_service" } } ]}
     Every key is emitted unconditionally, [null] when absent, so consumers never
-    probe for existence. [counterexample] is [null] for [Proved]; for [Unknown] a
-    ["reason"] field carries the explanation. Emitted with a hand-rolled encoder
-    (no external JSON dependency) since the schema is small and flat. *)
+    probe for existence. [counterexample] is [null] for [Proved] and [Vacuous];
+    for [Unknown] a ["reason"] field carries the explanation. Emitted with a
+    hand-rolled encoder (no external JSON dependency) since the schema is small
+    and flat. *)
