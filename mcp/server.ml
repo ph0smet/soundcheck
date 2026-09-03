@@ -148,11 +148,11 @@ let verify_tool () =
       "description",
       J.str
         "Verify a Kong decK config against a security property \
-         (no-anonymous-access, rate-limit-on-public, or no-shadowed-routes). \
+         (no-anonymous-access, rate-limit-on-public, no-shadowed-routes, or \
+         admin-api-not-reachable). \
          Returns the stable JSON result contract: result = proved | violated | \
          vacuous | unknown, with a concrete counterexample (principal / method / \
-         path / \
-         route / service, plus shadowed_route for shadowing findings) when \
+         path / route / service, plus shadowed_route for shadowing findings) when \
          violated — use it to correct the config and re-verify.";
       "inputSchema", input_schema ]
 
