@@ -139,5 +139,13 @@ val evaluate : policy -> request -> decision
     [Allow]; else [default]. Kept in step with {!Smt_encode.allowed_formula} —
     the two are the same semantics, one concrete and one symbolic. *)
 
+val definitely_allows : policy -> request -> bool
+(** Conservative functionality semantics. If routing has one known winner, that
+    winner must be an [Allow] rule whose guard holds. If ties or incomparable
+    priorities leave several possible winners, every possible winner must allow.
+    With no matching route, the policy default decides. This is deliberately
+    stricter than {!evaluate}: uncertainty may reject a functionality proof but
+    can never manufacture one. Mirrors {!Smt_encode.definitely_allowed_formula}. *)
+
 val string_of_decision : decision -> string
 val string_of_principal : principal -> string

@@ -64,6 +64,16 @@ let () =
   check_clause "every possible winner must allow" ambiguous required_anonymous
     (Solve.Violated
        { path = ""; method_ = ""; is_anon = true; src_ip = 0l; host = "" });
+  let anonymous_admin : Ir.request =
+    { principal = Anonymous;
+      action = "GET";
+      resource = "/admin";
+      context = [];
+      source = 0l;
+      host = "" }
+  in
+  if Ir.definitely_allows ambiguous anonymous_admin then
+    failwith "ambiguous rejecting winner must prevent definite allowance";
 
   let known_open_winner : Ir.policy =
     { rules =
@@ -73,6 +83,8 @@ let () =
   in
   check_clause "known priority removes ambiguity" known_open_winner
     required_anonymous Solve.Proved;
+  if not (Ir.definitely_allows known_open_winner anonymous_admin) then
+    failwith "known open winner must definitely allow the request";
 
   let all =
     match Cidr.parse "0.0.0.0/0" with Ok cidr -> cidr | Error e -> failwith e
