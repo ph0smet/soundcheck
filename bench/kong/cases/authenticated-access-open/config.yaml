@@ -1,0 +1,8 @@
+# Functionality holds, but the safety half fails because anonymous traffic is
+# also allowed through the unguarded route.
+services:
+  - name: admin-api
+    routes:
+      - name: admin-open
+        paths: [/admin]
+        methods: [GET]

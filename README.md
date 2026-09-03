@@ -104,13 +104,17 @@ z3 -smt2 query.smt2
 
 ```
 usage: soundcheck verify <config.yaml> [--property P] [--path-prefix PREFIX]
+                                       [--method METHOD] [--host HOST]
                                        [--format human|json] [--emit-smt PATH]
   --property     no-anonymous-access (default) | rate-limit-on-public
                  | no-shadowed-routes | admin-api-not-reachable
-  --path-prefix  prefix for no-anonymous-access (default /admin)
+                 | authenticated-access
+  --path-prefix  path scope for access properties (default /admin)
   --trusted-cidr for admin-api-not-reachable (default 127.0.0.1/32)
+  --method       exact method for authenticated-access (default all)
+  --host         exact host for authenticated-access (default all)
   --format       human (default) | json
-  --emit-smt     write the SMT-LIB2 query to PATH and keep it (audit artifact)
+  --emit-smt     write a single-property SMT-LIB2 query to PATH (not contracts)
 ```
 
 Exit codes are designed to gate a pipeline: `0` proved, `1` parse error, `2` usage,
@@ -146,6 +150,15 @@ probe for existence. `shadowed_route` is populated only by `no-shadowed-routes`,
 names two routes: the one that serves the request and the one written to handle it.
 `host` and `source_ip` are meaningful only where the config or property constrains
 them; elsewhere the solver picked them freely.
+
+`authenticated-access` is a frozen two-clause contract: anonymous requests in
+the selected path/method/host scope must be denied, and authenticated requests in
+that same scope must be definitely allowed. Omitting `--method` or `--host` means
+all methods or all hosts; Soundcheck never infers intended functionality from the
+config being repaired. Contract reports identify the failing clause as
+`must_deny` or `must_allow`. Because a contract is checked with several solver
+queries, `--emit-smt` currently rejects it rather than emitting an incomplete
+audit artifact.
 
 On success, `"result": "proved"` with `"counterexample": null`. If a property's
 forbidden request class is empty, Soundcheck instead returns `"result": "vacuous"`;

@@ -16,6 +16,8 @@ let requests =
     {|{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"verify","arguments":{"config":"{services: [{name: admin-api, routes: [{name: admin-route, paths: [/admin]}]}]}"}}}|};
     (* secure: /admin route requires key-auth -> PROVED *)
     {|{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"verify","arguments":{"config":"{services: [{name: admin-api, routes: [{name: admin-route, paths: [/admin], plugins: [{name: key-auth}]}]}]}"}}}|};
+    (* paired contract: the same guarded GET route preserves functionality *)
+    {|{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"verify","arguments":{"property":"authenticated-access","path_prefix":"/admin","method":"GET","config":"{services: [{name: admin-api, routes: [{name: admin-route, paths: [/admin], methods: [GET], plugins: [{name: key-auth}]}]}]}"}}}|};
   ]
 
 let () =

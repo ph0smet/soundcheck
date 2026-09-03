@@ -29,11 +29,19 @@ let read path =
   close_in ic;
   s
 
+type validation =
+  | Single of Property.t
+  | Contract of Contract.t
+  | Structural
+
+let optional dir name =
+  let path = Filename.concat dir name in
+  if Sys.file_exists path then Some (String.trim (read path)) else None
+
 (* A case may name the property to check in an optional "property" file; absent
-   means the default no-anonymous-access (/admin). Returns the variant used to run
-   the case, plus the core template when it has one — no-shadowed-routes is asked
-   per rule pair rather than as a single query over requests, so it has none. *)
-let property_of dir : Verify.property * Property.t option =
+   means the default no-anonymous-access (/admin). Contract cases may freeze an
+   optional method and host in sidecar files, exactly as the CLI/MCP inputs do. *)
+let property_of dir : Verify.property * validation =
   let f = Filename.concat dir "property" in
   let name =
     if Sys.file_exists f then String.trim (read f) else "no-anonymous-access"
@@ -41,17 +49,24 @@ let property_of dir : Verify.property * Property.t option =
   match name with
   | "no-anonymous-access" ->
     ( Verify.No_anonymous_access "/admin",
-      Some (Property.no_anonymous_access ~path_prefix:"/admin") )
+      Single (Property.no_anonymous_access ~path_prefix:"/admin") )
   | "rate-limit-on-public" ->
-    (Verify.Rate_limit_on_public, Some Property.rate_limit_on_public)
-  | "no-shadowed-routes" -> (Verify.No_shadowed_routes, None)
+    (Verify.Rate_limit_on_public, Single Property.rate_limit_on_public)
+  | "no-shadowed-routes" -> (Verify.No_shadowed_routes, Structural)
   | "admin-api-not-reachable" ->
     (* Corpus cases use a fixed trusted block so the golden is stable. *)
     let trusted =
       match Cidr.parse "10.0.0.0/8" with Ok c -> c | Error e -> failwith e
     in
     ( Verify.Admin_api_not_reachable trusted,
-      Some (Property.admin_api_not_reachable ~trusted) )
+      Single (Property.admin_api_not_reachable ~trusted) )
+  | "authenticated-access" ->
+    let path_prefix = Option.value ~default:"/admin" (optional dir "path-prefix") in
+    let method_ = optional dir "method" in
+    let host = optional dir "host" in
+    ( Verify.Authenticated_access { path_prefix; method_; host },
+      Contract
+        (Verify.authenticated_access_contract ~path_prefix ~method_ ~host) )
   | other -> failwith (Printf.sprintf "%s: unknown property %S" dir other)
 
 (* Replace the string value of ["key"] with a placeholder. The JSON comes from our
@@ -99,23 +114,44 @@ let request_of (ce : Report.counterexample) : Ir.request =
 (* Is the reported counterexample a genuine one? Checked with {!Ir.evaluate}, the
    concrete reference semantics, which is independent of the SMT encoding — so
    this also cross-checks encoder against evaluator. *)
-let validate config (prop : Property.t option) (ce : Report.counterexample) :
-    string option =
+let validate config validation report_clause (ce : Report.counterexample) : string option =
   match Parse.parse_string config with
   | Error e -> Some ("config parse error: " ^ e)
   | Ok cfg -> (
     let policy = Lower.to_policy cfg in
     let req = request_of ce in
-    if Ir.evaluate policy req <> Ir.Allow then
-      Some
-        (Printf.sprintf "witness %S is not actually allowed by the policy" ce.path)
-    else
-      match prop with
-      | Some p when not (Ir.matches p.Property.forbidden_when req) ->
+    let check_class request_class =
+      if Ir.matches request_class req then None
+      else Some (Printf.sprintf "witness %S is outside its request class" ce.path)
+    in
+    match validation with
+    | Structural -> None
+    | Single prop ->
+      if Ir.evaluate policy req <> Ir.Allow then
         Some
-          (Printf.sprintf "witness %S is not in the property's forbidden class"
-             ce.path)
-      | _ -> None)
+          (Printf.sprintf "witness %S is not actually allowed by the policy" ce.path)
+      else check_class prop.Property.forbidden_when
+    | Contract contract ->
+      (match report_clause with
+       | None -> Some "contract violation omitted clause metadata"
+       | Some reported ->
+         (match
+            List.find_opt
+              (fun clause -> Contract.name clause = reported.Report.name)
+              contract.Contract.clauses
+          with
+          | None -> Some ("unknown contract clause " ^ reported.name)
+          | Some clause ->
+            match check_class (Contract.request_class clause) with
+            | Some _ as error -> error
+            | None ->
+              match clause with
+              | Contract.Must_deny _ ->
+                if Ir.evaluate policy req = Ir.Allow then None
+                else Some "must-deny witness is not actually allowed"
+              | Contract.Must_allow _ ->
+                if not (Ir.definitely_allows policy req) then None
+                else Some "must-allow witness is actually definitely allowed")))
 
 let () =
   let cases =
@@ -133,7 +169,7 @@ let () =
       let dir = Filename.concat cases_dir case in
       let config = read (Filename.concat dir "config.yaml") in
       let expected = String.trim (read (Filename.concat dir "expected.json")) in
-      let property, template = property_of dir in
+      let property, validation = property_of dir in
       match Verify.run ~property config with
       | Error e ->
         incr failures;
@@ -146,7 +182,7 @@ let () =
           (* Shape matches; now the witness itself must hold up. *)
           match report.Report.result with
           | Report.Violated ce -> (
-            match validate config template ce with
+            match validate config validation report.Report.clause ce with
             | Some why -> fail case "  %s\n" why
             | None -> Printf.printf "[ok]    %s\n" case)
           | _ -> Printf.printf "[ok]    %s\n" case))
