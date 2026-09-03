@@ -106,6 +106,69 @@ let condition_query ~name ~description condition =
   Buffer.add_string b (Printf.sprintf "(assert %s)\n" (cond condition));
   epilogue b
 
+let overlap_query left right =
+  let left_class = Contract.request_class left in
+  let right_class = Contract.request_class right in
+  condition_query
+    ~name:(Contract.name left ^ "/" ^ Contract.name right)
+    ~description:"safety/functionality request-class overlap"
+    (Ir.And [ left_class; right_class ])
+
+(* A functionality proof needs the opposite approximation from a safety proof.
+   [selected] may name several possible winners when the connector cannot prove
+   their order. Safety asks whether ANY possible winner allows; functionality
+   must establish that EVERY possible winner allows. Requiring every selected
+   rule to be an Allow whose guard holds deliberately turns routing uncertainty
+   into a possible false violation rather than a false proof. *)
+let definitely_allowed_formula (p : Ir.policy) : string =
+  let possibilities = List.map (fun r -> (r, selected p.rules r)) p.rules in
+  let any_selected =
+    match possibilities with
+    | [] -> "false"
+    | _ ->
+      Printf.sprintf "(or %s)"
+        (String.concat " " (List.map (fun (_, selected) -> selected) possibilities))
+  in
+  let every_possible_winner_allows =
+    match possibilities with
+    | [] -> "true"
+    | _ ->
+      Printf.sprintf "(and %s)"
+        (String.concat " "
+           (List.map
+              (fun (r, selected) ->
+                let allows =
+                  match r.Ir.decision with
+                  | Ir.Allow -> cond r.Ir.guard
+                  | Ir.Deny -> "false"
+                in
+                Printf.sprintf "(=> %s %s)" selected allows)
+              possibilities))
+  in
+  let default_allows = match p.default with Ir.Allow -> "true" | Ir.Deny -> "false" in
+  Printf.sprintf "(and %s (or %s (and (not %s) %s)))"
+    every_possible_winner_allows any_selected any_selected default_allows
+
+let contract_clause_query (p : Ir.policy) (clause : Contract.clause) : string =
+  let b = Buffer.create 512 in
+  preamble b
+    (Printf.sprintf "; contract clause: %s — %s\n"
+       (Contract.name clause) (Contract.description clause));
+  Buffer.add_string b "; the request is in the clause's request class:\n";
+  Buffer.add_string b
+    (Printf.sprintf "(assert %s)\n" (cond (Contract.request_class clause)));
+  (match clause with
+   | Contract.Must_deny c ->
+     Buffer.add_string b "; ... yet the policy would allow it:\n";
+     Buffer.add_string b
+       (Printf.sprintf "(assert %s)\n"
+          (allowed_formula ~reach_via:c.reach_via p))
+   | Contract.Must_allow _ ->
+     Buffer.add_string b "; ... yet the policy does not definitely allow it:\n";
+     Buffer.add_string b
+       (Printf.sprintf "(assert (not %s))\n" (definitely_allowed_formula p)));
+  epilogue b
+
 let to_smtlib (p : Ir.policy) (prop : Property.t) : string =
   let b = Buffer.create 512 in
   preamble b (Printf.sprintf "; property: %s — %s\n" prop.name prop.description);
