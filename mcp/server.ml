@@ -114,7 +114,8 @@ let verify_tool () =
                 "enum",
                 J.arr
                   [ J.str "no-anonymous-access"; J.str "rate-limit-on-public";
-                    J.str "no-shadowed-routes"; J.str "admin-api-not-reachable" ];
+                    J.str "no-shadowed-routes"; J.str "admin-api-not-reachable";
+                    J.str "authenticated-access" ];
                 "description",
                 J.str
                   "Invariant to verify (default no-anonymous-access): \
@@ -126,14 +127,32 @@ let verify_tool () =
                    occasionally intentional, e.g. a deliberately public health \
                    endpoint under an authenticated prefix); \
                    admin-api-not-reachable = no request from outside \
-                   trusted_cidr may reach a route proxying the Kong Admin API." ];
+                   trusted_cidr may reach a route proxying the Kong Admin API; \
+                   authenticated-access = anonymous requests denied and \
+                   authenticated requests allowed for the frozen path/method/host \
+                   scope." ];
             "path_prefix",
             J.obj
               [ "type", J.str "string";
                 "description",
                 J.str
                   "For no-anonymous-access: the path prefix that must require \
-                   authentication (default /admin)." ];
+                   authentication. For authenticated-access: the frozen path \
+                   scope (default /admin)." ];
+            "method",
+            J.obj
+              [ "type", J.str "string";
+                "description",
+                J.str
+                  "Optional exact HTTP method for authenticated-access. Omit to \
+                   require the contract for all methods." ];
+            "host",
+            J.obj
+              [ "type", J.str "string";
+                "description",
+                J.str
+                  "Optional exact Host for authenticated-access. Omit to require \
+                   the contract for all hosts." ];
             "trusted_cidr",
             J.obj
               [ "type", J.str "string";
@@ -148,8 +167,8 @@ let verify_tool () =
       "description",
       J.str
         "Verify a Kong decK config against a security property \
-         (no-anonymous-access, rate-limit-on-public, no-shadowed-routes, or \
-         admin-api-not-reachable). \
+         (no-anonymous-access, rate-limit-on-public, no-shadowed-routes, \
+         admin-api-not-reachable, or authenticated-access). \
          Returns the stable JSON result contract: result = proved | violated | \
          vacuous | inconsistent | unknown, with a concrete counterexample \
          (principal / method / \
@@ -206,6 +225,12 @@ let tool_call json =
           match Cidr.parse raw with
           | Ok c -> Some (Verify.Admin_api_not_reachable c)
           | Error _ -> None)
+        | "authenticated-access" ->
+          Some
+            (Verify.Authenticated_access
+               { path_prefix;
+                 method_ = string_field "method" args;
+                 host = string_field "host" args })
         | _ -> None
       in
       (match property with
@@ -214,7 +239,8 @@ let tool_call json =
            ("unknown property: " ^ prop_name
           ^ " (expected \
              no-anonymous-access|rate-limit-on-public|no-shadowed-routes|\
-             admin-api-not-reachable, and a valid trusted_cidr)")
+             admin-api-not-reachable|authenticated-access, and a valid \
+             trusted_cidr)")
        | Some property -> (
          match Verify.run ~property config with
          | Error e -> tool_error ("config parse error: " ^ e)

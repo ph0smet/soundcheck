@@ -24,3 +24,7 @@
 (test
  (name contract_t)
  (libraries soundcheck_core))
+
+(test
+ (name functionality_t)
+ (libraries soundcheck_core soundcheck_kong))
