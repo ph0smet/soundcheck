@@ -14,9 +14,18 @@ type counterexample = {
   note             : string;
 }
 
+type clause_kind = Must_deny | Must_allow
+
+type clause = {
+  name        : string;
+  description : string;
+  kind        : clause_kind;
+}
+
 type outcome =
   | Proved
   | Vacuous
+  | Inconsistent of string
   | Violated of counterexample
   | Unknown of string
 
@@ -24,6 +33,7 @@ type t = {
   result               : outcome;
   property_name        : string;
   property_description  : string;
+  clause               : clause option;
 }
 
 (* --- human --- *)
@@ -36,6 +46,8 @@ let to_human t =
     Printf.sprintf
       "VACUOUS  %s\n         %s\n         The property's forbidden request class is empty; no config was verified."
       t.property_name t.property_description
+  | Inconsistent reason ->
+    Printf.sprintf "INCONSISTENT %s\n             %s" t.property_name reason
   | Violated ce ->
     Printf.sprintf "VIOLATED %s\n         %s" t.property_name ce.note
   | Unknown reason ->
@@ -70,7 +82,7 @@ let jopt = function
 (* Bumped when the shape changes in a way a consumer must notice. Adding an
    always-present field counts; every key below is emitted unconditionally
    (null when absent) so a consumer never has to probe for existence. *)
-let schema_version = 4
+let schema_version = 5
 
 let counterexample_json ce =
   Printf.sprintf
@@ -80,16 +92,28 @@ let counterexample_json ce =
     (jopt ce.route) (jopt ce.service)
     (jopt ce.shadowed_route) (jopt ce.shadowed_service)
 
+let clause_json = function
+  | None -> "null"
+  | Some clause ->
+    let kind = match clause.kind with Must_deny -> "must_deny" | Must_allow -> "must_allow" in
+    Printf.sprintf "{\"name\":%s,\"description\":%s,\"kind\":%s}"
+      (jstring clause.name) (jstring clause.description) (jstring kind)
+
 let to_json t =
   let prop = jstring t.property_name in
   let head =
-    Printf.sprintf "\"schema_version\":%d,\"property\":%s" schema_version prop
+    Printf.sprintf "\"schema_version\":%d,\"property\":%s,\"clause\":%s"
+      schema_version prop (clause_json t.clause)
   in
   match t.result with
   | Proved ->
     Printf.sprintf "{\"result\":\"proved\",%s,\"counterexample\":null}" head
   | Vacuous ->
     Printf.sprintf "{\"result\":\"vacuous\",%s,\"counterexample\":null}" head
+  | Inconsistent reason ->
+    Printf.sprintf
+      "{\"result\":\"inconsistent\",%s,\"counterexample\":null,\"reason\":%s}"
+      head (jstring reason)
   | Violated ce ->
     Printf.sprintf "{\"result\":\"violated\",%s,\"counterexample\":%s}" head
       (counterexample_json ce)

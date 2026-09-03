@@ -151,7 +151,8 @@ let verify_tool () =
          (no-anonymous-access, rate-limit-on-public, no-shadowed-routes, or \
          admin-api-not-reachable). \
          Returns the stable JSON result contract: result = proved | violated | \
-         vacuous | unknown, with a concrete counterexample (principal / method / \
+         vacuous | inconsistent | unknown, with a concrete counterexample \
+         (principal / method / \
          path / route / service, plus shadowed_route for shadowing findings) when \
          violated — use it to correct the config and re-verify.";
       "inputSchema", input_schema ]
@@ -159,7 +160,7 @@ let verify_tool () =
 let tools_list_result () = J.obj [ "tools", J.arr [ verify_tool () ] ]
 
 (* An MCP tool result. A verification outcome
-   (proved/violated/vacuous/unknown) is a *successful* tool call — the report is
+   (proved/violated/vacuous/inconsistent/unknown) is a *successful* tool call — the report is
    returned both as text (for clients that
    read [content]) and as [structuredContent] (raw object, for clients that
    consume it directly). [isError] is reserved for tool-execution failures (bad

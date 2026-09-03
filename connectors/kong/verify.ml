@@ -121,4 +121,5 @@ let run ?emit_smt ~(property : property) (config : string) :
     in
     Ok { Report.result = outcome;
          property_name = name;
-         property_description = description }
+         property_description = description;
+         clause = None }

@@ -140,3 +140,22 @@ let () =
    with
    | Contract_verify.Proved -> ()
    | _ -> failwith "guarded admin route must satisfy the paired contract")
+
+let () =
+  let clause : Report.clause =
+    { name = "authenticated-admin-allowed";
+      description = "Authenticated admin traffic is allowed";
+      kind = Must_allow }
+  in
+  let report : Report.t =
+    { result = Inconsistent "clauses overlap";
+      property_name = "admin-access";
+      property_description = "Admin access contract";
+      clause = Some clause }
+  in
+  let expected =
+    {|{"result":"inconsistent","schema_version":5,"property":"admin-access","clause":{"name":"authenticated-admin-allowed","description":"Authenticated admin traffic is allowed","kind":"must_allow"},"counterexample":null,"reason":"clauses overlap"}|}
+  in
+  let got = Report.to_json report in
+  if got <> expected then
+    failwith (Printf.sprintf "unexpected contract JSON\nexpected: %s\ngot:      %s" expected got)

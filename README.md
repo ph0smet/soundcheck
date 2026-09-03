@@ -114,7 +114,7 @@ usage: soundcheck verify <config.yaml> [--property P] [--path-prefix PREFIX]
 ```
 
 Exit codes are designed to gate a pipeline: `0` proved, `1` parse error, `2` usage,
-`3` violated, `4` unknown, `5` vacuous.
+`3` violated, `4` unknown, `5` vacuous, `6` inconsistent contract.
 
 ## The JSON contract
 
@@ -124,8 +124,9 @@ identically by CI, the MCP tool, and eventually the repair loop.
 ```json
 {
   "result": "violated",
-  "schema_version": 4,
+  "schema_version": 5,
   "property": "no-anonymous-access",
+  "clause": null,
   "counterexample": {
     "principal": "anonymous",
     "action": "GET",
