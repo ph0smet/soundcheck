@@ -23,6 +23,16 @@ let () =
     (match report.Report.result with
      | Report.Vacuous -> ()
      | _ -> failwith "expected a vacuous result for an empty forbidden class");
+    let expected_human =
+      "VACUOUS  admin-api-not-reachable\n\
+      \         The admin API must not be reachable, unauthenticated, from outside 0.0.0.0/0\n\
+      \         The property's forbidden request class is empty; no config was verified."
+    in
+    let got_human = Report.to_human report in
+    if got_human <> expected_human then
+      failwith
+        (Printf.sprintf "unexpected human report\nexpected: %s\ngot:      %s"
+           expected_human got_human);
     let expected =
       {|{"result":"vacuous","schema_version":4,"property":"admin-api-not-reachable","counterexample":null}|}
     in

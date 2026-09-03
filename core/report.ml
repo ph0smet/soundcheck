@@ -34,8 +34,8 @@ let to_human t =
     Printf.sprintf "PROVED   %s\n         %s" t.property_name t.property_description
   | Vacuous ->
     Printf.sprintf
-      "VACUOUS  %s\n         The property's forbidden request class is empty; no config was verified."
-      t.property_name
+      "VACUOUS  %s\n         %s\n         The property's forbidden request class is empty; no config was verified."
+      t.property_name t.property_description
   | Violated ce ->
     Printf.sprintf "VIOLATED %s\n         %s" t.property_name ce.note
   | Unknown reason ->
