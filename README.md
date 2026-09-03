@@ -81,7 +81,7 @@ Requires OCaml 5.x, dune, the `yaml` opam library, and the **`z3` CLI binary** o
 brew install z3                 # or: apt install z3
 opam install dune yaml
 dune build
-dune test                       # runs the 35-case corpus regression gate
+dune test                       # runs the 38-case corpus regression gate
 ```
 
 Verify a config:
@@ -97,13 +97,18 @@ dune exec soundcheck -- verify bench/kong/cases/public-no-rate-limit/config.yaml
 # machine-readable, for CI
 dune exec soundcheck -- verify kong.yaml --format json
 
+# verify against a human-confirmed, immutable functionality contract
+dune exec soundcheck -- verify kong.yaml \
+  --contract bench/kong/contracts/admin-get.yaml --format json
+
 # keep the proof obligation for audit, then re-check it yourself
 dune exec soundcheck -- verify kong.yaml --emit-smt query.smt2
 z3 -smt2 query.smt2
 ```
 
 ```
-usage: soundcheck verify <config.yaml> [--property P] [--path-prefix PREFIX]
+usage: soundcheck verify <config.yaml> [--contract CONTRACT.yaml]
+                                       [--property P] [--path-prefix PREFIX]
                                        [--method METHOD] [--host HOST]
                                        [--format human|json] [--emit-smt PATH]
   --property     no-anonymous-access (default) | rate-limit-on-public
@@ -115,6 +120,20 @@ usage: soundcheck verify <config.yaml> [--property P] [--path-prefix PREFIX]
   --host         exact host for authenticated-access (default all)
   --format       human (default) | json
   --emit-smt     write a single-property SMT-LIB2 query to PATH (not contracts)
+
+usage: soundcheck mcp [--contract CONTRACT.yaml]
+```
+
+`--contract` cannot be combined with property or scope flags. Contract files are
+strict, versioned artifacts; unknown fields, versions, and kinds are rejected:
+
+```yaml
+schema_version: 1
+kind: authenticated-access
+scope:
+  path_prefix: /admin
+  method: GET                 # optional; omission means every method
+  host: admin.example         # optional; omission means every host
 ```
 
 Exit codes are designed to gate a pipeline: `0` proved, `1` parse error, `2` usage,
@@ -147,7 +166,10 @@ identically by CI, the MCP tool, and eventually the repair loop.
 ```
 
 Every key is emitted unconditionally, `null` when absent, so a consumer never has to
-probe for existence. `shadowed_route` is populated only by `no-shadowed-routes`, which
+probe for existence. Frozen runs populate `frozen_spec` with the artifact schema,
+kind, and normalized canonical content, binding the verdict to the reviewed input.
+Manual property runs emit `null`. `shadowed_route` is populated only by
+`no-shadowed-routes`, which
 names two routes: the one that serves the request and the one written to handle it.
 `host` and `source_ip` are meaningful only where the config or property constrains
 them; elsewhere the solver picked them freely.
@@ -173,11 +195,13 @@ route and re-verify.
 
 Two enforcement layers, meant to be used together.
 
-**Soft, in-loop: MCP.** `soundcheck mcp` serves the verifier as a Model Context Protocol
-tool over stdio, so an agent can call `verify` while drafting a config and self-correct
-before handing anything over. The counterexample is the useful part. It tells the model
-exactly which request defeats its output, which is a far stronger repair signal than
-"this looks wrong."
+**Soft, in-loop: MCP.** `soundcheck mcp --contract CONTRACT.yaml` loads the
+human-confirmed contract once at startup. Its `verify` tool exposes only `config`;
+property and scope fields are absent from discovery and rejected at runtime, so the
+agent can repair the config but cannot weaken the specification. The counterexample
+then identifies the request that defeats the current draft. Running `soundcheck mcp`
+without a contract preserves the manual, mutable property interface for exploration,
+but that mode does not enforce spec-freeze.
 
 **Hard, at the gate: CI.** The same binary runs in CI or a pre-apply hook and blocks on
 non-zero exit, regardless of what any agent did or claimed. This is where the actual
@@ -197,6 +221,7 @@ against the shared decision IR, so it applies to every connector that lowers int
 | `rate-limit-on-public` | shipped | Is every anonymously-reachable route covered by a rate-limiting plugin? |
 | `no-shadowed-routes` | shipped | Does a permissive route intercept traffic a stricter route was written to handle? |
 | `admin-api-not-reachable` | shipped | Can an *anonymous* request from outside a trusted address block reach a route proxying the Admin API? |
+| `authenticated-access` | shipped | Are anonymous requests denied while authenticated requests remain definitely allowed in one explicit scope? |
 
 `rate-limit-on-public` is encoded with a reduced-reachability filter on allow rules: the
 solver is asked whether a request is reachable *specifically via an unthrottled rule*.
@@ -368,9 +393,9 @@ Richer prefix ranking too, so fewer pairs fall back to a tie.
 app-level authz and tenant isolation, which is expected to refine the IR from v0 to v1.
 Kubernetes RBAC follows.
 
-**Phase 2.** A generate-verify-repair loop driven by the same JSON counterexample, under a
-spec-freeze rule: the loop may change the config, never the property. No weakening the
-spec to make failing output pass.
+**Phase 2.** A generate-verify-repair loop driven by the same JSON counterexample and the
+shipped frozen-contract boundary: the loop may change the config, never the property.
+No weakening the spec to make failing output pass.
 
 ## Design notes
 

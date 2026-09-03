@@ -108,9 +108,10 @@ to each frontend's vocabulary.
   decidable subset (esp. Rego) must be **flagged/rejected loudly**, never
   silently under-approximated. A false "verified" is worse than no product.
   "unsupported fragment" is a first-class result.
-- **Spec-freeze** (for the future AI loop): once a property/intent is confirmed,
-  the generate-verify loop may change the *config*, never the *property* — no
-  weakening the spec to make buggy output pass.
+- **Spec-freeze:** once a property/intent is confirmed, load its strict,
+  versioned contract artifact outside the model-controlled loop. The loop may
+  change the *config*, never the *property* — no weakening the spec to make
+  buggy output pass. Frozen reports carry the artifact's normalized identity.
 
 ---
 
@@ -120,10 +121,12 @@ Soundcheck is a **library + thin adapters**, so it is consumable as a *component
 in any workflow — not just a standalone app. Two enforcement layers, used
 together:
 
-- **Soft / in-loop (MCP):** an MCP server exposes a `verify` tool that existing
-  AI agents (Claude Code, Cursor, custom agents) call *while generating* a
-  config, so they self-correct from the counterexample before delivering. Fast,
-  best-effort, prompt-driven. **MCP is an adapter, not a new agent framework.**
+- **Soft / in-loop (MCP):** `soundcheck mcp --contract <artifact>` loads the
+  confirmed specification at startup and exposes a config-only `verify` tool.
+  Existing AI agents call it while generating and self-correct from the
+  counterexample; they cannot substitute property or scope arguments. MCP
+  without `--contract` remains a manual exploration mode and is not frozen.
+  **MCP is an adapter, not a new agent framework.**
 - **Hard / gate (CI):** the CLI runs in CI / a pre-apply hook and **blocks
   merge/apply on non-zero exit**, regardless of what any agent did. This is the
   actual guarantee — never rely on a prompt for it.
@@ -144,6 +147,8 @@ IDE plugin, or CI all plug in via whichever surface fits.
 - Functionality is expressed as a frozen multi-clause contract, not inferred
   from the config under repair. `authenticated-access` pairs anonymous denial
   with definite authenticated allowance over one explicit path/method/host scope.
+- Frozen contract files are strict and versioned. Unknown fields, versions, and
+  kinds fail closed; CLI flags cannot override their property or scope.
 - `mcp/` lives **in this monorepo** (sibling of `cli/`), ideally as a subcommand
   of the single `soundcheck` binary (`soundcheck verify` vs `soundcheck mcp`) —
   one distributable, no extra runtime.
