@@ -29,3 +29,6 @@ val canonical_json : t -> string
 val report_identity : t -> Soundcheck_core.Report.frozen_spec
 (** Connector-neutral provenance attached to reports produced under this
     artifact. *)
+
+val bind_report : t -> Soundcheck_core.Report.t -> Soundcheck_core.Report.t
+(** Attach this artifact's exact normalized identity to a verification report. *)

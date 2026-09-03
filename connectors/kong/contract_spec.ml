@@ -114,3 +114,6 @@ let report_identity spec : Soundcheck_core.Report.frozen_spec =
   { schema_version = spec.schema_version;
     kind = spec.kind;
     canonical = canonical_json spec }
+
+let bind_report spec (report : Soundcheck_core.Report.t) =
+  { report with frozen_spec = Some (report_identity spec) }

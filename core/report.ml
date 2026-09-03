@@ -46,19 +46,24 @@ type t = {
 (* --- human --- *)
 
 let to_human t =
-  match t.result with
-  | Proved ->
-    Printf.sprintf "PROVED   %s\n         %s" t.property_name t.property_description
-  | Vacuous ->
-    Printf.sprintf
-      "VACUOUS  %s\n         %s\n         The property's forbidden request class is empty; no config was verified."
-      t.property_name t.property_description
-  | Inconsistent reason ->
-    Printf.sprintf "INCONSISTENT %s\n             %s" t.property_name reason
-  | Violated ce ->
-    Printf.sprintf "VIOLATED %s\n         %s" t.property_name ce.note
-  | Unknown reason ->
-    Printf.sprintf "UNKNOWN  %s" reason
+  let verdict =
+    match t.result with
+    | Proved ->
+      Printf.sprintf "PROVED   %s\n         %s" t.property_name t.property_description
+    | Vacuous ->
+      Printf.sprintf
+        "VACUOUS  %s\n         %s\n         The property's forbidden request class is empty; no config was verified."
+        t.property_name t.property_description
+    | Inconsistent reason ->
+      Printf.sprintf "INCONSISTENT %s\n             %s" t.property_name reason
+    | Violated ce ->
+      Printf.sprintf "VIOLATED %s\n         %s" t.property_name ce.note
+    | Unknown reason ->
+      Printf.sprintf "UNKNOWN  %s" reason
+  in
+  match t.frozen_spec with
+  | None -> verdict
+  | Some spec -> Printf.sprintf "%s\n         Frozen spec: %s" verdict spec.canonical
 
 (* --- json (hand-rolled: schema is small and flat) --- *)
 

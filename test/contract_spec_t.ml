@@ -35,6 +35,20 @@ scope:
   if identity.schema_version <> 1 || identity.kind <> "authenticated-access"
      || identity.canonical <> expected
   then failwith "report identity does not preserve the frozen artifact";
+  let report : Soundcheck_core.Report.t =
+    { result = Soundcheck_core.Report.Proved;
+      property_name = "authenticated-access";
+      property_description = "frozen";
+      clause = None;
+      frozen_spec = None }
+  in
+  let bound = Contract_spec.bind_report spec report in
+  (match bound.frozen_spec with
+   | Some frozen when frozen.canonical = expected -> ()
+   | _ -> failwith "binding omitted frozen contract provenance");
+  if not (String.ends_with ~suffix:("Frozen spec: " ^ expected)
+            (Soundcheck_core.Report.to_human bound))
+  then failwith "human report omitted frozen contract provenance";
 
   expect_error "unknown top-level field"
     "schema_version: 1\nkind: authenticated-access\nscope: {path_prefix: /admin}\nproperty: weaker\n"
