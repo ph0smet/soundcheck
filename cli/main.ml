@@ -22,8 +22,9 @@ let usage () =
     \  --format       human (default) | json\n\
     \  --emit-smt     write a single-property SMT-LIB2 query to PATH (not contracts)\n\
      \n\
-     usage: soundcheck mcp\n\
-    \  Runs the MCP server (JSON-RPC over stdio) exposing the `verify` tool.";
+     usage: soundcheck mcp [--contract CONTRACT.yaml]\n\
+    \  With --contract, the MCP verify tool accepts config only and keeps the\n\
+    \  human-confirmed specification immutable for the server lifetime.";
   exit 2
 
 type format = Human | Json
@@ -178,8 +179,18 @@ let run_verify file rest =
        print_endline rendered;
        exit (exit_code report.result))
 
+let run_mcp rest =
+  match parse_contract_path rest with
+  | None -> Soundcheck_mcp.Server.run ()
+  | Some path ->
+    (match Contract_spec.read_file path with
+     | Error error ->
+       Printf.eprintf "contract error: %s\n" error;
+       exit 2
+     | Ok contract -> Soundcheck_mcp.Server.run ~contract ())
+
 let () =
   match Array.to_list Sys.argv with
   | _ :: "verify" :: file :: rest -> run_verify file rest
-  | _ :: "mcp" :: _ -> Soundcheck_mcp.Server.run ()
+  | _ :: "mcp" :: rest -> run_mcp rest
   | _ -> usage ()

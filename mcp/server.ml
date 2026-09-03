@@ -176,7 +176,37 @@ let verify_tool () =
          violated — use it to correct the config and re-verify.";
       "inputSchema", input_schema ]
 
-let tools_list_result () = J.obj [ "tools", J.arr [ verify_tool () ] ]
+let frozen_verify_tool (contract : Contract_spec.t) =
+  let input_schema =
+    J.obj
+      [ "type", J.str "object";
+        "properties",
+        J.obj
+          [ "config",
+            J.obj
+              [ "type", J.str "string";
+                "description",
+                J.str
+                  "Replacement decK config YAML to verify against the frozen \
+                   contract loaded when this server started." ] ];
+        "required", J.arr [ J.str "config" ];
+        "additionalProperties", "false" ]
+  in
+  J.obj
+    [ "name", J.str "verify";
+      "description",
+      J.str
+        (Printf.sprintf
+           "Verify replacement config against the immutable %s contract loaded \
+            at server startup. The specification cannot be changed by this tool."
+           contract.kind);
+      "inputSchema", input_schema ]
+
+let tools_list_result ?contract () =
+  let tool =
+    match contract with None -> verify_tool () | Some spec -> frozen_verify_tool spec
+  in
+  J.obj [ "tools", J.arr [ tool ] ]
 
 (* An MCP tool result. A verification outcome
    (proved/violated/vacuous/inconsistent/unknown) is a *successful* tool call — the report is
@@ -194,7 +224,7 @@ let tool_error msg =
     [ "content", J.arr [ J.obj [ "type", J.str "text"; "text", J.str msg ] ];
       "isError", "true" ]
 
-let tool_call json =
+let tool_call_manual json =
   let params = match field "params" json with Some p -> p | None -> `O [] in
   let name = string_field "name" params in
   let args = match field "arguments" params with Some a -> a | None -> `O [] in
@@ -248,10 +278,38 @@ let tool_call json =
   | Some other -> tool_error ("unknown tool: " ^ other)
   | None -> tool_error "missing tool name"
 
+let tool_call_frozen contract json =
+  let params = match field "params" json with Some p -> p | None -> `O [] in
+  let name = string_field "name" params in
+  let args = match field "arguments" params with Some a -> a | None -> `O [] in
+  match name with
+  | Some "verify" ->
+    (match args with
+     | `O fields when List.exists (fun (key, _) -> key <> "config") fields ->
+       tool_error
+         "frozen verify accepts only config; property and scope are immutable"
+     | `O _ ->
+       (match string_field "config" args with
+        | None -> tool_error "missing required argument: config"
+        | Some config ->
+          (match Verify.run ~property:(Contract_spec.to_property contract) config with
+           | Error error -> tool_error ("config parse error: " ^ error)
+           | Ok report ->
+             Contract_spec.bind_report contract report
+             |> Report.to_json |> tool_ok))
+     | _ -> tool_error "arguments must be an object")
+  | Some other -> tool_error ("unknown tool: " ^ other)
+  | None -> tool_error "missing tool name"
+
+let tool_call ?contract json =
+  match contract with
+  | None -> tool_call_manual json
+  | Some spec -> tool_call_frozen spec json
+
 (* Dispatch one parsed message. A request (has [id]) gets a response line; a
    notification (no [id], e.g. notifications/initialized) is acknowledged with
    no reply. *)
-let handle json : string option =
+let handle ?contract json : string option =
   let meth = match field "method" json with Some (`String m) -> m | _ -> "" in
   match field "id" json with
   | None -> None (* notification *)
@@ -260,20 +318,20 @@ let handle json : string option =
     let ok result = Some (result_envelope ~id ~result) in
     (match meth with
      | "initialize" -> ok (initialize_result ())
-     | "tools/list" -> ok (tools_list_result ())
-     | "tools/call" -> ok (tool_call json)
+     | "tools/list" -> ok (tools_list_result ?contract ())
+     | "tools/call" -> ok (tool_call ?contract json)
      | "ping" -> ok "{}"
      | _ -> Some (error_envelope ~id ~code:(-32601) ~msg:("method not found: " ^ meth)))
 
-let handle_line line : string option =
+let handle_line ?contract line : string option =
   match Yaml.of_string line with
-  | Ok json -> handle json
+  | Ok json -> handle ?contract json
   | Error (`Msg m) ->
     (* Unparseable line → JSON-RPC parse error, id null. *)
     Some (error_envelope ~id:"null" ~code:(-32700) ~msg:("parse error: " ^ m))
 
 (* Serve until stdin closes. One line in, at most one line out. *)
-let run () =
+let run ?contract () =
   set_binary_mode_in stdin true;
   set_binary_mode_out stdout true;
   let rec loop () =
@@ -282,7 +340,7 @@ let run () =
     | line ->
       let line = String.trim line in
       if line <> "" then (
-        match handle_line line with
+        match handle_line ?contract line with
         | Some response ->
           print_string response;
           print_char '\n';
