@@ -7,7 +7,8 @@ open Soundcheck_kong
 
 let usage () =
   prerr_endline
-    "usage: soundcheck verify <config.yaml> [--property P] [--path-prefix PREFIX]\n\
+    "usage: soundcheck verify <config.yaml> --contract CONTRACT.yaml\n\
+    \   or: soundcheck verify <config.yaml> [--property P] [--path-prefix PREFIX]\n\
     \                                       [--method METHOD] [--host HOST]\n\
     \                                       [--format human|json] [--emit-smt PATH]\n\
     \  --property     no-anonymous-access (default) | rate-limit-on-public\n\
@@ -17,11 +18,13 @@ let usage () =
     \  --trusted-cidr for admin-api-not-reachable (default 127.0.0.1/32)\n\
     \  --method       optional exact method for authenticated-access (default all)\n\
     \  --host         optional exact host for authenticated-access (default all)\n\
+    \  --contract     frozen, human-confirmed contract artifact; excludes property/scope flags\n\
     \  --format       human (default) | json\n\
     \  --emit-smt     write a single-property SMT-LIB2 query to PATH (not contracts)\n\
      \n\
-     usage: soundcheck mcp\n\
-    \  Runs the MCP server (JSON-RPC over stdio) exposing the `verify` tool.";
+     usage: soundcheck mcp [--contract CONTRACT.yaml]\n\
+    \  With --contract, the MCP verify tool accepts config only and keeps the\n\
+    \  human-confirmed specification immutable for the server lifetime.";
   exit 2
 
 type format = Human | Json
@@ -50,6 +53,20 @@ let parse_optional flag rest =
   let rec find = function
     | name :: value :: _ when name = flag -> Some value
     | _ :: tl -> find tl
+    | [] -> None
+  in
+  find rest
+
+let has_flag flag = List.exists (fun value -> value = flag)
+
+let parse_contract_path rest =
+  let rec find = function
+    | "--contract" :: path :: _ when not (String.starts_with ~prefix:"--" path) ->
+      Some path
+    | "--contract" :: _ ->
+      prerr_endline "--contract requires a PATH";
+      exit 2
+    | _ :: tail -> find tail
     | [] -> None
   in
   find rest
@@ -113,9 +130,28 @@ let exit_code : Report.outcome -> int = function
   | Report.Unknown _ -> 4
 
 let run_verify file rest =
-  let property = parse_property rest in
   let format = parse_format rest in
   let emit_smt = parse_emit_smt rest in
+  let contract_spec, property =
+    match parse_contract_path rest with
+    | None -> (None, parse_property rest)
+    | Some path ->
+      let conflicting =
+        [ "--property"; "--path-prefix"; "--method"; "--host";
+          "--trusted-cidr" ]
+        |> List.find_opt (fun flag -> has_flag flag rest)
+      in
+      (match conflicting with
+       | Some flag ->
+         Printf.eprintf "%s cannot be combined with --contract\n" flag;
+         exit 2
+       | None ->
+         match Contract_spec.read_file path with
+         | Error error ->
+           Printf.eprintf "contract error: %s\n" error;
+           exit 2
+         | Ok spec -> (Some spec, Contract_spec.to_property spec))
+  in
   (* Read the config here so a missing/unreadable file is a CLI-level error;
      the verification pipeline itself is the shared {!Verify.run}. *)
   match Parse.read_file file with
@@ -130,6 +166,11 @@ let run_verify file rest =
        Printf.eprintf "verification error: %s\n" e;
        exit 1
      | Ok report ->
+       let report =
+         match contract_spec with
+         | None -> report
+         | Some spec -> Contract_spec.bind_report spec report
+       in
        let rendered =
          match format with
          | Human -> Report.to_human report
@@ -138,8 +179,18 @@ let run_verify file rest =
        print_endline rendered;
        exit (exit_code report.result))
 
+let run_mcp rest =
+  match parse_contract_path rest with
+  | None -> Soundcheck_mcp.Server.run ()
+  | Some path ->
+    (match Contract_spec.read_file path with
+     | Error error ->
+       Printf.eprintf "contract error: %s\n" error;
+       exit 2
+     | Ok contract -> Soundcheck_mcp.Server.run ~contract ())
+
 let () =
   match Array.to_list Sys.argv with
   | _ :: "verify" :: file :: rest -> run_verify file rest
-  | _ :: "mcp" :: _ -> Soundcheck_mcp.Server.run ()
+  | _ :: "mcp" :: rest -> run_mcp rest
   | _ -> usage ()

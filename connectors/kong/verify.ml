@@ -204,4 +204,5 @@ let run ?emit_smt ~(property : property) (config : string) :
       Ok { Report.result = outcome;
            property_name = name;
            property_description = description;
-           clause }
+           clause;
+           frozen_spec = None }

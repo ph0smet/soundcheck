@@ -1,1 +1,1 @@
-{"result":"proved","schema_version":5,"property":"authenticated-access","clause":null,"counterexample":null}
+{"result":"proved","schema_version":6,"property":"authenticated-access","frozen_spec":null,"clause":null,"counterexample":null}

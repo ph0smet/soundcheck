@@ -1,0 +1,7 @@
+# Human-confirmed intent. Load this artifact outside the model-controlled repair
+# loop; the config may change between verify calls, this scope may not.
+schema_version: 1
+kind: authenticated-access
+scope:
+  path_prefix: /admin
+  method: GET

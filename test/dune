@@ -28,3 +28,11 @@
 (test
  (name functionality_t)
  (libraries soundcheck_core soundcheck_kong))
+
+(test
+ (name contract_spec_t)
+ (libraries soundcheck_core soundcheck_kong))
+
+(test
+ (name mcp_frozen_t)
+ (libraries soundcheck_core soundcheck_kong soundcheck_mcp))

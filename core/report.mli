@@ -39,6 +39,16 @@ type clause = {
 (** The particular clause of a multi-clause contract responsible for an
     outcome. Legacy single-property reports leave this absent. *)
 
+type frozen_spec = {
+  schema_version : int;
+  kind           : string;
+  canonical      : string;
+}
+(** Identity of the human-confirmed artifact loaded outside the repair loop.
+    [canonical] is connector-produced normalized content; core treats it as an
+    opaque string and exposes it so a consumer can compare the exact frozen
+    specification behind two verdicts. *)
+
 type outcome =
   | Proved                     (** property holds for all requests *)
   | Vacuous                    (** the property's forbidden request class is empty *)
@@ -51,6 +61,7 @@ type t = {
   property_name        : string;
   property_description  : string;
   clause               : clause option;
+  frozen_spec          : frozen_spec option;
 }
 
 val to_human : t -> string
@@ -63,15 +74,18 @@ val schema_version : int
 val to_json : t -> string
 (** The stable, versioned JSON contract:
     {[ { "result": "violated|proved|vacuous|inconsistent|unknown",
-         "schema_version": 5,
+         "schema_version": 6,
          "property": "...",
+         "frozen_spec": { "schema_version": 1, "kind": "...",
+                          "canonical": "..." },
          "clause": { "name": "...", "description": "...",
                      "kind": "must_deny|must_allow" },
          "counterexample": { "principal", "action", "path", "host",
                              "source_ip", "route", "service",
                              "shadowed_route", "shadowed_service" } } ]}
     Every key is emitted unconditionally, [null] when absent, so consumers never
-    probe for existence. [clause] is [null] for a legacy single property.
+    probe for existence. [clause] is [null] for a legacy single property and
+    [frozen_spec] is [null] for verification not bound to an external artifact.
     [counterexample] is [null] for [Proved], [Vacuous], and [Inconsistent]; for
     [Unknown] and [Inconsistent] a ["reason"] field carries the explanation.
     Emitted with a hand-rolled encoder (no external JSON dependency) since the
