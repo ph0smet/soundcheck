@@ -16,6 +16,14 @@ let required_anonymous =
     ~description:"Anonymous admin traffic remains functional"
     (Ir.And [ Ir.Path_prefix "/admin"; Ir.Is_anonymous ])
 
+let safety_anonymous =
+  Contract.must_deny ~name:"anonymous-admin-denied"
+    ~description:"Anonymous admin traffic is denied"
+    (Ir.And [ Ir.Path_prefix "/admin"; Ir.Is_anonymous ])
+
+let contract clauses : Contract.t =
+  { name = "admin-access"; description = "Admin access contract"; clauses }
+
 let expect label want got =
   let same =
     match (want, got) with
@@ -89,3 +97,46 @@ let () =
          (Solve.Violated
             { path = ""; method_ = ""; is_anon = true; src_ip = 0l; host = "" })
   | _ -> failwith "expected exactly one safety/functionality pair"
+
+let () =
+  let deny_all : Ir.policy = { rules = []; default = Deny } in
+  (match Contract_verify.run deny_all (contract [ required_anonymous ]) with
+   | Contract_verify.Violated (clause, _) ->
+     if Contract.name clause <> Contract.name required_anonymous then
+       failwith "contract runner reported the wrong violated clause"
+   | _ -> failwith "deny-all must violate the functionality contract");
+
+  let empty =
+    let all =
+      match Cidr.parse "0.0.0.0/0" with Ok cidr -> cidr | Error e -> failwith e
+    in
+    Contract.must_allow ~name:"empty" ~description:"empty"
+      (Ir.Not (Ir.Source_in all))
+  in
+  (match Contract_verify.run deny_all (contract [ empty ]) with
+   | Contract_verify.Vacuous clause when Contract.name clause = "empty" -> ()
+   | _ -> failwith "empty contract clause must be reported vacuous");
+
+  (match
+     Contract_verify.run deny_all
+       (contract [ safety_anonymous; required_anonymous ])
+   with
+   | Contract_verify.Inconsistent (safety, functionality)
+     when Contract.name safety = Contract.name safety_anonymous
+          && Contract.name functionality = Contract.name required_anonymous -> ()
+   | _ -> failwith "overlapping safety/functionality clauses must be inconsistent");
+
+  let required_authenticated =
+    Contract.must_allow ~name:"authenticated-admin-allowed"
+      ~description:"Authenticated admin traffic is allowed"
+      (Ir.And [ Ir.Path_prefix "/admin"; Ir.Requires_auth ])
+  in
+  let guarded : Ir.policy =
+    { rules = [ route ~guard:Ir.Requires_auth "admin" ]; default = Deny }
+  in
+  (match
+     Contract_verify.run guarded
+       (contract [ safety_anonymous; required_authenticated ])
+   with
+   | Contract_verify.Proved -> ()
+   | _ -> failwith "guarded admin route must satisfy the paired contract")
