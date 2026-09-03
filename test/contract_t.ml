@@ -163,10 +163,11 @@ let () =
     { result = Inconsistent "clauses overlap";
       property_name = "admin-access";
       property_description = "Admin access contract";
-      clause = Some clause }
+      clause = Some clause;
+      frozen_spec = None }
   in
   let expected =
-    {|{"result":"inconsistent","schema_version":5,"property":"admin-access","clause":{"name":"authenticated-admin-allowed","description":"Authenticated admin traffic is allowed","kind":"must_allow"},"counterexample":null,"reason":"clauses overlap"}|}
+    {|{"result":"inconsistent","schema_version":6,"property":"admin-access","frozen_spec":null,"clause":{"name":"authenticated-admin-allowed","description":"Authenticated admin traffic is allowed","kind":"must_allow"},"counterexample":null,"reason":"clauses overlap"}|}
   in
   let got = Report.to_json report in
   if got <> expected then

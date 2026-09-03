@@ -109,3 +109,8 @@ let canonical_json spec =
     "{\"schema_version\":%d,\"kind\":%s,\"scope\":{\"path_prefix\":%s,\"method\":%s,\"host\":%s}}"
     spec.schema_version (json_string spec.kind) (json_string spec.path_prefix)
     (json_option spec.method_) (json_option spec.host)
+
+let report_identity spec : Soundcheck_core.Report.frozen_spec =
+  { schema_version = spec.schema_version;
+    kind = spec.kind;
+    canonical = canonical_json spec }

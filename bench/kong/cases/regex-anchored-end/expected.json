@@ -1,1 +1,1 @@
-{"result":"proved","schema_version":5,"property":"no-shadowed-routes","clause":null,"counterexample":null}
+{"result":"proved","schema_version":6,"property":"no-shadowed-routes","frozen_spec":null,"clause":null,"counterexample":null}

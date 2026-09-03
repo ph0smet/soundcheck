@@ -31,6 +31,10 @@ scope:
   in
   if Contract_spec.canonical_json spec <> expected then
     failwith "canonical contract identity changed";
+  let identity = Contract_spec.report_identity spec in
+  if identity.schema_version <> 1 || identity.kind <> "authenticated-access"
+     || identity.canonical <> expected
+  then failwith "report identity does not preserve the frozen artifact";
 
   expect_error "unknown top-level field"
     "schema_version: 1\nkind: authenticated-access\nscope: {path_prefix: /admin}\nproperty: weaker\n"

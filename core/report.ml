@@ -22,6 +22,12 @@ type clause = {
   kind        : clause_kind;
 }
 
+type frozen_spec = {
+  schema_version : int;
+  kind           : string;
+  canonical      : string;
+}
+
 type outcome =
   | Proved
   | Vacuous
@@ -34,6 +40,7 @@ type t = {
   property_name        : string;
   property_description  : string;
   clause               : clause option;
+  frozen_spec          : frozen_spec option;
 }
 
 (* --- human --- *)
@@ -82,7 +89,7 @@ let jopt = function
 (* Bumped when the shape changes in a way a consumer must notice. Adding an
    always-present field counts; every key below is emitted unconditionally
    (null when absent) so a consumer never has to probe for existence. *)
-let schema_version = 5
+let schema_version = 6
 
 let counterexample_json ce =
   Printf.sprintf
@@ -94,16 +101,23 @@ let counterexample_json ce =
 
 let clause_json = function
   | None -> "null"
-  | Some clause ->
+  | Some (clause : clause) ->
     let kind = match clause.kind with Must_deny -> "must_deny" | Must_allow -> "must_allow" in
     Printf.sprintf "{\"name\":%s,\"description\":%s,\"kind\":%s}"
       (jstring clause.name) (jstring clause.description) (jstring kind)
 
+let frozen_spec_json = function
+  | None -> "null"
+  | Some spec ->
+    Printf.sprintf "{\"schema_version\":%d,\"kind\":%s,\"canonical\":%s}"
+      spec.schema_version (jstring spec.kind) (jstring spec.canonical)
+
 let to_json t =
   let prop = jstring t.property_name in
   let head =
-    Printf.sprintf "\"schema_version\":%d,\"property\":%s,\"clause\":%s"
-      schema_version prop (clause_json t.clause)
+    Printf.sprintf
+      "\"schema_version\":%d,\"property\":%s,\"frozen_spec\":%s,\"clause\":%s"
+      schema_version prop (frozen_spec_json t.frozen_spec) (clause_json t.clause)
   in
   match t.result with
   | Proved ->

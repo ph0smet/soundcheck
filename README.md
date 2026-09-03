@@ -128,8 +128,9 @@ identically by CI, the MCP tool, and eventually the repair loop.
 ```json
 {
   "result": "violated",
-  "schema_version": 5,
+  "schema_version": 6,
   "property": "no-anonymous-access",
+  "frozen_spec": null,
   "clause": null,
   "counterexample": {
     "principal": "anonymous",

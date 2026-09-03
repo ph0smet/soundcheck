@@ -25,3 +25,7 @@ val to_property : t -> Verify.property
 val canonical_json : t -> string
 (** Stable, normalized identity material for report provenance. Host names are
     lowercased because Kong matches them case-insensitively. *)
+
+val report_identity : t -> Soundcheck_core.Report.frozen_spec
+(** Connector-neutral provenance attached to reports produced under this
+    artifact. *)
