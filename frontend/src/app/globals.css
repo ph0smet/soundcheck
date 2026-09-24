@@ -1,0 +1,230 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+:root,
+[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f3f4f6;
+  --surface: #ffffff;
+  --surface-2: #f7f8fa;
+  --surface-3: #eceef2;
+  --line: #e1e4ea;
+  --line-strong: #c9ced7;
+  --ink: #0c1016;
+  --ink-2: #525b69;
+  --ink-3: #858d9a;
+  --inverse: #0c1016;
+  --on-inverse: #ffffff;
+  --focus: #0c1016;
+
+  --proved: #0b7a52;
+  --violated: #c42f1a;
+  --vacuous: #9a5d00;
+  --unknown: #4f4fcf;
+  --inconsistent: #a8246f;
+
+  --syn-key: #0c1016;
+  --syn-string: #0b6b6f;
+  --syn-number: #9a5d00;
+  --syn-comment: #8a919c;
+  --syn-punct: #858d9a;
+  --syn-bool: #4f4fcf;
+
+  --shadow: 0 1px 2px rgb(12 16 22 / 0.04), 0 1px 1px rgb(12 16 22 / 0.03);
+  --shadow-pop: 0 12px 32px -8px rgb(12 16 22 / 0.18), 0 2px 6px rgb(12 16 22 / 0.06);
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0a0c0f;
+  --surface: #111418;
+  --surface-2: #0d1013;
+  --surface-3: #1a1f25;
+  --line: #20262e;
+  --line-strong: #2e3641;
+  --ink: #e8ebef;
+  --ink-2: #9aa3af;
+  --ink-3: #6a7380;
+  --inverse: #e8ebef;
+  --on-inverse: #0a0c0f;
+  --focus: #e8ebef;
+
+  --proved: #3dd68c;
+  --violated: #ff6b4f;
+  --vacuous: #f0b13d;
+  --unknown: #a3a3ff;
+  --inconsistent: #f26cbf;
+
+  --syn-key: #e8ebef;
+  --syn-string: #6fd3d0;
+  --syn-number: #f0b13d;
+  --syn-comment: #5d6672;
+  --syn-punct: #6a7380;
+  --syn-bool: #a3a3ff;
+
+  --shadow: 0 0 0 1px rgb(0 0 0 / 0.2);
+  --shadow-pop: 0 16px 40px -8px rgb(0 0 0 / 0.6), 0 0 0 1px rgb(255 255 255 / 0.04);
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-inverse: var(--inverse);
+  --color-on-inverse: var(--on-inverse);
+  --color-proved: var(--proved);
+  --color-violated: var(--violated);
+  --color-vacuous: var(--vacuous);
+  --color-unknown: var(--unknown);
+  --color-inconsistent: var(--inconsistent);
+
+  --font-sans: var(--font-instrument), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, "SFMono-Regular", monospace;
+
+  --shadow-card: var(--shadow);
+  --shadow-pop: var(--shadow-pop);
+
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1rem;
+}
+
+@layer base {
+  html {
+    font-size: 14px;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01", "cv11";
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--ink) 18%, transparent);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  button:not(:disabled),
+  [role="button"],
+  summary {
+    cursor: pointer;
+  }
+
+  code,
+  kbd,
+  pre,
+  samp {
+    font-family: var(--font-mono);
+    font-feature-settings: "calt" 0;
+  }
+}
+
+@utility tint-* {
+  background-color: color-mix(in oklab, --value(--color-*) 11%, transparent);
+}
+
+@utility ring-tone-* {
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, --value(--color-*) 32%, transparent);
+}
+
+@utility scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+
+@keyframes sweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(250%);
+  }
+}
+
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.animate-sweep {
+  animation: sweep 1.3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.animate-reveal {
+  animation: reveal 220ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-sweep,
+  .animate-reveal {
+    animation: none;
+  }
+}
+
+/* CodeMirror inherits the theme tokens. */
+.cm-editor {
+  height: 100%;
+  background: transparent;
+  font-size: 12.5px;
+}
+.cm-editor.cm-focused {
+  outline: none;
+}
+.cm-scroller {
+  font-family: var(--font-mono) !important;
+  line-height: 1.65 !important;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+.cm-gutters {
+  background: transparent !important;
+  border-right: 1px solid var(--line) !important;
+  color: var(--ink-3) !important;
+}
+.cm-activeLineGutter,
+.cm-activeLine {
+  background: color-mix(in oklab, var(--ink) 4%, transparent) !important;
+}
+.cm-content {
+  caret-color: var(--ink);
+  color: var(--ink);
+}
+.cm-cursor {
+  border-left-color: var(--ink) !important;
+}
+.cm-selectionBackground,
+.cm-focused .cm-selectionBackground {
+  background: color-mix(in oklab, var(--ink) 16%, transparent) !important;
+}
+.cm-line-flag {
+  background: color-mix(in oklab, var(--violated) 12%, transparent);
+  box-shadow: inset 2px 0 0 var(--violated);
+}
+.cm-line-flag-secondary {
+  background: color-mix(in oklab, var(--vacuous) 12%, transparent);
+  box-shadow: inset 2px 0 0 var(--vacuous);
+}
+.cm-placeholder {
+  color: var(--ink-3) !important;
+}
