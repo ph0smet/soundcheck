@@ -100,6 +100,16 @@
    %{dep:../bench/kong/cases/regex-unsupported-construct/config.yaml})))
 
 (executable
+ (name action_metadata_t)
+ (libraries yaml))
+
+(rule
+ (alias runtest)
+ (deps ../action.yml)
+ (action
+  (run %{exe:action_metadata_t.exe} %{dep:../action.yml})))
+
+(executable
  (name profile_cli_t)
  (libraries soundcheck_kong unix))
 

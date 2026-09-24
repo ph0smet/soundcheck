@@ -1,0 +1,56 @@
+name: Soundcheck verified Kong configuration
+description: Verify a Kong declarative configuration against an immutable Soundcheck contract
+author: Sourav Kumar
+
+branding:
+  icon: shield
+  color: blue
+
+inputs:
+  config:
+    description: Path to the Kong declarative configuration, relative to the caller workspace
+    required: true
+  contract:
+    description: Path to the reviewed Soundcheck contract, relative to the caller workspace
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Set up OCaml
+      uses: ocaml/setup-ocaml@v3
+      with:
+        ocaml-compiler: "5"
+
+    - name: Install Z3
+      shell: bash
+      run: sudo apt-get update && sudo apt-get install --yes z3
+
+    - name: Install Soundcheck dependencies
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: opam install . --deps-only --yes
+
+    - name: Build Soundcheck
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: opam exec -- dune build cli/main.exe
+
+    - name: Verify frozen contract
+      shell: bash
+      env:
+        SOUNDCHECK_CONFIG_INPUT: ${{ inputs.config }}
+        SOUNDCHECK_CONTRACT_INPUT: ${{ inputs.contract }}
+      run: |
+        config_path="$SOUNDCHECK_CONFIG_INPUT"
+        contract_path="$SOUNDCHECK_CONTRACT_INPUT"
+
+        if [[ "$config_path" != /* ]]; then
+          config_path="$GITHUB_WORKSPACE/$config_path"
+        fi
+        if [[ "$contract_path" != /* ]]; then
+          contract_path="$GITHUB_WORKSPACE/$contract_path"
+        fi
+
+        "$GITHUB_ACTION_PATH/_build/default/cli/main.exe" verify "$config_path" \
+          --contract "$contract_path" --format github

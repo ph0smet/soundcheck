@@ -33,3 +33,28 @@ jobs:
 
       - name: Test (corpus regression gate)
         run: opam exec -- dune test
+
+  action-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Proved frozen configuration
+        uses: ./
+        with:
+          config: bench/kong/workflows/frozen-admin/repaired.yaml
+          contract: bench/kong/contracts/admin-get.yaml
+
+      - name: Violated frozen configuration
+        id: violated
+        continue-on-error: true
+        uses: ./
+        with:
+          config: bench/kong/workflows/frozen-admin/unsafe.yaml
+          contract: bench/kong/contracts/admin-get.yaml
+
+      - name: Require the unsafe configuration to fail
+        if: always()
+        env:
+          VIOLATED_OUTCOME: ${{ steps.violated.outcome }}
+        run: test "$VIOLATED_OUTCOME" = failure

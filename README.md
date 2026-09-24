@@ -296,6 +296,24 @@ and uncertainty findings are included when available. Non-proof outcomes retain
 their normal non-zero exit codes, so the annotation and branch-protection gate
 cannot disagree.
 
+The reusable Action accepts only a configuration and a reviewed frozen contract:
+
+```yaml
+steps:
+  - uses: actions/checkout@v4
+  - uses: ph0smet/soundcheck@v1
+    with:
+      config: kong.yaml
+      contract: soundcheck-contract.yaml
+```
+
+The initial Action targets Ubuntu/Linux, installs OCaml and Z3, builds the
+version of Soundcheck pinned by the Action reference, and emits native GitHub
+annotations. Pin an immutable commit SHA for the strongest supply-chain
+guarantee; use the `v1` tag when automatic compatible fixes are preferred. The
+Action intentionally exposes no property or scope inputs, so a generated repair
+cannot substitute or weaken the reviewed contract.
+
 Both surfaces are thin adapters over one core, so they cannot drift apart in what they
 consider verified. Soundcheck is also consumable directly as an OCaml library.
 
