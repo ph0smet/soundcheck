@@ -184,6 +184,107 @@ let () =
    | Contract_verify.Proved -> ()
    | _ -> failwith "guarded admin route must satisfy the paired contract")
 
+let phase_name = function
+  | Contract_verify.Inhabitance -> "inhabitance"
+  | Contract_verify.Consistency -> "consistency"
+  | Contract_verify.Clause -> "clause"
+
+let expect_plan expected plan =
+  let actual =
+    List.map
+      (fun (obligation : Contract_verify.obligation) ->
+        (obligation.id, phase_name obligation.phase, obligation.clauses))
+      plan
+  in
+  if actual <> expected then failwith "contract obligation plan changed"
+
+let () =
+  let required_authenticated =
+    Contract.must_allow ~name:"authenticated-admin-allowed"
+      ~description:"Authenticated admin traffic is allowed"
+      (Ir.And [ Ir.Path_prefix "/admin"; Ir.Requires_auth ])
+  in
+  let paired = contract [ safety_anonymous; required_authenticated ] in
+  let guarded : Ir.policy =
+    { request_domain = True;
+      rules = [ route ~guard:Ir.Requires_auth "admin" ];
+      default = Deny }
+  in
+  let expected =
+    [ ( "inhabitance-01-anonymous-admin-denied",
+        "inhabitance", [ "anonymous-admin-denied" ] );
+      ( "inhabitance-02-authenticated-admin-allowed",
+        "inhabitance", [ "authenticated-admin-allowed" ] );
+      ( "consistency-01-anonymous-admin-denied-authenticated-admin-allowed",
+        "consistency",
+        [ "anonymous-admin-denied"; "authenticated-admin-allowed" ] );
+      ( "clause-01-anonymous-admin-denied",
+        "clause", [ "anonymous-admin-denied" ] );
+      ( "clause-02-authenticated-admin-allowed",
+        "clause", [ "authenticated-admin-allowed" ] ) ]
+  in
+  let plan = Contract_verify.plan guarded paired in
+  expect_plan expected plan;
+  if List.exists (fun obligation -> obligation.Contract_verify.smtlib = "") plan
+  then failwith "planned obligation omitted its SMT-LIB2";
+  let result, trace = Contract_verify.run_with_trace guarded paired in
+  (match result with
+   | Contract_verify.Proved -> ()
+   | _ -> failwith "traced verification changed a proved verdict");
+  if
+    not
+      (List.for_all
+         (fun entry ->
+           match entry.Contract_verify.execution with
+           | Contract_verify.Executed _ -> true
+           | Contract_verify.Not_executed -> false)
+         trace)
+  then failwith "proved contract must execute every planned obligation";
+
+  let all =
+    match Cidr.parse "0.0.0.0/0" with Ok cidr -> cidr | Error error -> failwith error
+  in
+  let empty =
+    Contract.must_allow ~name:"empty-scope" ~description:"empty scope"
+      (Ir.Not (Ir.Source_in all))
+  in
+  let result, trace =
+    Contract_verify.run_with_trace guarded (contract [ empty; required_authenticated ])
+  in
+  (match result with
+   | Contract_verify.Vacuous clause when Contract.name clause = "empty-scope" -> ()
+   | _ -> failwith "trace changed the vacuous short-circuit result");
+  (match trace with
+   | first :: rest ->
+     (match first.execution with
+      | Contract_verify.Executed Solve.Proved -> ()
+      | _ -> failwith "vacuous inhabitance query was not recorded");
+     if
+       not
+         (List.for_all
+            (fun entry -> entry.Contract_verify.execution = Not_executed)
+            rest)
+     then failwith "obligations after vacuity must be explicitly unexecuted"
+   | [] -> failwith "vacuous trace omitted its plan");
+
+  let result, trace =
+    Contract_verify.run_with_trace guarded
+      (contract [ safety_anonymous; required_anonymous ])
+  in
+  (match result with
+   | Contract_verify.Inconsistent _ -> ()
+   | _ -> failwith "trace changed the inconsistency result");
+  let executed, skipped =
+    List.partition
+      (fun entry ->
+        match entry.Contract_verify.execution with
+        | Executed _ -> true
+        | Not_executed -> false)
+      trace
+  in
+  if List.length executed <> 3 || List.length skipped <> 2 then
+    failwith "inconsistency trace did not preserve phase short-circuiting"
+
 let () =
   let clause : Report.clause =
     { name = "authenticated-admin-allowed";
