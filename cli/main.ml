@@ -1,5 +1,6 @@
 (* Soundcheck CLI (v0): verify a Kong declarative config against a security
-   property. Exit codes: 0 proved, 1 parse error, 2 usage, 3 violated, 4 unknown,
+   property. Exit codes: 0 proved, 1 input/output or verification error, 2 usage,
+   3 violated, 4 unknown,
    5 vacuous, 6 inconsistent contract. *)
 
 open Soundcheck_core
@@ -8,6 +9,7 @@ open Soundcheck_kong
 let usage () =
   prerr_endline
     "usage: soundcheck verify <config.yaml> --contract CONTRACT.yaml\n\
+    \                                       [--evidence-dir NEW_DIRECTORY]\n\
     \   or: soundcheck verify <config.yaml> [--property P] [--path-prefix PREFIX]\n\
     \                                       [--method METHOD] [--host HOST]\n\
     \                                       [--format human|json|github] [--emit-smt PATH]\n\
@@ -22,6 +24,7 @@ let usage () =
     \  --contract     frozen, human-confirmed contract artifact; excludes property/scope flags\n\
     \  --format       human (default) | json\n\
     \  --emit-smt     write a single-property SMT-LIB2 query to PATH (not contracts)\n\
+    \  --evidence-dir write a complete audit bundle to a new directory; requires --contract\n\
      \n\
      usage: soundcheck compare <before.yaml> <after.yaml>\n\
     \                           [--contract CONTRACT.yaml]\n\
@@ -161,6 +164,29 @@ let parse_emit_smt rest =
   in
   find rest
 
+let parse_evidence_dir rest =
+  let rec find found = function
+    | "--evidence-dir" :: path :: tail
+      when path <> "" && not (String.starts_with ~prefix:"--" path) ->
+      if Option.is_some found then begin
+        prerr_endline "--evidence-dir may only be specified once";
+        exit 2
+      end;
+      find (Some path) tail
+    | "--evidence-dir" :: _ ->
+      prerr_endline "--evidence-dir requires a NEW_DIRECTORY";
+      exit 2
+    | _ :: tail -> find found tail
+    | [] -> found
+  in
+  find None rest
+
+let reject_evidence_dir rest =
+  if has_flag "--evidence-dir" rest then begin
+    prerr_endline "--evidence-dir is only supported by verify with --contract";
+    exit 2
+  end
+
 let exit_code : Report.outcome -> int = function
   | Report.Proved -> 0
   | Report.Vacuous -> 5
@@ -177,6 +203,15 @@ let print_verify_error format ~file ~title message =
 let run_verify file rest =
   let format = parse_verify_format rest in
   let emit_smt = parse_emit_smt rest in
+  let evidence_dir = parse_evidence_dir rest in
+  if Option.is_some evidence_dir && not (has_flag "--contract" rest) then begin
+    prerr_endline "--evidence-dir requires --contract";
+    exit 2
+  end;
+  if Option.is_some evidence_dir && Option.is_some emit_smt then begin
+    prerr_endline "--evidence-dir cannot be combined with --emit-smt";
+    exit 2
+  end;
   let contract_spec, property =
     match parse_contract_path rest with
     | None -> (None, parse_property rest)
@@ -205,16 +240,35 @@ let run_verify file rest =
     print_verify_error format ~file ~title:"parse error" e;
     exit 1
   | Ok config ->
-    (match Verify.run ?emit_smt ~property config with
+    (match Verify.run_with_trace ?emit_smt ~property config with
      | Error e ->
        print_verify_error format ~file ~title:"verification error" e;
        exit 1
-     | Ok report ->
+     | Ok (report, trace) ->
        let report =
          match contract_spec with
          | None -> report
          | Some spec -> Contract_spec.bind_report spec report
        in
+       (match evidence_dir with
+        | None -> ()
+        | Some directory ->
+          let bundle_result =
+            match Evidence.collect_provenance () with
+            | Error reason -> Error reason
+            | Ok provenance ->
+              let profile : Evidence.profile =
+                { id = Assurance.profile.id; json = Assurance.profile_json () }
+              in
+              match Evidence.create ~config ~profile ~provenance ~report ~trace with
+              | Error reason -> Error reason
+              | Ok bundle -> Evidence.write ~directory bundle
+          in
+          match bundle_result with
+          | Ok () -> ()
+          | Error error ->
+            print_verify_error format ~file ~title:"evidence error" error;
+            exit 1);
        let rendered =
          match format with
          | Standard Human -> Report.to_human report
@@ -225,6 +279,7 @@ let run_verify file rest =
        exit (exit_code report.result))
 
 let run_mcp rest =
+  reject_evidence_dir rest;
   match parse_contract_path rest with
   | None -> Soundcheck_mcp.Server.run ()
   | Some path ->
@@ -235,6 +290,7 @@ let run_mcp rest =
      | Ok contract -> Soundcheck_mcp.Server.run ~contract ())
 
 let run_compare before_file after_file rest =
+  reject_evidence_dir rest;
   let format = parse_format rest in
   let emit_smt = parse_emit_smt rest in
   let mode =

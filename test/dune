@@ -26,6 +26,42 @@
  (libraries soundcheck_core))
 
 (test
+ (name sha256_t)
+ (libraries soundcheck_core unix))
+
+(executable
+ (name evidence_t)
+ (libraries soundcheck_core unix))
+
+(rule
+ (alias runtest)
+ (deps (source_tree fixtures/evidence))
+ (action
+  (run %{exe:evidence_t.exe} fixtures/evidence)))
+
+(executable
+ (name evidence_cli_t)
+ (libraries soundcheck_core soundcheck_kong yaml unix))
+
+(rule
+ (alias runtest)
+ (deps
+  ../bench/kong/contracts/admin-get.yaml
+  ../bench/kong/workflows/frozen-admin/unsafe.yaml
+  ../bench/kong/workflows/frozen-admin/repaired.yaml
+  ../bench/kong/workflows/frozen-admin/deny-all.yaml
+  ../bench/kong/cases/regex-unsupported-construct/config.yaml)
+ (action
+  (run
+   %{exe:evidence_cli_t.exe}
+   %{exe:../cli/main.exe}
+   %{dep:../bench/kong/contracts/admin-get.yaml}
+   %{dep:../bench/kong/workflows/frozen-admin/unsafe.yaml}
+   %{dep:../bench/kong/workflows/frozen-admin/repaired.yaml}
+   %{dep:../bench/kong/workflows/frozen-admin/deny-all.yaml}
+   %{dep:../bench/kong/cases/regex-unsupported-construct/config.yaml})))
+
+(test
  (name functionality_t)
  (libraries soundcheck_core soundcheck_kong))
 

@@ -191,6 +191,8 @@ let escape_json value =
       | '\n' -> Buffer.add_string buffer "\\n"
       | '\r' -> Buffer.add_string buffer "\\r"
       | '\t' -> Buffer.add_string buffer "\\t"
+      | character when Char.code character < 0x20 ->
+        Buffer.add_string buffer (Printf.sprintf "\\u%04x" (Char.code character))
       | character -> Buffer.add_char buffer character)
     value;
   Buffer.contents buffer
