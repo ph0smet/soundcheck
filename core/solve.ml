@@ -26,6 +26,27 @@ let run_capture (cmd : string) : string =
   ignore (Unix.close_process_in ic);
   Buffer.contents b
 
+let version ?(z3 = "z3") () =
+  try
+    let channel = Unix.open_process_args_in z3 [| z3; "-version" |] in
+    let output = Buffer.create 128 in
+    (try
+       while true do
+         Buffer.add_string output (input_line channel);
+         Buffer.add_char output '\n'
+       done
+     with End_of_file -> ());
+    let status = Unix.close_process_in channel in
+    let text = String.trim (Buffer.contents output) in
+    match status with
+    | Unix.WEXITED 0 when String.starts_with ~prefix:"Z3 version " text -> Ok text
+    | _ -> Error ("could not determine Z3 version: " ^ text)
+  with
+  | Sys_error reason -> Error reason
+  | Unix.Unix_error (error, operation, argument) ->
+    Error
+      (Printf.sprintf "%s(%s): %s" operation argument (Unix.error_message error))
+
 let write_file path s =
   let oc = open_out path in
   output_string oc s;

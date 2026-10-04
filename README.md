@@ -68,8 +68,8 @@ unreliable so long as the checker is not.
 
 `--emit-smt PATH` keeps a single-property query as an audit artifact. It is plain SMT-LIB2,
 so the solver obligation can be re-checked independently. The result still relies on the
-fidelity of Soundcheck's Kong model and encoder; multi-query contracts do not yet emit a
-complete evidence bundle.
+fidelity of Soundcheck's Kong model and encoder. Frozen multi-query contracts use
+`--evidence-dir NEW_DIRECTORY` to retain the complete obligation plan and provenance.
 
 Multiple frontends, one IR, one solver backend, counterexamples lifted back per target.
 The core is the reusable asset and connectors stay thin.
@@ -110,12 +110,18 @@ dune exec soundcheck -- verify kong.yaml \
 dune exec soundcheck -- verify kong.yaml --emit-smt query.smt2
 z3 -smt2 query.smt2
 
+# retain every frozen-contract query, execution status, and provenance
+mkdir -p evidence
+dune exec soundcheck -- verify kong.yaml --contract contract.yaml \
+  --evidence-dir evidence/run-001 --format json
+
 # inspect the exact Kong semantics Soundcheck models
 dune exec soundcheck -- profile kong --format json
 ```
 
 ```
 usage: soundcheck verify <config.yaml> [--contract CONTRACT.yaml]
+                                       [--evidence-dir NEW_DIRECTORY]
                                        [--property P] [--path-prefix PREFIX]
                                        [--method METHOD] [--host HOST]
                                        [--format human|json] [--emit-smt PATH]
@@ -129,6 +135,7 @@ usage: soundcheck verify <config.yaml> [--contract CONTRACT.yaml]
   --host         exact host for paired contracts (default all)
   --format       human (default) | json
   --emit-smt     write a single-property SMT-LIB2 query to PATH (not contracts)
+  --evidence-dir write an audit bundle to a new directory; requires --contract
 
 usage: soundcheck profile kong [--format human|json]
 
@@ -162,7 +169,8 @@ scope:
   host: admin.example         # optional; omission means every host
 ```
 
-Exit codes are designed to gate a pipeline: `0` proved, `1` parse error, `2` usage,
+Exit codes are designed to gate a pipeline: `0` proved, `1` input/output or verification
+error, `2` usage,
 `3` violated, `4` unknown, `5` vacuous, `6` inconsistent contract.
 
 `soundcheck profile kong` publishes the complete, versioned support boundary behind
@@ -241,7 +249,7 @@ all methods or all hosts; Soundcheck never infers intended functionality from th
 config being repaired. Contract reports identify the failing clause as
 `must_deny` or `must_allow`. Because a contract is checked with several solver
 queries, `--emit-smt` currently rejects it rather than emitting an incomplete
-audit artifact.
+audit artifact. Use `--evidence-dir` with the frozen contract file instead.
 
 `network-restricted-access` is also paired: every request outside the trusted CIDR
 must be denied, while authenticated requests inside it must be definitely allowed.
@@ -258,6 +266,52 @@ fragment gets `"result": "unknown"` with a `"reason"` naming the routes responsi
 never a quiet pass. Both are verdicts rather than tool errors: the MCP tool returns
 them as normal results so an agent can correct the property or rewrite the offending
 route and re-verify.
+
+## Evidence bundles
+
+`soundcheck verify kong.yaml --contract contract.yaml --evidence-dir evidence/run-001`
+creates a schema v1 audit bundle alongside the usual report. The parent directory must
+already exist; an existing destination file, directory, or symlink is rejected. The
+option requires a frozen `--contract` and cannot be combined with `--emit-smt`. It is
+available on `verify`; comparisons and MCP calls retain their existing interfaces.
+
+The bundle contains `contract.json` (normalized frozen artifact),
+`assurance-profile.json` (complete semantic profile), `report.json` (the unchanged
+schema v9 verdict), and `queries/<obligation-id>.smt2` for every planned obligation.
+`manifest.json` binds these files with SHA-256 and records:
+
+- `schema_version: 1`, the final `result`, and each artifact's relative `path` and `sha256`.
+- `config.sha256` and `config.size_bytes`, computed over the exact bytes verified.
+  The config content and its filesystem path are not copied.
+- `soundcheck.executable_sha256`, `soundcheck.ocaml_version`, and
+  `soundcheck.report_schema_version`, identifying the actual verifier build.
+- `solver.name`, `solver.version`, and `solver.version_error`. If the version command
+  fails, `version` is `null` and the error is retained.
+- `obligation_plan.status` (`complete` or `unavailable`) and `reason`.
+- Ordered `obligations`, each with `id`, `phase` (`inhabitance`, `consistency`, `clause`),
+  related `clauses`, query artifact, `execution`, `solver_result`, `model`, and `reason`.
+
+An executed obligation records the raw solver result `sat`, `unsat`, or `unknown`.
+SAT includes the abstract request model; unknown includes its reason. An unexecuted
+obligation has `execution: "not_executed"` and null result, model, and reason, but its
+query remains present. SAT for inhabitance establishes a nonempty request class;
+SAT for consistency or a policy clause instead prevents a proof. Interpret each
+query using its phase rather than treating every SAT as a policy violation.
+
+Verification keeps its short-circuit order and existing exit codes. A config rejected
+as unsupported before lowering still produces an `unknown` bundle, with an unavailable
+plan, the rejection reason, and no invented queries. Parse and usage errors produce no
+bundle. Evidence I/O errors exit `1`, including when verification itself proved.
+
+Directories and files are created privately and exclusively. The fully written
+manifest is published last as the completion marker; a failed write can leave an
+incomplete new directory without it. Serialization and file ordering are deterministic
+for identical input traces. SAT witnesses are solver-selected and may differ between
+solver builds. Re-check any retained query directly:
+
+```sh
+z3 -smt2 evidence/run-001/queries/<obligation-id>.smt2
+```
 
 ## Using it against AI-generated config
 
@@ -490,6 +544,8 @@ core/          shared engine, the reusable asset
   solve.ml       Z3 orchestration + model extraction
   cidr.ml        IPv4 blocks: parsing, membership, bitvector encoding
   report.ml      Report.t + human/JSON serializers (the stable contract)
+  evidence.ml    frozen-contract audit bundles, manifest, and provenance
+  sha256.ml      portable byte-exact artifact and executable digests
 connectors/    thin frontends (parse→IR, lift counterexample→config vocabulary)
   kong/          decK YAML, first connector
     fragment.ml    decidability boundary: reject what the encoder cannot model
@@ -545,8 +601,9 @@ outside the frozen repair scope.
 With `--contract`, `--emit-smt` writes the outside-scope preservation query; the
 multi-query contract result remains embedded in the comparison report.
 
-Full routing/upstream equivalence follows, along with CI/PR productization and
-reproducible evidence.
+Configuration equivalence and frozen-contract CI integration are implemented.
+Frozen verification now emits reproducible evidence bundles. Next is a deterministic
+repair benchmark with structured verifier feedback for external agent and RLVR systems.
 
 Soundcheck remains a model-independent verifier. External agents and optional downstream
 orchestrators may generate or repair configurations through its interfaces, but model

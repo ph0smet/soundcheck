@@ -26,4 +26,8 @@ val check : ?z3:string -> ?emit_smt:string -> string -> result
     proof obligation remains as an audit artifact that any SMT-LIB2 solver can
     re-check independently. Otherwise a temp file is used and removed. *)
 
+val version : ?z3:string -> unit -> (string, string) Stdlib.result
+(** Capture [z3 -version] for evidence provenance. Failure is explicit rather
+    than inventing a solver version. *)
+
 val string_of_result : result -> string

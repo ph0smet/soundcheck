@@ -31,6 +31,16 @@ scope:
   in
   if Contract_spec.canonical_json spec <> expected then
     failwith "canonical contract identity changed";
+  let control =
+    parse
+      "schema_version: 1\nkind: authenticated-access\nscope: {path_prefix: \"/admin\\u0001\"}\n"
+  in
+  (match Yaml.of_string (Contract_spec.canonical_json control) with
+   | Ok (`O fields) ->
+     (match List.assoc_opt "scope" fields with
+      | Some (`O scope) when List.assoc_opt "path_prefix" scope = Some (`String "/admin\001") -> ()
+      | _ -> failwith "canonical contract changed a control byte")
+   | _ -> failwith "canonical contract did not escape JSON control bytes");
   let identity = Contract_spec.report_identity spec in
   if identity.schema_version <> 1 || identity.kind <> "authenticated-access"
      || identity.canonical <> expected

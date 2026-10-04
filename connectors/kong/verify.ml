@@ -153,9 +153,8 @@ let report_assurance (assessment : Assurance.assessment) : Report.assurance =
   in
   { profile = Assurance.profile.id; status; findings }
 
-let run_contract ?(show_source = false) ~lift_denied cfg policy contract :
-    Report.outcome * Report.clause option =
-  match Contract_verify.run policy contract with
+let contract_outcome ?(show_source = false) ~lift_denied cfg policy :
+    Contract_verify.result -> Report.outcome * Report.clause option = function
   | Contract_verify.Proved -> (Report.Proved, None)
   | Contract_verify.Vacuous clause ->
     (Report.Vacuous, Some (report_clause clause))
@@ -175,6 +174,13 @@ let run_contract ?(show_source = false) ~lift_denied cfg policy contract :
     in
     (Report.Violated counterexample, Some (report_clause clause))
   | Contract_verify.Unknown reason -> (Report.Unknown reason, None)
+
+let run_contract_with_trace ?(show_source = false) ~lift_denied cfg policy contract =
+  let result, trace = Contract_verify.run_with_trace policy contract in
+  (contract_outcome ~show_source ~lift_denied cfg policy result, trace)
+
+let run_contract ?(show_source = false) ~lift_denied cfg policy contract =
+  fst (run_contract_with_trace ~show_source ~lift_denied cfg policy contract)
 
 (* Verify a decK config (as text) against [property]. [Error] is a caller-level
    failure (malformed config or an unsupported output option), while [Ok report]
@@ -206,8 +212,11 @@ let run_shadowing ?emit_smt (cfg : Ast.config) (policy : Ir.policy) :
   in
   go (Shadowing.candidates policy)
 
-let run ?emit_smt ~(property : property) (config : string) :
-    (Report.t, string) result =
+(* The trace is absent for legacy properties and configs rejected before
+   lowering. In particular, unsupported configs never acquire invented queries
+   just to populate an evidence bundle. *)
+let run_with_trace ?emit_smt ~(property : property) (config : string) :
+    (Report.t * Contract_verify.trace_entry list option, string) result =
   let property_scope =
     match property with
     | No_anonymous_access path_prefix
@@ -258,37 +267,48 @@ let run ?emit_smt ~(property : property) (config : string) :
          | Some (prop, _) -> (prop.name, prop.description)
          | None -> (Shadowing.name, Shadowing.description))
       in
-      let (outcome, clause) : Report.outcome * Report.clause option =
+      let (outcome, clause), trace =
       (* Check the decidability boundary BEFORE encoding: a config outside the
          supported fragment must report [unknown], never a quiet pass. *)
       match Fragment.check cfg with
-      | Error reason -> (Report.Unknown reason, None)
-      | Ok () -> (
+      | Error reason -> ((Report.Unknown reason, None), None)
+      | Ok () ->
         let policy = Lower.to_policy cfg in
         match contract with
         | Some contract ->
-          run_contract ~show_source ~lift_denied cfg policy contract
-        | None ->
-          (match resolve cfg property with
-        | None -> (run_shadowing ?emit_smt cfg policy, None)
-        | Some (prop, lift) ->
-          let preflight =
-            Smt_encode.condition_query ~domain:policy.request_domain
-              ~name:prop.name ~description:prop.description prop.forbidden_when
+          let outcome, trace =
+            run_contract_with_trace ~show_source ~lift_denied cfg policy contract
           in
-          match Solve.check ?emit_smt preflight with
-          | Solve.Proved -> (Report.Vacuous, None)
-          | Solve.Unknown s -> (Report.Unknown s, None)
-          | Solve.Violated _ -> (
-            let smt = Smt_encode.to_smtlib policy prop in
-            match Solve.check ?emit_smt smt with
-            | Solve.Proved -> (Report.Proved, None)
-            | Solve.Violated m -> (Report.Violated (lift m), None)
-            | Solve.Unknown s -> (Report.Unknown s, None))))
+          (outcome, Some trace)
+        | None ->
+          let outcome =
+            match resolve cfg property with
+            | None -> (run_shadowing ?emit_smt cfg policy, None)
+            | Some (prop, lift) ->
+              let preflight =
+                Smt_encode.condition_query ~domain:policy.request_domain
+                  ~name:prop.name ~description:prop.description prop.forbidden_when
+              in
+              match Solve.check ?emit_smt preflight with
+              | Solve.Proved -> (Report.Vacuous, None)
+              | Solve.Unknown s -> (Report.Unknown s, None)
+              | Solve.Violated _ -> (
+                let smt = Smt_encode.to_smtlib policy prop in
+                match Solve.check ?emit_smt smt with
+                | Solve.Proved -> (Report.Proved, None)
+                | Solve.Violated m -> (Report.Violated (lift m), None)
+                | Solve.Unknown s -> (Report.Unknown s, None))
+          in
+          (outcome, None)
       in
-      Ok { Report.result = outcome;
+      Ok ({ Report.result = outcome;
            property_name = name;
            property_description = description;
            assurance = Some assurance;
            clause;
-           frozen_spec = None })
+           frozen_spec = None }, trace))
+
+let run ?emit_smt ~property config =
+  match run_with_trace ?emit_smt ~property config with
+  | Ok (report, _) -> Ok report
+  | Error reason -> Error reason
