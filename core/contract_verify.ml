@@ -5,42 +5,123 @@ type result =
   | Violated of Contract.clause * Solve.model
   | Unknown of string
 
-let rec check_inhabited domain = function
-  | [] -> None
-  | clause :: rest ->
-    let query =
-      Smt_encode.condition_query ~domain ~name:(Contract.name clause)
-        ~description:(Contract.description clause)
-        (Contract.request_class clause)
-    in
-    (match Solve.check query with
-     | Solve.Proved -> Some (Vacuous clause)
-     | Solve.Unknown reason -> Some (Unknown reason)
-     | Solve.Violated _ -> check_inhabited domain rest)
+type phase = Inhabitance | Consistency | Clause
 
-let rec check_consistent domain = function
-  | [] -> None
-  | (safety, functionality) :: rest ->
-    (match Solve.check (Smt_encode.overlap_query ~domain safety functionality) with
-     | Solve.Violated _ -> Some (Inconsistent (safety, functionality))
-     | Solve.Unknown reason -> Some (Unknown reason)
-     | Solve.Proved -> check_consistent domain rest)
+type obligation = {
+  id      : string;
+  phase   : phase;
+  clauses : string list;
+  smtlib  : string;
+}
 
-let rec check_clauses policy = function
-  | [] -> Proved
-  | clause :: rest ->
-    (match Solve.check (Smt_encode.contract_clause_query policy clause) with
-     | Solve.Violated model -> Violated (clause, model)
-     | Solve.Unknown reason -> Unknown reason
-     | Solve.Proved -> check_clauses policy rest)
+type execution = Not_executed | Executed of Solve.result
 
-let run policy contract =
-  match check_inhabited policy.Ir.request_domain contract.Contract.clauses with
-  | Some result -> result
-  | None ->
-    (match
-       check_consistent policy.request_domain
-         (Contract.safety_functionality_overlaps contract)
-     with
-     | Some result -> result
-     | None -> check_clauses policy contract.clauses)
+type trace_entry = {
+  obligation : obligation;
+  execution  : execution;
+}
+
+type planned = {
+  public : obligation;
+  decide : Solve.result -> result option;
+}
+
+let slug value =
+  let buffer = Buffer.create (String.length value) in
+  let separator = ref false in
+  String.iter
+    (function
+      | ('a' .. 'z' | '0' .. '9') as character ->
+        if !separator && Buffer.length buffer > 0 then Buffer.add_char buffer '-';
+        separator := false;
+        Buffer.add_char buffer character
+      | 'A' .. 'Z' as character ->
+        if !separator && Buffer.length buffer > 0 then Buffer.add_char buffer '-';
+        separator := false;
+        Buffer.add_char buffer (Char.lowercase_ascii character)
+      | _ -> separator := true)
+    value;
+  if Buffer.length buffer = 0 then "unnamed" else Buffer.contents buffer
+
+let obligation_id phase index names =
+  Printf.sprintf "%s-%02d-%s" phase (index + 1)
+    (String.concat "-" (List.map slug names))
+
+let planned (policy : Ir.policy) (contract : Contract.t) =
+  let inhabitance =
+    List.mapi
+      (fun index clause ->
+        let name = Contract.name clause in
+        { public =
+            { id = obligation_id "inhabitance" index [ name ];
+              phase = Inhabitance;
+              clauses = [ name ];
+              smtlib =
+                Smt_encode.condition_query ~domain:policy.request_domain
+                  ~name ~description:(Contract.description clause)
+                  (Contract.request_class clause) };
+          decide =
+            (function
+              | Solve.Proved -> Some (Vacuous clause)
+              | Solve.Unknown reason -> Some (Unknown reason)
+              | Solve.Violated _ -> None) })
+      contract.clauses
+  in
+  let consistency =
+    Contract.safety_functionality_overlaps contract
+    |> List.mapi (fun index (safety, functionality) ->
+           let names = [ Contract.name safety; Contract.name functionality ] in
+           { public =
+               { id = obligation_id "consistency" index names;
+                 phase = Consistency;
+                 clauses = names;
+                 smtlib =
+                   Smt_encode.overlap_query ~domain:policy.request_domain safety
+                     functionality };
+             decide =
+               (function
+                 | Solve.Violated _ -> Some (Inconsistent (safety, functionality))
+                 | Solve.Unknown reason -> Some (Unknown reason)
+                 | Solve.Proved -> None) })
+  in
+  let clauses =
+    List.mapi
+      (fun index clause ->
+        let name = Contract.name clause in
+        { public =
+            { id = obligation_id "clause" index [ name ];
+              phase = Clause;
+              clauses = [ name ];
+              smtlib = Smt_encode.contract_clause_query policy clause };
+          decide =
+            (function
+              | Solve.Violated model -> Some (Violated (clause, model))
+              | Solve.Unknown reason -> Some (Unknown reason)
+              | Solve.Proved -> None) })
+      contract.clauses
+  in
+  inhabitance @ consistency @ clauses
+
+let plan policy contract =
+  planned policy contract |> List.map (fun item -> item.public)
+
+let run_with_trace policy contract =
+  let rec execute checked = function
+    | [] -> (Proved, List.rev checked)
+    | item :: rest ->
+      let solver_result = Solve.check item.public.smtlib in
+      let entry = { obligation = item.public; execution = Executed solver_result } in
+      (match item.decide solver_result with
+       | None -> execute (entry :: checked) rest
+       | Some result ->
+         let skipped =
+           List.map
+             (fun item ->
+               { obligation = item.public; execution = Not_executed })
+             rest
+         in
+         (result, List.rev checked @ (entry :: skipped)))
+  in
+  execute [] (planned policy contract)
+
+let run policy contract = fst (run_with_trace policy contract)
