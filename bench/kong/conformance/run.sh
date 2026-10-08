@@ -6,28 +6,42 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 CONFIG="$SCRIPT_DIR/kong.yaml"
 PROBES="$SCRIPT_DIR/probes.tsv"
 KONG_IMAGE="kong:3.9.3@sha256:ca71c5591eabaf18de96d26b7eed5e2fdb590dac141e467a779c38017e5bdf81"
-CONTAINER=""
+CONTAINER_ID=""
 
 cleanup() {
-  if [[ -n "$CONTAINER" ]]; then
-    docker rm --force "$CONTAINER" >/dev/null 2>&1 || true
+  local status=$?
+  trap - EXIT INT TERM
+  if [[ -n "$CONTAINER_ID" ]]; then
+    if [[ "$status" -ne 0 ]]; then
+      echo "Kong container diagnostics ($CONTAINER_ID):" >&2
+      docker inspect --format '{{json .State}}' "$CONTAINER_ID" >&2 || true
+      docker logs --tail 200 "$CONTAINER_ID" >&2 || true
+    fi
+    docker rm --force "$CONTAINER_ID" >/dev/null 2>&1 || true
   fi
+  exit "$status"
 }
 trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 cd "$REPO_ROOT"
 eval "$(opam env)"
 dune build bench/kong_model_oracle.exe
 ORACLE="$REPO_ROOT/_build/default/bench/kong_model_oracle.exe"
+echo "Kong differential conformance image: $KONG_IMAGE"
 
 run_flavor() {
   local flavor="$1"
   local port="$2"
   local tls_port="$3"
   local failures=0
-  CONTAINER="soundcheck-kong-conformance-${flavor}"
+  local container_name="soundcheck-kong-conformance-${flavor}"
 
-  docker run --detach --name "$CONTAINER" \
+  # Track only a container this invocation created. A name collision must not
+  # make the exit trap remove another run's container. Keep creation separate
+  # from startup so startup/port failures still leave an owned ID to clean up.
+  CONTAINER_ID="$(docker create --name "$container_name" \
     --publish "127.0.0.1:${port}:8000" \
     --publish "127.0.0.1:${tls_port}:8443" \
     --volume "$CONFIG:/kong/declarative/kong.yml:ro" \
@@ -35,31 +49,32 @@ run_flavor() {
     --env KONG_DECLARATIVE_CONFIG=/kong/declarative/kong.yml \
     --env KONG_ROUTER_FLAVOR="$flavor" \
     --env KONG_ALLOW_DEBUG_HEADER=on \
-    "$KONG_IMAGE" >/dev/null
+    "$KONG_IMAGE")"
+  docker start "$CONTAINER_ID" >/dev/null
 
   local ready=false
   local attempt
   for attempt in {1..30}; do
-    if curl --silent --output /dev/null --max-time 2 \
+    if curl --silent --noproxy '*' --output /dev/null --max-time 2 \
         "http://127.0.0.1:${port}/not-configured"; then
       ready=true
       break
     fi
-    if [[ "$(docker inspect --format '{{.State.Running}}' "$CONTAINER")" != "true" ]]; then
+    if [[ "$(docker inspect --format '{{.State.Running}}' "$CONTAINER_ID")" != "true" ]]; then
       break
     fi
     sleep 1
   done
   if [[ "$ready" != "true" ]]; then
     echo "Kong failed to become ready for router flavor $flavor" >&2
-    docker logs "$CONTAINER" >&2
     return 1
   fi
 
   while IFS='|' read -r name scheme method path host sni header; do
     [[ -z "$name" || "$name" == \#* ]] && continue
     local host_value="127.0.0.1"
-    local curl_args=(--silent --output /dev/null --dump-header - \
+    local curl_args=(--silent --show-error --noproxy '*' \
+      --connect-timeout 2 --max-time 10 --output /dev/null --dump-header - \
       --request "$method" --header "Kong-Debug: 1")
     local oracle_sni=""
     local request_url="http://127.0.0.1:${port}${path}"
@@ -71,7 +86,7 @@ run_flavor() {
         oracle_sni="$sni"
       fi
       request_url="https://${tls_name}:${tls_port}${path}"
-      curl_args+=(--insecure --noproxy '*' --resolve "${tls_name}:${tls_port}:127.0.0.1")
+      curl_args+=(--insecure --resolve "${tls_name}:${tls_port}:127.0.0.1")
     fi
     if [[ "$host" != "-" ]]; then
       host_value="$host"
@@ -84,7 +99,10 @@ run_flavor() {
     fi
 
     local response actual_status actual_route actual_service actual_upstream actual_decision expected
-    response="$(curl "${curl_args[@]}" "$request_url")"
+    if ! response="$(curl "${curl_args[@]}" "$request_url")"; then
+      echo "Request failed [$flavor/$name] $scheme $method $path" >&2
+      return 1
+    fi
     actual_status="$(printf '%s\n' "$response" | awk \
       '/^HTTP\// { code=$2 } END { print code }')"
     actual_route="$(printf '%s\n' "$response" | awk -F ': *' \
@@ -111,9 +129,11 @@ run_flavor() {
     fi
   done < "$PROBES"
 
-  docker rm --force "$CONTAINER" >/dev/null
-  CONTAINER=""
-  [[ "$failures" -eq 0 ]]
+  if [[ "$failures" -ne 0 ]]; then
+    return 1
+  fi
+  docker rm --force "$CONTAINER_ID" >/dev/null
+  CONTAINER_ID=""
 }
 
 run_flavor traditional 18000 18443
