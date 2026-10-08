@@ -14,96 +14,24 @@ type result =
   | Violated of model
   | Unknown of string
 
-let run_capture (cmd : string) : string =
-  let ic = Unix.open_process_in cmd in
-  let b = Buffer.create 256 in
-  (try
-     while true do
-       Buffer.add_string b (input_line ic);
-       Buffer.add_char b '\n'
-     done
-   with End_of_file -> ());
-  ignore (Unix.close_process_in ic);
-  Buffer.contents b
+let default_timeout = 10.
 
-let version ?(z3 = "z3") () =
-  try
-    let channel = Unix.open_process_args_in z3 [| z3; "-version" |] in
-    let output = Buffer.create 128 in
-    (try
-       while true do
-         Buffer.add_string output (input_line channel);
-         Buffer.add_char output '\n'
-       done
-     with End_of_file -> ());
-    let status = Unix.close_process_in channel in
-    let text = String.trim (Buffer.contents output) in
-    match status with
-    | Unix.WEXITED 0 when String.starts_with ~prefix:"Z3 version " text -> Ok text
-    | _ -> Error ("could not determine Z3 version: " ^ text)
-  with
-  | Sys_error reason -> Error reason
-  | Unix.Unix_error (error, operation, argument) ->
-    Error
-      (Printf.sprintf "%s(%s): %s" operation argument (Unix.error_message error))
+let version ?(z3 = "z3") ?(timeout = default_timeout) () =
+  let ( let* ) = Result.bind in
+  let* deadline = Solver_process.deadline timeout in
+  let* output = Solver_process.run ~deadline z3 [ "-version" ] in
+  let text = String.trim output in
+  if String.starts_with ~prefix:"Z3 version " text
+     && String.length text > String.length "Z3 version "
+     && not (String.contains text '\n') && not (String.contains text '\r')
+  then Ok text
+  else Error ("could not determine Z3 version: " ^ text)
 
-let write_file path s =
-  let oc = open_out path in
-  output_string oc s;
-  close_out oc
-
-(* --- tiny SMT-LIB2 (get-value ...) output parser ------------------------- *)
-
-let find_sub hay needle =
-  let hl = String.length hay and nl = String.length needle in
-  let rec go i =
-    if i + nl > hl then None
-    else if String.sub hay i nl = needle then Some i
-    else go (i + 1)
-  in
-  go 0
-
-let skip_ws hay i =
-  let n = String.length hay in
-  let rec go i =
-    if i < n && (hay.[i] = ' ' || hay.[i] = '\n' || hay.[i] = '\t') then go (i + 1)
-    else i
-  in
-  go i
-
-(* Parse an SMT-LIB2 string literal starting at the opening quote [start].
-   A doubled quote ("") denotes a literal quote. *)
-let parse_quoted hay start =
-  let n = String.length hay in
-  let b = Buffer.create 16 in
-  let rec go i =
-    if i >= n then Buffer.contents b
-    else if hay.[i] = '"' then
-      if i + 1 < n && hay.[i + 1] = '"' then (Buffer.add_char b '"'; go (i + 2))
-      else Buffer.contents b
-    else (Buffer.add_char b hay.[i]; go (i + 1))
-  in
-  go (start + 1)
-
-let extract_string hay key =
-  let tag = "(" ^ key ^ " " in
-  match find_sub hay tag with
-  | None -> None
-  | Some i ->
-    let j = skip_ws hay (i + String.length tag) in
-    if j < String.length hay && hay.[j] = '"' then Some (parse_quoted hay j)
-    else None
-
-let extract_bool hay key =
-  let tag = "(" ^ key ^ " " in
-  match find_sub hay tag with
-  | None -> None
-  | Some i ->
-    let j = skip_ws hay (i + String.length tag) in
-    let n = String.length hay in
-    if j + 4 <= n && String.sub hay j 4 = "true" then Some true
-    else if j + 5 <= n && String.sub hay j 5 = "false" then Some false
-    else None
+let write_file path text =
+  let channel = open_out_bin path in
+  Fun.protect ~finally:(fun () -> close_out_noerr channel) (fun () ->
+      output_string channel text;
+      close_out channel)
 
 let decode_hex value =
   let digit = function
@@ -127,104 +55,115 @@ let decode_hex value =
     in
     loop 0
 
-let extract_headers hay =
-  let marker = "(header_" in
-  let length = String.length hay in
-  let rec scan offset found =
-    if offset >= length then List.sort_uniq compare found
-    else
-      match find_sub (String.sub hay offset (length - offset)) marker with
-      | None -> List.sort_uniq compare found
-      | Some relative ->
-        let start = offset + relative + 1 in
-        let rec finish index =
-          if index < length && hay.[index] <> ' ' && hay.[index] <> ')' then
-            finish (index + 1)
-          else index
-        in
-        let stop = finish start in
-        let symbol = String.sub hay start (stop - start) in
-        let found =
-          match extract_bool hay symbol with
-          | Some true ->
-            let encoded = String.sub symbol 7 (String.length symbol - 7) in
-            (match String.index_opt encoded '_' with
-             | None -> found
-             | Some separator ->
-               let name = String.sub encoded 0 separator in
-               let value =
-                 String.sub encoded (separator + 1)
-                   (String.length encoded - separator - 1)
-               in
-               (match decode_hex name, decode_hex value with
-                | Some name, Some value -> (name, value) :: found
-                | _ -> found))
-          | _ -> found
-        in
-        scan stop found
+let model bindings =
+  let open Solver_protocol in
+  let malformed name = raise (Invalid ("missing or malformed model field: " ^ name)) in
+  let string name =
+    match List.assoc_opt name bindings with Some (String text) -> text | _ -> malformed name
   in
-  scan 0 []
-
-(* A bitvector value from [get-value]. z3 prints these as #x0a000001 or, for
-   widths that are not a multiple of four, #b0101... — both are handled. *)
-let extract_bv hay key =
-  let tag = "(" ^ key ^ " " in
-  match find_sub hay tag with
-  | None -> None
-  | Some i ->
-    let j = skip_ws hay (i + String.length tag) in
-    let n = String.length hay in
-    if j + 2 < n && hay.[j] = '#' && (hay.[j + 1] = 'x' || hay.[j + 1] = 'b') then begin
-      let base = if hay.[j + 1] = 'x' then 16 else 2 in
-      let k = ref (j + 2) in
-      let acc = ref 0L in
-      let digit c =
-        if c >= '0' && c <= '9' then Some (Char.code c - Char.code '0')
-        else if c >= 'a' && c <= 'f' then Some (Char.code c - Char.code 'a' + 10)
-        else if c >= 'A' && c <= 'F' then Some (Char.code c - Char.code 'A' + 10)
-        else None
+  let boolean name =
+    match List.assoc_opt name bindings with
+    | Some (Atom "true") -> true
+    | Some (Atom "false") -> false
+    | _ -> malformed name
+  in
+  let src_ip =
+    match List.assoc_opt "src_ip" bindings with
+    | Some (Atom value) ->
+      let valid_digits base start =
+        let rec check index =
+          index = String.length value
+          || ((match value.[index] with
+               | '0' .. '1' -> true
+               | '2' .. '9' | 'a' .. 'f' | 'A' .. 'F' -> base = 16
+               | _ -> false) && check (index + 1))
+        in
+        check start
       in
-      let ok = ref true in
-      while !k < n && (match digit hay.[!k] with
-                       | Some d when d < base -> acc := Int64.add (Int64.mul !acc (Int64.of_int base)) (Int64.of_int d); true
-                       | _ -> false) do incr k done;
-      if !k = j + 2 then ok := false;
-      if !ok then Some (Int64.to_int32 !acc) else None
-    end
-    else None
-
-(* Is the first non-whitespace token exactly [word]? *)
-let first_token_is hay word =
-  let i = skip_ws hay 0 in
-  let n = String.length hay and wl = String.length word in
-  i + wl <= n && String.sub hay i wl = word
-
-(* With [emit_smt] the query is written to that path and KEPT, so the proof
-   obligation survives the run as an inspectable artifact: it is plain SMT-LIB2
-   and can be re-checked by any solver that speaks it, independently of us.
-   Without it we use a temp file and clean up. *)
-let check ?(z3 = "z3") ?emit_smt (smtlib : string) : result =
-  let file, keep =
-    match emit_smt with
-    | Some path -> (path, true)
-    | None -> (Filename.temp_file "soundcheck" ".smt2", false)
+      let prefix =
+        if String.length value = 10 && String.starts_with ~prefix:"#x" value
+           && valid_digits 16 2 then "0x"
+        else if String.length value = 34 && String.starts_with ~prefix:"#b" value
+                && valid_digits 2 2 then "0b"
+        else malformed "src_ip"
+      in
+      (try
+         Int64.of_string (prefix ^ String.sub value 2 (String.length value - 2))
+         |> Int64.to_int32
+       with Failure _ -> malformed "src_ip")
+    | _ -> malformed "src_ip"
   in
-  write_file file smtlib;
-  let cmd = Printf.sprintf "%s -smt2 %s" (Filename.quote z3) (Filename.quote file) in
-  let out = run_capture cmd in
-  if not keep then (try Sys.remove file with _ -> ());
-  if first_token_is out "unsat" then Proved
-  else if first_token_is out "sat" then
-    let path = Option.value ~default:"" (extract_string out "path") in
-    let method_ = Option.value ~default:"" (extract_string out "method") in
-    let is_anon = Option.value ~default:false (extract_bool out "is_anon") in
-    let src_ip = Option.value ~default:0l (extract_bv out "src_ip") in
-    let host = Option.value ~default:"" (extract_string out "host") in
-    let scheme = Option.value ~default:"" (extract_string out "scheme") in
-    let sni = Option.value ~default:"" (extract_string out "sni") in
-    let headers = extract_headers out in
-    Violated { path; method_; is_anon; src_ip; host; scheme; sni; headers }
-  else Unknown (String.trim out)
+  let headers =
+    List.filter_map
+      (fun (name, _) ->
+        if not (String.starts_with ~prefix:"header_" name) then None
+        else
+          let enabled = boolean name in
+          let encoded = String.sub name 7 (String.length name - 7) in
+          match String.index_opt encoded '_' with
+          | None -> malformed name
+          | Some separator ->
+            let key = String.sub encoded 0 separator in
+            let value =
+              String.sub encoded (separator + 1) (String.length encoded - separator - 1)
+            in
+            (match decode_hex key, decode_hex value with
+             | Some key, Some value -> if enabled then Some (key, value) else None
+             | _ -> malformed name))
+      bindings
+    |> List.sort_uniq compare
+  in
+  (* SMT string escaping beyond doubled quotes, and validation of the lifted
+     request against its obligation, remain separate semantic work. *)
+  { path = string "path"; method_ = string "method"; is_anon = boolean "is_anon";
+    src_ip; host = string "host"; scheme = string "scheme"; sni = string "sni";
+    headers }
+
+let check ?(z3 = "z3") ?(timeout = default_timeout) ?emit_smt smtlib =
+  try
+    Option.iter (fun path -> write_file path smtlib) emit_smt;
+    let query = Solver_protocol.query smtlib in
+    let run deadline text =
+      let file = Filename.temp_file "soundcheck-solver-" ".smt2" in
+      Fun.protect ~finally:(fun () -> Sys.remove file) (fun () ->
+          write_file file text;
+          Solver_process.run ~deadline z3 [ "-smt2"; file ])
+    in
+    let decode parse text =
+      try Ok (parse text) with Solver_protocol.Invalid reason ->
+        let excerpt = if String.length text <= 2048 then text
+          else String.sub text 0 2048 ^ " [truncated]" in
+        Error (reason ^ "; stdout: " ^ String.trim excerpt)
+    in
+    let ( let* ) = Result.bind in
+    let result =
+      let* deadline = Solver_process.deadline timeout in
+      let* output = run deadline query.check in
+      let* status = decode Solver_protocol.status output in
+      match status with
+      | `Unsat -> Ok Proved
+      | `Unknown -> Ok (Unknown "solver returned unknown")
+      | `Sat when query.observation = None -> Error "SAT without requested model values"
+      | `Sat ->
+        (* Replay the complete unchanged plan only once SAT establishes that
+           the observation is applicable. Both processes share this deadline. *)
+        let* output = run deadline smtlib in
+        decode
+          (fun text ->
+            match Solver_protocol.response query.fields text with
+            | `Sat bindings -> Violated (model bindings)
+            | `Unsat -> Unknown "solver changed SAT to UNSAT during model replay"
+            | `Unknown -> Unknown "solver returned unknown during model replay")
+          output
+    in
+    match result with
+    | Ok result -> result
+    | Error reason -> Unknown reason
+  with
+  | Solver_protocol.Invalid reason -> Unknown ("unsupported SMT query: " ^ reason)
+  | Sys_error reason -> Unknown reason
+  | Unix.Unix_error (error, operation, argument) ->
+    Unknown (Printf.sprintf "%s(%s): %s" operation argument (Unix.error_message error))
 
 let string_of_result = function
   | Proved -> "PROVED (no violating request exists)"

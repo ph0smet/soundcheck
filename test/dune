@@ -29,6 +29,10 @@
  (name sha256_t)
  (libraries soundcheck_core unix))
 
+(test
+ (name solve_t)
+ (libraries soundcheck_core unix))
+
 (executable
  (name evidence_t)
  (libraries soundcheck_core unix))
