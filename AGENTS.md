@@ -203,10 +203,45 @@ the Kong verifier is ready for public promotion.
 - Prefix OCaml commands with `eval $(opam env)`.
 - Work on a focused `feat/`, `fix/`, `docs/`, or `chore/` branch; never commit
   directly to `main`.
-- Pause after meaningful edits for review before building or committing.
+- Once a bounded task's scope and semantic expectations are approved, implement,
+  run local checks, and fix task-related failures without pausing between edits
+  and tests. Present the tested diff for Sourav's review before committing.
+- Pause for unresolved semantic decisions, scope expansion, unapproved changes
+  to frozen contracts or public schemas, or actions needing additional permission.
+  Do not weaken acceptance criteria or change expected results just to pass tests.
 - Every commit must independently pass `dune test` in a clean throwaway worktree.
 - Keep commit messages concise, and fetch/prune remote refs before pushing.
 - Sourav opens and merges pull requests unless he explicitly delegates that action.
 - Do not add AI-agent attribution, generated-by notices, or `Co-Authored-By`
   trailers unless explicitly requested.
 - Preserve unrelated user changes.
+
+### Bounded parallel work
+
+- For substantial tasks, use subagents for independent research, test analysis,
+  or review where useful. Keep one coordinating agent responsible for scope,
+  acceptance criteria, and integration; start with at most three helpers.
+- Give parallel implementation tasks separate branches/worktrees and explicit
+  file ownership. A separate agent thread does not imply filesystem isolation.
+  Serialize changes to shared interfaces and overlapping semantic modules.
+- Run the current Kong conformance harness only once at a time on a host: its
+  container names and ports are shared across worktrees.
+- Review semantic changes against independently justified target expectations.
+  Agreement between agents or between two readers of Soundcheck's own IR is not
+  an independent conformance check.
+
+### Validation and handoff
+
+- `bash scripts/check.sh fast`: incremental build and existing regression suite;
+  use focused tests during an edit loop when they are sufficient.
+- `bash scripts/check.sh full`: build, force the existing regression suite to
+  rerun, and run pinned real-Kong conformance. Requires a running Docker daemon.
+- `bash scripts/check.sh conformance`: run only the pinned real-Kong harness.
+- `bash scripts/check-commit.sh <revision>`: build and force the regression suite
+  in a clean, detached throwaway worktree. Checks the specified committed revision,
+  not uncommitted edits; it does not commit, push, or run Docker. Defaults to HEAD.
+- These scripts use the existing opam environment; they do not install dependencies.
+  Keep clean-commit regression validation separate from required conformance.
+- Report the changed behavior, checks actually run, any skipped/blocked checks,
+  and remaining decisions. A passing existing suite does not close a semantic
+  finding without its independently justified regression coverage.
