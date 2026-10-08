@@ -1,3 +1,4 @@
 (library
  (name soundcheck_core)
+ (private_modules solver_process solver_protocol)
  (libraries unix))

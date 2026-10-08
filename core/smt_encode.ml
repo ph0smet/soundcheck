@@ -132,6 +132,8 @@ let preamble b title headers =
 
 let epilogue b headers =
   Buffer.add_string b "(check-sat)\n";
+  Buffer.add_string b
+    "; Conditional SAT observation: Soundcheck replays get-value only after sat.\n";
   let header_symbols =
     headers |> List.map (fun (name, value) -> header_symbol name value)
     |> String.concat " "
