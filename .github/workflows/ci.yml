@@ -1,7 +1,7 @@
 name: CI
 
-# Soundcheck's own CI: build the engine + connectors and run the corpus
-# regression gate (dune test) on every PR and on pushes to main.
+# Soundcheck's own CI: build the engine + connectors, run corpus regression,
+# and compare the routing model against pinned Kong on every PR/main push.
 on:
   push:
     branches: [main]
@@ -33,6 +33,42 @@ jobs:
 
       - name: Test (corpus regression gate)
         run: opam exec -- dune test
+
+  kong-conformance:
+    name: Kong conformance (3.9.3)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install conformance dependencies
+        run: sudo apt-get update && sudo apt-get install -y z3 curl
+
+      - name: Set up OCaml
+        uses: ocaml/setup-ocaml@v3
+        with:
+          ocaml-compiler: "5"
+
+      - name: Install OCaml dependencies
+        run: opam install --yes dune yaml
+
+      # The harness pins the Kong image digest and runs both router flavors
+      # sequentially. Missing Docker or a failing probe fails this job.
+      - name: Run pinned Kong conformance
+        shell: bash
+        run: |
+          set -o pipefail
+          bash scripts/check.sh conformance 2>&1 | tee "${RUNNER_TEMP}/kong-conformance.log"
+
+      - name: Retain conformance output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kong-conformance-logs
+          path: ${{ runner.temp }}/kong-conformance.log
+          retention-days: 7
 
   action-smoke:
     runs-on: ubuntu-latest

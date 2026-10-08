@@ -183,3 +183,20 @@
    %{dep:../bench/kong/workflows/frozen-admin/unsafe.yaml}
    %{dep:../bench/kong/workflows/frozen-admin/repaired.yaml}
    %{dep:../bench/kong/workflows/frozen-admin/deny-all.yaml})))
+
+; Harness lifecycle checks use mocked commands; real Docker remains a separate
+; conformance job and is never invoked by this runtest rule.
+(rule
+ (alias runtest)
+ (deps
+  kong_conformance_harness_t.sh
+  fixtures/kong_conformance/mock-command.sh
+  ../bench/kong/conformance/run.sh
+  ../bench/kong/conformance/kong.yaml
+  ../bench/kong/conformance/probes.tsv)
+ (action
+  (run
+   bash
+   %{dep:kong_conformance_harness_t.sh}
+   %{dep:../bench/kong/conformance/run.sh}
+   %{dep:fixtures/kong_conformance/mock-command.sh})))
