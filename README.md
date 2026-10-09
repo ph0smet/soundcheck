@@ -79,11 +79,20 @@ The core is the reusable asset and connectors stay thin.
 Requires OCaml 5.x, dune, the `yaml` opam library, and the **`z3` CLI binary** on `PATH`
 (the solver shells out to `z3 -smt2`).
 
+Use [Z3 4.16.0](https://github.com/Z3Prover/z3/releases/tag/z3-4.16.0) to match
+the regression-tested solver baseline. On Linux, extract the matching official
+release and add its `bin` directory to `PATH`. The build-and-test CI job pins
+Ubuntu 24.04 and the checksum-verified x64 Z3 archive; OCaml and opam dependencies
+are not fully pinned. Older distro packages, including Ubuntu 24.04's Z3 4.8.12,
+can time out on regex proofs under the default 10-second deadline, producing
+`unknown` rather than `proved`.
+
 ```bash
-brew install z3                 # or: apt install z3
+brew install z3                 # macOS; Linux: official release as described above
+z3 -version                    # regression baseline: 4.16.0
 opam install dune yaml
 dune build
-dune test                       # runs the 50-case corpus regression gate
+dune test                       # full suite, including the 50-case corpus gate
 ```
 
 Verify a config:

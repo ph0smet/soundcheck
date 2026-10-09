@@ -9,14 +9,30 @@ on:
 
 jobs:
   build-and-test:
-    runs-on: ubuntu-latest
+    # The pinned Z3 archive below targets x64/glibc 2.39 (Ubuntu 24.04).
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
-      # The solver backend shells out to the `z3` CLI (`z3 -smt2 <file>`), so the
-      # binary must be on PATH — not just an OCaml library.
-      - name: Install z3
-        run: sudo apt-get update && sudo apt-get install -y z3
+      # Ubuntu's Z3 4.8.12 times out on regex-anchored-end within our unchanged
+      # 10-second solver deadline. Use the regression-tested release, not apt's
+      # distro version, and verify the archive before extracting or executing it.
+      - name: Install Z3 (4.16.0)
+        env:
+          SOUNDCHECK_Z3_ARCHIVE: z3-4.16.0-x64-glibc-2.39
+          SOUNDCHECK_Z3_SHA256: 7288c49a5bd6dbafd7b0b0d1f65956b91672da24b08f09242919af159be3418e
+        run: |
+          set -euo pipefail
+          soundcheck_z3_dir="$(mktemp -d "$RUNNER_TEMP/soundcheck-z3.XXXXXX")"
+          curl --fail --location --silent --show-error --retry 3 \
+            --connect-timeout 10 --max-time 120 \
+            "https://github.com/Z3Prover/z3/releases/download/z3-4.16.0/${SOUNDCHECK_Z3_ARCHIVE}.zip" \
+            --output "$soundcheck_z3_dir/z3.zip"
+          printf '%s  %s\n' "$SOUNDCHECK_Z3_SHA256" "$soundcheck_z3_dir/z3.zip" \
+            | sha256sum --check --strict
+          unzip -q "$soundcheck_z3_dir/z3.zip" -d "$soundcheck_z3_dir"
+          "$soundcheck_z3_dir/$SOUNDCHECK_Z3_ARCHIVE/bin/z3" -version
+          printf '%s\n' "$soundcheck_z3_dir/$SOUNDCHECK_Z3_ARCHIVE/bin" >> "$GITHUB_PATH"
 
       - name: Set up OCaml
         uses: ocaml/setup-ocaml@v3
@@ -28,11 +44,21 @@ jobs:
       - name: Install dependencies
         run: opam install --yes dune yaml
 
+      - name: Show and check regression toolchain
+        run: |
+          set -euo pipefail
+          opam exec -- which z3
+          soundcheck_z3_version="$(opam exec -- z3 -version)"
+          printf '%s\n' "$soundcheck_z3_version"
+          test "$soundcheck_z3_version" = 'Z3 version 4.16.0 - 64 bit'
+          opam exec -- ocamlc -version
+          opam exec -- dune --version
+
       - name: Build
         run: opam exec -- dune build
 
-      - name: Test (corpus regression gate)
-        run: opam exec -- dune test
+      - name: Test (full regression suite)
+        run: opam exec -- dune test --force
 
   kong-conformance:
     name: Kong conformance (3.9.3)
@@ -71,6 +97,8 @@ jobs:
           retention-days: 7
 
   action-smoke:
+    # This separately exercises the composite Action's distro-provided Z3;
+    # it is a frozen-workflow smoke test, not the full regression baseline.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
