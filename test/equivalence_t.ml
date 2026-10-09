@@ -1,3 +1,4 @@
+open Soundcheck_core
 open Soundcheck_kong
 
 let config ?(plugins = "[]") route =
@@ -9,6 +10,32 @@ let run before after =
   match Compare.run before after with
   | Ok report -> report
   | Error error -> failwith error
+
+let policy source =
+  match Parse.parse_string source with
+  | Ok parsed -> Lower.to_policy parsed
+  | Error error -> failwith error
+
+let valid_auth_difference before after (witness : Compare.witness) =
+  let model = witness.request in
+  let request : Ir.request =
+    { principal = if model.is_anon then Anonymous else Authenticated "subject";
+      action = model.method_;
+      resource = model.path;
+      context = model.headers;
+      source = model.src_ip;
+      host = model.host;
+      scheme = model.scheme;
+      sni = model.sni }
+  in
+  model.is_anon
+  && String.starts_with ~prefix:"/admin" model.path
+  && Ir.matches before.Ir.request_domain request
+  && Ir.matches after.Ir.request_domain request
+  && witness.before.decision = Ir.Allow
+  && witness.after.decision = Ir.Deny
+  && Ir.evaluate before request = witness.before.decision
+  && Ir.evaluate after request = witness.after.decision
 
 let run_mode mode before after =
   match Compare.run ~mode before after with
@@ -38,11 +65,25 @@ let () =
    | _ -> failwith "identical configs must be decision-equivalent");
 
   (match (run open_config guarded).result with
-   | Compare.Different witness
-     when witness.request.is_anon
-          && witness.request.path = "/admin"
-          && witness.before.decision = Soundcheck_core.Ir.Allow
-          && witness.after.decision = Soundcheck_core.Ir.Deny -> ()
+   | Compare.Different witness ->
+     let valid = valid_auth_difference (policy open_config) (policy guarded) in
+     if not (valid witness) then
+       failwith "auth difference must be an in-scope request allowed only before";
+     (* Z3 may choose any member of the prefix, not just the shortest path. *)
+     List.iter
+       (fun path ->
+         if not (valid { witness with request = { witness.request with path } })
+         then failwith "auth difference rejected a valid prefix witness")
+       [ "/admin"; "/admin/status" ];
+     List.iter
+       (fun invalid ->
+         if valid invalid then
+           failwith "auth difference accepted an invalid witness")
+       [ { witness with request = { witness.request with is_anon = false } };
+         { witness with request = { witness.request with path = "/public" } };
+         { witness with request = { witness.request with scheme = "ftp" } };
+         { witness with before = { witness.before with decision = Ir.Deny } };
+         { witness with after = { witness.after with decision = Ir.Allow } } ]
    | _ -> failwith "open and authenticated routes need a concrete difference");
 
   let unknown_plugin = config ~plugins:"[{name: custom-auth}]" "admin" in

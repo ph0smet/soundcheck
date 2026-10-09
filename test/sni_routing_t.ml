@@ -29,6 +29,23 @@ let request ~scheme ~sni : Ir.request =
     scheme;
     sni }
 
+let valid_blocked_authenticated_request policy (ce : Report.counterexample) =
+  let request : Ir.request =
+    { principal = Authenticated "subject";
+      action = ce.action;
+      resource = ce.path;
+      context = ce.headers;
+      source = ce.source_ip;
+      host = ce.host;
+      scheme = ce.scheme;
+      sni = ce.sni }
+  in
+  ce.principal = "authenticated"
+  && String.starts_with ~prefix:"/admin" ce.path
+  && Ir.matches policy.Ir.request_domain request
+  && not (Ir.definitely_allows policy request)
+  && Ir.evaluate policy request = Deny
+
 let contains haystack needle =
   let haystack_length = String.length haystack in
   let needle_length = String.length needle in
@@ -60,15 +77,40 @@ let () =
    | Ok _ -> failwith "SNI violation omitted its HTTPS/SNI witness"
    | Error error -> failwith error);
 
+  let guarded = config "[{name: key-auth}]" in
+  let guarded_policy = Lower.to_policy (parse guarded) in
   (match
      Verify.run
        ~property:
          (Verify.Authenticated_access
             { path_prefix = "/admin"; method_ = None; host = None })
-       (config "[{name: key-auth}]")
+       guarded
    with
-   | Ok { result = Report.Violated counterexample; _ }
-     when counterexample.scheme = "http" -> ()
+   | Ok
+       { result = Report.Violated counterexample;
+         clause =
+           Some
+             { name = "authenticated-access-allowed";
+               kind = Report.Must_allow;
+               _ };
+         _ } ->
+     let valid = valid_blocked_authenticated_request guarded_policy in
+     if not (valid counterexample) then
+       failwith "functionality witness must be authenticated, in scope, and blocked";
+     (* Either HTTP or HTTPS with absent/wrong SNI can witness this failure. *)
+     List.iter
+       (fun (scheme, sni) ->
+         if not (valid { counterexample with path = "/admin/status"; scheme; sni })
+         then failwith "functionality check rejected a valid blocked witness")
+       [ "http", ""; "https", ""; "https", "other.example" ];
+     List.iter
+       (fun invalid ->
+         if valid invalid then
+           failwith "functionality check accepted an invalid witness")
+       [ { counterexample with principal = "anonymous" };
+         { counterexample with path = "/public" };
+         { counterexample with scheme = "ftp" };
+         { counterexample with scheme = "https"; sni = "api.example" } ]
    | Ok _ ->
      failwith
        "HTTPS-only route must not prove all-scheme authenticated functionality"
