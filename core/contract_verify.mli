@@ -33,12 +33,14 @@ val plan : Ir.policy -> Contract.t -> obligation list
     inhabitance, safety/functionality consistency, then policy clauses. No
     solver is invoked. *)
 
-val run_with_trace : Ir.policy -> Contract.t -> result * trace_entry list
+val run_with_trace : ?z3:string -> Ir.policy -> Contract.t -> result * trace_entry list
 (** Verify with the same short-circuit semantics as {!run}, while retaining the
     complete plan. Obligations after the decisive result are [Not_executed]
-    rather than silently absent. *)
+    rather than silently absent. Every SAT witness is checked before it is
+    recorded: an invalid witness is [Executed (Solve.Unknown _)], never a
+    published counterexample or unchecked preflight result. *)
 
-val run : Ir.policy -> Contract.t -> result
+val run : ?z3:string -> Ir.policy -> Contract.t -> result
 (** Validate and verify a contract atomically.
 
     Validation precedes policy verification: every clause class must be

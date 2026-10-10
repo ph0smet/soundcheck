@@ -1,0 +1,7 @@
+# The traditional URI reducer groups regex ~/a and literal /a under one key.
+# Its reduced [C,B] list returns B without considering longer A; compatible
+# selects A. Regex C's runtime match remains conservative even when alone.
+# name|scheme|method|path|host|sni|principal|headers|decision|route|service|status|model-class|flavors
+reducer-get|http|GET|/a/b|-|-|anonymous|-|allow|reducer-b|reducer-upstream|404|conservative|traditional
+reducer-get|http|GET|/a/b|-|-|anonymous|-|allow|reducer-a|reducer-upstream|200|conservative|traditional_compatible
+reducer-post|http|POST|/a/b|-|-|anonymous|-|allow|reducer-c|reducer-upstream|404|conservative|both

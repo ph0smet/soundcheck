@@ -126,6 +126,7 @@ let check_top_level_route (config : Ast.config) (top : Ast.top_level_route) =
     | None ->
       let no_service : Ast.service =
         { name = "<no-service>";
+          enabled = true;
           url = None;
           protocol = None;
           host = None;

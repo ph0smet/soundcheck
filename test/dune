@@ -12,6 +12,10 @@
  (name regex_agree)
  (libraries soundcheck_core soundcheck_kong unix))
 
+(test
+ (name regex_boundary_t)
+ (libraries soundcheck_core soundcheck_kong))
+
 ; Unit tests for CIDR parsing/membership — pure logic, gated by `dune test`.
 (test
  (name cidr_t)
@@ -24,6 +28,10 @@
 (test
  (name contract_t)
  (libraries soundcheck_core))
+
+(test
+ (name witness_t)
+ (libraries soundcheck_core soundcheck_kong soundcheck_mcp unix))
 
 (test
  (name sha256_t)
@@ -70,6 +78,18 @@
  (libraries soundcheck_core soundcheck_kong))
 
 (test
+ (name semantic_hardening_t)
+ (libraries soundcheck_core soundcheck_kong))
+
+(test
+ (name approximation_t)
+ (libraries soundcheck_core soundcheck_kong))
+
+(test
+ (name approximation_refinement_t)
+ (libraries soundcheck_core))
+
+(test
  (name network_restricted_t)
  (libraries soundcheck_core soundcheck_kong))
 
@@ -78,11 +98,19 @@
  (libraries soundcheck_core soundcheck_kong))
 
 (test
+ (name parse_t)
+ (libraries soundcheck_core soundcheck_kong))
+
+(test
  (name kong_assurance_t)
  (libraries soundcheck_kong))
 
 (test
  (name path_normalization_t)
+ (libraries soundcheck_core soundcheck_kong))
+
+(test
+ (name path_semantics_t)
  (libraries soundcheck_core soundcheck_kong))
 
 (test
@@ -149,6 +177,13 @@
  (action
   (run %{exe:action_metadata_t.exe} %{dep:../action.yml})))
 
+(rule
+ (alias runtest)
+ (deps approved_contract_gate_t.sh ../scripts/verify-approved-contract.sh)
+ (action
+  (run bash %{dep:approved_contract_gate_t.sh}
+       %{dep:../scripts/verify-approved-contract.sh} %{exe:../cli/main.exe})))
+
 (executable
  (name profile_cli_t)
  (libraries soundcheck_kong unix))
@@ -193,7 +228,21 @@
   fixtures/kong_conformance/mock-command.sh
   ../bench/kong/conformance/run.sh
   ../bench/kong/conformance/kong.yaml
-  ../bench/kong/conformance/probes.tsv)
+  ../bench/kong/conformance/probes.tsv
+  ../bench/kong/conformance/auth.yaml
+  ../bench/kong/conformance/auth-probes.tsv
+  ../bench/kong/conformance/paths.yaml
+  ../bench/kong/conformance/paths-probes.tsv
+  ../bench/kong/conformance/mixed.yaml
+  ../bench/kong/conformance/mixed-probes.tsv
+  ../bench/kong/conformance/reducer.yaml
+  ../bench/kong/conformance/reducer-probes.tsv
+  ../bench/kong/conformance/category.yaml
+  ../bench/kong/conformance/category-probes.tsv
+  ../bench/kong/conformance/hosts.yaml
+  ../bench/kong/conformance/hosts-probes.tsv
+  ../bench/kong/conformance/boundaries.yaml
+  ../bench/kong/conformance/boundaries-probes.tsv)
  (action
   (run
    bash

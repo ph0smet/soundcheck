@@ -1,0 +1,26 @@
+# name|scheme|method|path|host|sni|principal|headers|decision|route|service|status|model-class|flavors
+# Principal reflects credential validity for the independently expected effective
+# key-auth configuration, not a value inferred from Soundcheck or Kong's result.
+global-missing-key|http|GET|/auth-global|-|-|anonymous|-|deny|auth-global|auth-global-service|401|exact|both
+global-invalid-key|http|GET|/auth-global|-|-|anonymous|global-key:not-a-valid-key|deny|auth-global|auth-global-service|401|exact|both
+global-valid-key|http|GET|/auth-global|-|-|authenticated|global-key:soundcheck-conformance-key|allow|auth-global|auth-global-service|200|exact|both
+global-default-preflight-auth|http|OPTIONS|/auth-global|-|-|anonymous|-|deny|auth-global|auth-global-service|401|exact|both
+disabled-route-keeps-global|http|GET|/auth-global-disabled-route|-|-|authenticated|global-key:soundcheck-conformance-key|allow|auth-global-disabled-route|auth-global-service|200|exact|both
+disabled-route-keeps-global-denial|http|GET|/auth-global-disabled-route|-|-|anonymous|-|deny|auth-global-disabled-route|auth-global-service|401|exact|both
+service-missing-key|http|GET|/auth-service|-|-|anonymous|-|deny|auth-service-only|auth-service|401|exact|both
+service-overrides-global|http|GET|/auth-service|-|-|authenticated|service-key:soundcheck-conformance-key|allow|auth-service-only|auth-service|200|exact|both
+service-does-not-run-global|http|GET|/auth-service|-|-|anonymous|global-key:soundcheck-conformance-key|deny|auth-service-only|auth-service|401|exact|both
+route-overrides-service|http|GET|/auth-route|-|-|authenticated|route-key:soundcheck-conformance-key|allow|auth-route-override|auth-service|200|exact|both
+route-does-not-run-service|http|GET|/auth-route|-|-|anonymous|service-key:soundcheck-conformance-key|deny|auth-route-override|auth-service|401|exact|both
+route-does-not-run-global|http|GET|/auth-route|-|-|anonymous|global-key:soundcheck-conformance-key|deny|auth-route-override|auth-service|401|exact|both
+route-valid-with-extra-headers|http|GET|/auth-route|-|-|authenticated|route-key:soundcheck-conformance-key;x-region:us|allow|auth-route-override|auth-service|200|exact|both
+disabled-route-keeps-service|http|GET|/auth-disabled|-|-|authenticated|service-key:soundcheck-conformance-key|allow|auth-route-disabled|auth-service|200|exact|both
+disabled-route-keeps-service-denial|http|GET|/auth-disabled|-|-|anonymous|disabled-key:soundcheck-conformance-key|deny|auth-route-disabled|auth-service|401|exact|both
+preflight-bypasses-auth|http|OPTIONS|/auth-preflight|-|-|anonymous|-|allow|auth-preflight|auth-service|-|exact|both
+preflight-get-requires-auth|http|GET|/auth-preflight|-|-|anonymous|-|deny|auth-preflight|auth-service|401|exact|both
+preflight-get-valid-key|http|GET|/auth-preflight|-|-|authenticated|route-key:soundcheck-conformance-key|allow|auth-preflight|auth-service|200|exact|both
+anonymous-fallback-missing-key|http|GET|/auth-anonymous|-|-|anonymous|-|allow|auth-anonymous-fallback|auth-service|200|conservative|both
+anonymous-fallback-invalid-key|http|GET|/auth-anonymous|-|-|anonymous|route-key:not-a-valid-key|allow|auth-anonymous-fallback|auth-service|200|conservative|both
+anonymous-fallback-valid-key|http|GET|/auth-anonymous|-|-|authenticated|route-key:soundcheck-conformance-key|allow|auth-anonymous-fallback|auth-service|200|conservative|both
+auth-before-termination|http|GET|/auth-terminated|-|-|anonymous|-|deny|auth-terminated|auth-service|401|exact|both
+termination-after-auth|http|GET|/auth-terminated|-|-|authenticated|service-key:soundcheck-conformance-key|deny|auth-terminated|auth-service|418|exact|both

@@ -81,7 +81,9 @@ let host_cases =
                         ("evilexample.com", false) ]);
     ("example.com", [ ("example.com", true); ("example.com:8443", true);
                       ("a.example.com", false); ("example.comx", false) ]);
-    ("example.*", [ ("example.com", true); ("example.", false);
+    (* Shared upper bound: compatible prefix matching permits the empty suffix;
+       traditional's synthesized port may also satisfy the wildcard. *)
+    ("example.*", [ ("example.com", true); ("example.", true);
                     ("myexample.com", false) ]) ]
 
 let host_z3 (cond : Ir.condition) (h : string) : bool =

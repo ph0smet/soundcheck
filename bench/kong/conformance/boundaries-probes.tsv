@@ -1,0 +1,18 @@
+# UTF-8 percent escapes and final LF are admitted by the pinned target. These
+# are target observations plus whole-config Unknown checks, never model passes.
+# name|scheme|method|path|host|sni|principal|headers|decision|route|service|status|model-class|flavors
+unicode-one|http|GET|/unicode-one/%C3%A9|-|-|anonymous|-|deny|-|-|404|unsupported|traditional
+unicode-one|http|GET|/unicode-one/%C3%A9|-|-|anonymous|-|allow|unicode-one|boundary-upstream|200|unsupported|traditional_compatible
+unicode-two|http|GET|/unicode-two/%C3%A9|-|-|anonymous|-|allow|unicode-two|boundary-upstream|200|unsupported|traditional
+unicode-two|http|GET|/unicode-two/%C3%A9|-|-|anonymous|-|deny|-|-|404|unsupported|traditional_compatible
+unicode-word|http|GET|/unicode-word/%C3%A9|-|-|anonymous|-|deny|-|-|404|unsupported|traditional
+unicode-word|http|GET|/unicode-word/%C3%A9|-|-|anonymous|-|allow|unicode-word|boundary-upstream|200|unsupported|traditional_compatible
+unicode-digit|http|GET|/unicode-digit/%D9%A3|-|-|anonymous|-|deny|-|-|404|unsupported|traditional
+unicode-digit|http|GET|/unicode-digit/%D9%A3|-|-|anonymous|-|allow|unicode-digit|boundary-upstream|200|unsupported|traditional_compatible
+unicode-negated|http|GET|/unicode-negated/%C3%A9|-|-|anonymous|-|deny|-|-|404|unsupported|traditional
+unicode-negated|http|GET|/unicode-negated/%C3%A9|-|-|anonymous|-|allow|unicode-negated|boundary-upstream|200|unsupported|traditional_compatible
+final-newline|http|GET|/newline/a%0A|-|-|anonymous|-|allow|final-newline|boundary-upstream|200|unsupported|traditional
+final-newline|http|GET|/newline/a%0A|-|-|anonymous|-|deny|-|-|404|unsupported|traditional_compatible
+alternate-second|http|GET|/prefix/alternate/b|-|-|anonymous|-|deny|-|-|404|unsupported|traditional
+alternate-second|http|GET|/prefix/alternate/b|-|-|anonymous|-|allow|alternate|boundary-upstream|404|unsupported|traditional_compatible
+alternate-first-prefix|http|GET|/alternate/aX|-|-|anonymous|-|allow|alternate|boundary-upstream|404|unsupported|both

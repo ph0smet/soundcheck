@@ -1,11 +1,7 @@
-# Scenario: two regex routes with the SAME language, one guarded and one open.
-# Which serves is decided by Kong's declared regex_priority field, and the
-# guarded route declares the higher value, so the open route never serves.
-#
-# Pins that the declared number is read rather than a tie assumed: set both
-# priorities equal and the order becomes undetermined, either may serve, and this
-# turns VIOLATED.
-# Expected: PROVED (no-anonymous-access).
+# Preserved priority fixture: both shorthand languages are outside the shared
+# router boundary. Explicit priority cannot justify a verdict for an unmodeled
+# match language; neither route may be silently discarded.
+# Expected: UNKNOWN (two unsupported regex paths), formerly PROVED.
 _format_version: "3.0"
 services:
   - name: admin-api

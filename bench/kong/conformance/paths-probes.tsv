@@ -1,0 +1,13 @@
+# name|scheme|method|path|host|sni|principal|headers|decision|route|service|status|model-class|flavors
+literal-long|http|GET|/exact/deep/item|-|-|anonymous|-|allow|literal-long|paths-upstream|-|exact|both
+literal-short|http|GET|/exact/other|-|-|anonymous|-|allow|literal-short|paths-upstream|-|exact|both
+literal-plus-present|http|GET|/plain-plus/a+b|-|-|anonymous|-|allow|literal-plus|paths-upstream|200|exact|both
+literal-plus-not-quantifier|http|GET|/plain-plus/ab|-|-|anonymous|-|deny|-|-|404|exact|both
+regex-over-prefix|http|GET|/exact-items/42|-|-|anonymous|-|allow|items-regex|paths-upstream|200|conservative|both
+prefix-fallback|http|GET|/exact-items/letters|-|-|anonymous|-|allow|items-prefix|paths-upstream|-|exact|both
+regex-priority-high|http|GET|/exact-priority/special|-|-|anonymous|-|allow|priority-high|paths-upstream|200|conservative|both
+regex-priority-low|http|GET|/exact-priority/ordinary|-|-|anonymous|-|allow|priority-low|paths-upstream|200|conservative|both
+escaped-dot-literal|http|GET|/exact-escaped/a.b|-|-|anonymous|-|allow|escaped-dot|paths-upstream|200|conservative|both
+escaped-dot-not-wildcard|http|GET|/exact-escaped/axb|-|-|anonymous|-|deny|-|-|404|exact|both
+regex-prefix-suffix|http|GET|/exact-unanchored/42/suffix|-|-|anonymous|-|allow|unanchored|paths-upstream|-|conservative|both
+default-deny|http|GET|/not-configured|-|-|anonymous|-|deny|-|-|404|exact|both

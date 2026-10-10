@@ -57,18 +57,22 @@ let rec lex_gt (xs : int list) (ys : int list) : bool =
    [match_] an over-approximation, which is harmless where it appears positively
    but hides violations where it appears negated in the suppression term. *)
 let outranks (a : priority) (b : priority) : bool =
-  a.comparable && b.comparable && lex_gt a.key b.key
+  a.comparable && b.comparable && List.length a.key = List.length b.key
+  && lex_gt a.key b.key
 
 type rule = {
   id           : string;
   match_       : condition;
   match_complete : bool;
   guard        : condition;
+  guard_complete : bool;
   priority     : priority;
   decision      : decision;
   rate_limited  : bool;
   targets_admin : bool;
 }
+
+let must_guard (rule : rule) = if rule.guard_complete then rule.guard else Or []
 
 type policy = {
   request_domain : condition;
@@ -110,20 +114,23 @@ let selected (p : policy) (r : request) (rule : rule) : bool =
   matches rule.match_ r
   && not
        (List.exists
-          (fun (o : rule) -> outranks o.priority rule.priority && matches o.match_ r)
+          (fun (o : rule) ->
+            o.match_complete && outranks o.priority rule.priority && matches o.match_ r)
           p.rules)
 
-let evaluate (p : policy) (r : request) : decision =
-  if not (matches p.request_domain r) then Deny
-  else
-    let matching =
-      List.filter
-        (fun rule -> selected p r rule && matches rule.guard r)
+let possibly_allows ?(reach_via = fun _ -> true) (p : policy) (r : request) =
+  matches p.request_domain r
+  && (List.exists
+        (fun rule ->
+          rule.decision = Allow && reach_via rule && selected p r rule
+          && matches rule.guard r)
         p.rules
-    in
-    if List.exists (fun rule -> rule.decision = Deny) matching then Deny
-    else if List.exists (fun rule -> rule.decision = Allow) matching then Allow
-    else p.default
+      || (p.default = Allow
+          && not (List.exists
+                    (fun rule -> rule.match_complete && matches rule.match_ r)
+                    p.rules)))
+
+let evaluate p r = if possibly_allows p r then Allow else Deny
 
 let definitely_allows (p : policy) (r : request) : bool =
   matches p.request_domain r
@@ -134,7 +141,7 @@ let definitely_allows (p : policy) (r : request) : bool =
          (fun rule ->
            rule.match_complete
            && rule.decision = Allow
-           && matches rule.guard r)
+           && matches (must_guard rule) r)
          possible_winners
 
 let string_of_decision = function Allow -> "Allow" | Deny -> "Deny"

@@ -7,6 +7,7 @@ let route ?(guard = Ir.True) ?(rank = 1) ?(match_complete = true) id =
        match_ = Path_prefix "/admin";
        match_complete;
        guard;
+       guard_complete = true;
        priority = priority rank;
        decision = Allow;
        rate_limited = false;

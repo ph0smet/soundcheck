@@ -1,0 +1,78 @@
+_format_version: "3.0"
+_transform: true
+
+# Public, synthetic credentials used only by the loopback conformance fixture.
+consumers:
+  - username: conformance-user
+    keyauth_credentials:
+      - key: soundcheck-conformance-key
+  - username: conformance-anonymous
+    id: 10000000-0000-4000-8000-000000000001
+
+plugins:
+  - name: key-auth
+    config:
+      key_names: [global-key]
+      key_in_query: false
+
+services:
+  - name: auth-global-service
+    url: http://127.0.0.1:8001/status
+    routes:
+      - name: auth-global
+        paths: [/auth-global]
+      - name: auth-global-disabled-route
+        paths: [/auth-global-disabled-route]
+        plugins:
+          - name: key-auth
+            enabled: false
+            config:
+              key_names: [disabled-key]
+
+  - name: auth-service
+    url: http://127.0.0.1:8001/status
+    plugins:
+      - name: key-auth
+        config:
+          key_names: [service-key]
+          key_in_query: false
+    routes:
+      - name: auth-service-only
+        paths: [/auth-service]
+      - name: auth-route-override
+        paths: [/auth-route]
+        plugins:
+          - name: key-auth
+            config:
+              key_names: [route-key]
+              key_in_query: false
+      - name: auth-route-disabled
+        paths: [/auth-disabled]
+        plugins:
+          - name: key-auth
+            enabled: false
+            config:
+              key_names: [disabled-key]
+      - name: auth-preflight
+        paths: [/auth-preflight]
+        plugins:
+          - name: key-auth
+            config:
+              key_names: [route-key]
+              key_in_query: false
+              run_on_preflight: false
+      - name: auth-anonymous-fallback
+        paths: [/auth-anonymous]
+        plugins:
+          - name: key-auth
+            config:
+              key_names: [route-key]
+              key_in_query: false
+              anonymous: 10000000-0000-4000-8000-000000000001
+      - name: auth-terminated
+        paths: [/auth-terminated]
+        plugins:
+          - name: request-termination
+            config:
+              status_code: 418
+              message: conformance termination

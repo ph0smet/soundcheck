@@ -46,6 +46,18 @@ let assessment_reason label (assessment : Assurance.assessment) =
     Printf.sprintf "%s config is %s: %s — %s" label
       (Assurance.string_of_status assessment.status) finding.code finding.detail
 
+let can_check_exactness (assessment : Assurance.assessment) =
+  match assessment.status with
+  | Assurance.Within_profile -> true
+  | Assurance.Unsupported -> false
+  | Assurance.Conservative ->
+    (* Ordering alone need not change the requested observation. exact_policy
+       below still requires complete predicates and proves different effects or
+       identities cannot overlap. All other approximation findings fail closed. *)
+    List.for_all
+      (fun (finding : Assurance.finding) -> finding.code = "shared-route-order")
+      assessment.findings
+
 let unresolved_pairs ~label mode (policy : Ir.policy) =
   let rec pairs = function
     | [] -> []
@@ -59,8 +71,8 @@ let unresolved_pairs ~label mode (policy : Ir.policy) =
             || (mode <> Security_decision && label left <> label right)))
 
 let exact_policy ?(z3 = "z3") ~rule_label mode label (policy : Ir.policy) =
-  if List.exists (fun (rule : Ir.rule) -> not rule.match_complete) policy.rules
-  then Error (label ^ " config contains an incomplete route match")
+  if List.exists (fun (rule : Ir.rule) -> not rule.match_complete || not rule.guard_complete) policy.rules
+  then Error (label ^ " config contains an incomplete route match or policy guard")
   else
     let rec check = function
       | [] -> Ok ()
@@ -72,7 +84,10 @@ let exact_policy ?(z3 = "z3") ~rule_label mode label (policy : Ir.policy) =
               "unresolved routes with different decisions, guards, or observed identities overlap"
             (Ir.And [ left.match_; right.match_ ])
         in
-        (match Solve.check ~z3 query with
+        (match Solve.check ~z3 query
+               |> Witness.validate ~obligation:(label ^ " route-order determinism")
+                    (Witness.condition ~domain:policy.request_domain
+                       (Ir.And [left.match_; right.match_])) with
          | Solve.Proved -> check rest
          | Solve.Violated _ ->
            Error
@@ -382,25 +397,16 @@ let upstream_terms label config targets policy =
     (fun terms rule -> List.assq rule terms)
     (build [] policy.Ir.rules)
 
-let request_of_model (model : Solve.model) : Ir.request =
-  { principal = if model.is_anon then Anonymous else Authenticated "subject";
-    action = model.method_;
-    resource = model.path;
-    context = model.headers;
-    source = model.src_ip;
-    host = model.host;
-    scheme = model.scheme;
-    sni = model.sni }
-
 let authority target =
   let host = if String.contains target.host ':' then "[" ^ target.host ^ "]" else target.host in
   Printf.sprintf "%s://%s:%d" target.protocol host target.port
 
 let observe config targets value (policy : Ir.policy) model =
-  let request = request_of_model model in
+  let request = Witness.request_of_model model in
   let selected_rules =
-    policy.Ir.rules
-    |> List.filter (Ir.selected policy request)
+    if Ir.matches policy.request_domain request then
+      List.filter (Ir.selected policy request) policy.rules
+    else []
   in
   let routes =
     selected_rules
@@ -451,12 +457,12 @@ let run_comparison ?(z3 = "z3") ?emit_smt ?(when_ = Ir.True)
                   | Ok after_targets ->
                     Ok ((before, before_targets), (after, after_targets))))
     in
-    if before_assessment.status <> Assurance.Within_profile then
+    if not (can_check_exactness before_assessment) then
       Ok
         { result = Unknown (assessment_reason "before" before_assessment);
           profile;
           mode }
-    else if after_assessment.status <> Assurance.Within_profile then
+    else if not (can_check_exactness after_assessment) then
       Ok
         { result = Unknown (assessment_reason "after" after_assessment);
           profile;
@@ -500,7 +506,17 @@ let run_comparison ?(z3 = "z3") ?emit_smt ?(when_ = Ir.True)
                ~left_label:before_label ~right_label:after_label before_policy
                after_policy
          in
-         match Solve.check ~z3 ?emit_smt query with
+         let satisfies =
+           match mode with
+           | Security_decision ->
+             Witness.decision_difference ~when_ before_policy after_policy
+           | Route_service | Service_target | Upstream_uri ->
+             Witness.route_difference ~when_ ?left_value:before_value
+               ?right_value:after_value ~left_label:before_label
+               ~right_label:after_label before_policy after_policy
+         in
+         match Solve.check ~z3 ?emit_smt query
+               |> Witness.validate ~obligation:"configuration comparison" satisfies with
          | Solve.Proved -> Ok { result = Equivalent; profile; mode }
          | Solve.Unknown reason -> Ok { result = Unknown reason; profile; mode }
          | Solve.Violated request ->
@@ -622,7 +638,7 @@ let to_human report =
   | Different witness ->
     let request = witness.request in
     Printf.sprintf
-      "DIFFERENT  %s request %s %s makes the configs disagree\n           %s\n           %s\n           Assurance: %s"
+      "DIFFERENT  model-level witness: %s request %s %s makes the configs disagree\n           %s\n           %s\n           Not a guaranteed target replay. Assurance: %s"
       (if request.is_anon then "anonymous" else "authenticated")
       (if request.method_ = "" then "<any-method>" else request.method_)
       request.path (observation_human "before" witness.before)
@@ -647,7 +663,7 @@ let run_repair ?z3 ?emit_smt ?(mode = Security_decision) ~contract before_source
   match parse "before" before_source, parse "after" after_source with
   | Error error, _ | _, Error error -> Error error
   | Ok _, Ok _ ->
-  match Verify.run ~property:(Contract_spec.to_property contract) after_source with
+  match Verify.run ?z3 ~property:(Contract_spec.to_property contract) after_source with
   | Error error -> Error error
   | Ok raw_contract_report ->
     let contract_report = Contract_spec.bind_report contract raw_contract_report in
@@ -731,7 +747,7 @@ let repair_to_human report =
   | Out_of_scope_regression witness ->
     let request = witness.request in
     Printf.sprintf
-      "OUT-OF-SCOPE REGRESSION  %s request %s %s changed outside the frozen repair scope\n                         %s\n                         %s\n                         Frozen spec: %s"
+      "OUT-OF-SCOPE REGRESSION  model-level witness: %s request %s %s changed outside the frozen repair scope\n                         %s\n                         %s\n                         Not a guaranteed target replay. Frozen spec: %s"
       (if request.is_anon then "anonymous" else "authenticated")
       (if request.method_ = "" then "<any-method>" else request.method_)
       request.path (observation_human "before" witness.before)

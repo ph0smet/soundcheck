@@ -61,8 +61,12 @@ let () =
     | Some found -> found
     | None -> failwith ("missing lowered route " ^ name)
   in
-  if not (Ir.outranks (find "two-headers").priority (find "one-header").priority)
-  then failwith "route with more header criteria must win Kong's header tiebreak";
+  (* Both routers account for headers, but their interactions with regex and
+     category selection differ. Heterogeneous non-path predicates therefore
+     retain possible winners; pinned conformance asserts actual target order. *)
+  if Ir.outranks (find "two-headers").priority (find "one-header").priority
+     || Ir.outranks (find "one-header").priority (find "two-headers").priority
+  then failwith "shared header precedence must remain conservative";
 
   (match Verify.run ~property:(Verify.No_anonymous_access "/admin") exact_config with
    | Ok { result = Report.Violated counterexample; _ } ->
@@ -87,6 +91,33 @@ let () =
   let regex_rule = only_rule regex in
   if regex_rule.match_complete then
     failwith "regex header route must remain conservatively incomplete";
-  match (Assurance.assess (parse regex)).findings with
+  (match (Assurance.assess (parse regex)).findings with
   | [ { code = "route-header-regex"; _ } ] -> ()
-  | _ -> failwith "regex header route must carry an assurance finding"
+  | _ -> failwith "regex header route must carry an assurance finding");
+
+  (* Kong 3.9.3 traditional.lua recognizes singleton ~* lists only; compatible
+     transform.lua recognizes each value. administrator matches the regex in
+     the compatible router even in this mixed list. Literal-only lowering
+     would omit that possible winner and falsely prove no shadowing. *)
+  let mixed =
+    {|services:
+  - name: api
+    routes:
+    - name: mixed-open
+      paths: [/admin]
+      headers: {x-role: ['~*^admin', guest]}
+    - name: exact-guarded
+      paths: [/admin]
+      headers: {x-role: [administrator]}
+      plugins: [{name: key-auth}]
+|}
+  in
+  let mixed_policy = Lower.to_policy (parse mixed) in
+  let open_rule = List.find (fun (r : Ir.rule) -> r.id = "mixed-open") mixed_policy.rules in
+  if open_rule.match_complete
+     || not (Ir.matches open_rule.match_ (request ["x-role", "administrator"]))
+  then failwith "mixed regex header list omitted compatible-router candidates";
+  (match Verify.run ~property:Verify.No_shadowed_routes mixed with
+   | Ok { result = Report.Violated _; _ } -> ()
+   | Ok _ -> failwith "mixed regex header overlap must not prove absence of shadowing"
+   | Error error -> failwith error)

@@ -1,12 +1,7 @@
-# Scenario: a guarded REGEX route against a LONGER open literal prefix whose
-# language it covers. Kong compares submatch_weight first, and a regex path sets
-# HAS_REGEX_URI, so the regex route outranks every prefix route however long the
-# prefix is. The open literal therefore never serves.
-#
-# Counterintuitive enough to be worth pinning: rank the two by path length
-# instead, as a naive model would, and the open route wins and this turns
-# VIOLATED.
-# Expected: PROVED (no-anonymous-access).
+# Preserved historical regex-versus-prefix fixture. Shorthand Unicode membership
+# differs between PCRE and the compatible router; priority does not resolve that
+# semantic boundary. No assumption of ASCII-only requests is made.
+# Expected: UNKNOWN (unsupported shorthand class).
 _format_version: "3.0"
 services:
   - name: admin-api

@@ -1,0 +1,14 @@
+_format_version: "3.0"
+services:
+  - name: reducer-upstream
+    url: http://127.0.0.1:8001/status
+    routes:
+      - name: reducer-a
+        paths: [/a/b]
+        methods: [GET]
+      - name: reducer-b
+        paths: [/a]
+        methods: [GET]
+      - name: reducer-c
+        paths: ['~/a']
+        methods: [POST]

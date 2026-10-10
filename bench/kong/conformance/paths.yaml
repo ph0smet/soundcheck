@@ -1,0 +1,28 @@
+_format_version: "3.0"
+services:
+  - name: paths-upstream
+    url: http://127.0.0.1:8001/status
+    # Common non-path predicates permit literal length precedence. Accepted
+    # regex languages still have an incomplete runtime match (PCRE limits), so
+    # matching regex probes explicitly check conservative containment.
+    routes:
+      - name: literal-short
+        paths: [/exact/]
+      - name: literal-long
+        paths: [/exact/deep]
+      - name: literal-plus
+        paths: ['/plain-plus/a+b']
+      - name: items-prefix
+        paths: [/exact-items]
+      - name: items-regex
+        paths: ['~/exact-items/[0-9]+']
+      - name: priority-low
+        paths: ['~/exact-priority/[a-z]+']
+        regex_priority: 1
+      - name: priority-high
+        paths: ['~/exact-priority/special']
+        regex_priority: 10
+      - name: escaped-dot
+        paths: ['~/exact-escaped/a\.b']
+      - name: unanchored
+        paths: ['~/exact-unanchored/[0-9]+']

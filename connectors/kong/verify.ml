@@ -87,9 +87,8 @@ let network_restricted_access_contract ~path_prefix ~method_ ~host
           (Ir.And [ scope; Ir.Source_in trusted_cidr; Ir.Requires_auth ]) ] }
 
 (* The core property template plus the connector lift that explains its
-   counterexample in Kong's own vocabulary. The lift's [culprit] mirrors the
-   property's reach_via so the named route is exactly the one the solver
-   exploited.
+   counterexample in Kong's own vocabulary. The lift uses the same structural
+   [reach_via] predicate and complete modeled winner/guard checks as the query.
 
    [None] for no-shadowed-routes: it is not a single query over requests and so
    has no {!Property.t}. Returning an option rather than raising keeps the
@@ -106,22 +105,20 @@ let resolve (cfg : Ast.config) :
       ( Property.rate_limit_on_public,
         fun m ->
           Lift.counterexample
-            ~culprit:(fun s r ->
-              not (Lower.requires_auth cfg s r)
-              && not (Lower.rate_limited cfg s r))
+            ~reach_via:Property.rate_limit_on_public.reach_via
             ~missing:
-              "no recognized general request-rate limit is attached at route, service, or global scope."
+              "modeled general request-rate limiting does not cover this request."
             cfg m )
   | Admin_api_not_reachable trusted ->
+    let property = Property.admin_api_not_reachable ~trusted in
     Some
-      ( Property.admin_api_not_reachable ~trusted,
+      ( property,
         fun m ->
           Lift.counterexample
-            ~culprit:(fun s _ -> Lower.targets_admin_api s)
+            ~reach_via:property.reach_via
             ~show_source:true
             ~missing:
-              "its service proxies the Kong Admin API, with neither an auth \
-               plugin nor an ip-restriction confining it."
+              "its modeled Admin API service target is reachable outside the requested trust boundary."
             cfg m )
   | Authenticated_access _ -> None
   | Network_restricted_access _ -> None
@@ -175,12 +172,12 @@ let contract_outcome ?(show_source = false) ~lift_denied cfg policy :
     (Report.Violated counterexample, Some (report_clause clause))
   | Contract_verify.Unknown reason -> (Report.Unknown reason, None)
 
-let run_contract_with_trace ?(show_source = false) ~lift_denied cfg policy contract =
-  let result, trace = Contract_verify.run_with_trace policy contract in
+let run_contract_with_trace ?z3 ?(show_source = false) ~lift_denied cfg policy contract =
+  let result, trace = Contract_verify.run_with_trace ?z3 policy contract in
   (contract_outcome ~show_source ~lift_denied cfg policy result, trace)
 
-let run_contract ?(show_source = false) ~lift_denied cfg policy contract =
-  fst (run_contract_with_trace ~show_source ~lift_denied cfg policy contract)
+let run_contract ?z3 ?(show_source = false) ~lift_denied cfg policy contract =
+  fst (run_contract_with_trace ?z3 ~show_source ~lift_denied cfg policy contract)
 
 (* Verify a decK config (as text) against [property]. [Error] is a caller-level
    failure (malformed config or an unsupported output option), while [Ok report]
@@ -198,24 +195,46 @@ let run_contract ?(show_source = false) ~lift_denied cfg policy contract =
    An [Unknown] from any pair aborts immediately rather than continuing: once one
    query is inconclusive we can no longer claim the remaining ones establish a
    proof. *)
-let run_shadowing ?emit_smt (cfg : Ast.config) (policy : Ir.policy) :
+let run_shadowing ?z3 ?emit_smt (cfg : Ast.config) (policy : Ir.policy) :
     Report.outcome =
+  (* Display names currently double as IR route identities. Inspect entities
+     before path/SNI expansion: one multi-path route is fine, two distinct
+     routes with the same name (including unnamed routes) are ambiguous.
+     Never let [candidates]' same-entity pruning turn that ambiguity into proof.
+     Referenced top-level routes are already inserted into service.routes. *)
+  let route_names =
+    List.concat_map
+      (fun (service : Ast.service) ->
+        List.map (fun (route : Ast.route) -> route.name) service.routes)
+      cfg.services
+    @ List.filter_map
+        (fun (top : Ast.top_level_route) ->
+          if top.service = None && not top.unsupported_reference then
+            Some top.route.name
+          else None)
+        cfg.top_level_routes
+  in
   let rec go = function
     | [] -> Report.Proved
     | (pair : Shadowing.pair) :: rest -> (
       let smt = Smt_encode.shadowing_query policy pair in
-      match Solve.check ?emit_smt smt with
+      match Solve.check ?z3 ?emit_smt smt
+            |> Witness.validate ~obligation:"route shadowing" (Witness.shadowing policy pair) with
       | Solve.Violated m ->
         Report.Violated (Lift.shadowing_counterexample cfg pair m)
       | Solve.Unknown s -> Report.Unknown s
       | Solve.Proved -> go rest)
   in
-  go (Shadowing.candidates policy)
+  if List.length route_names <> List.length (List.sort_uniq String.compare route_names)
+  then
+    Report.Unknown
+      "shadowing requires distinct route names: multiple entities share a name or are unnamed"
+  else go (Shadowing.candidates policy)
 
 (* The trace is absent for legacy properties and configs rejected before
    lowering. In particular, unsupported configs never acquire invented queries
    just to populate an evidence bundle. *)
-let run_with_trace ?emit_smt ~(property : property) (config : string) :
+let run_with_trace ?z3 ?emit_smt ~(property : property) (config : string) :
     (Report.t * Contract_verify.trace_entry list option, string) result =
   let property_scope =
     match property with
@@ -250,7 +269,7 @@ let run_with_trace ?emit_smt ~(property : property) (config : string) :
             (network_restricted_access_contract ~path_prefix ~method_ ~host
                ~trusted_cidr),
           true,
-          Lift.counterexample ~culprit:(fun _ _ -> true) ~show_source:true
+          Lift.counterexample ~show_source:true
             ~missing:
               "the selected route does not enforce the frozen trusted-network boundary."
             cfg )
@@ -277,24 +296,27 @@ let run_with_trace ?emit_smt ~(property : property) (config : string) :
         match contract with
         | Some contract ->
           let outcome, trace =
-            run_contract_with_trace ~show_source ~lift_denied cfg policy contract
+            run_contract_with_trace ?z3 ~show_source ~lift_denied cfg policy contract
           in
           (outcome, Some trace)
         | None ->
           let outcome =
             match resolve cfg property with
-            | None -> (run_shadowing ?emit_smt cfg policy, None)
+            | None -> (run_shadowing ?z3 ?emit_smt cfg policy, None)
             | Some (prop, lift) ->
               let preflight =
                 Smt_encode.condition_query ~domain:policy.request_domain
                   ~name:prop.name ~description:prop.description prop.forbidden_when
               in
-              match Solve.check ?emit_smt preflight with
+              match Solve.check ?z3 ?emit_smt preflight
+                    |> Witness.validate ~obligation:(prop.name ^ " inhabitance")
+                         (Witness.condition ~domain:policy.request_domain prop.forbidden_when) with
               | Solve.Proved -> (Report.Vacuous, None)
               | Solve.Unknown s -> (Report.Unknown s, None)
               | Solve.Violated _ -> (
                 let smt = Smt_encode.to_smtlib policy prop in
-                match Solve.check ?emit_smt smt with
+                match Solve.check ?z3 ?emit_smt smt
+                      |> Witness.validate ~obligation:prop.name (Witness.property policy prop) with
                 | Solve.Proved -> (Report.Proved, None)
                 | Solve.Violated m -> (Report.Violated (lift m), None)
                 | Solve.Unknown s -> (Report.Unknown s, None))
@@ -308,7 +330,7 @@ let run_with_trace ?emit_smt ~(property : property) (config : string) :
            clause;
            frozen_spec = None }, trace))
 
-let run ?emit_smt ~property config =
-  match run_with_trace ?emit_smt ~property config with
+let run ?z3 ?emit_smt ~property config =
+  match run_with_trace ?z3 ?emit_smt ~property config with
   | Ok (report, _) -> Ok report
   | Error reason -> Error reason

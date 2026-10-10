@@ -2,11 +2,14 @@
 
 > Verified AI output for declarative security policy. Soundcheck takes a
 > declarative policy artifact (API-gateway config, K8s RBAC, …) — whether
-> hand-written or AI-generated — and **proves** security invariants over it,
-> returning a solver-backed verdict or a concrete counterexample.
+> hand-written or AI-generated — and **proves** security invariants within a
+> versioned target model and explicit assumptions, returning a solver-backed
+> verdict or a validated model-level counterexample candidate.
 
-The name plays on **soundness** (a sound analysis reports no false negatives —
-our core promise) and the everyday "sound check".
+The name plays on **soundness** and the everyday "sound check". Our design
+obligation is no false proof within the supported model and assumptions, not
+an unconditional claim about every target deployment. Conservative candidates
+are not guaranteed target replays; unsupported semantics fail closed.
 
 ---
 
@@ -20,8 +23,9 @@ filter.
 We deliberately operate in **Shape B — verified configuration/policy**, not
 Shape A (verified computation over arbitrary program semantics):
 
-- **Shape B (ours):** declarative policies reduce to a finite **decision
-  function** `(principal, action, resource, context) -> Allow | Deny`. Reasoning
+- **Shape B (ours):** finite declarative policies define a **decision
+  function** `(principal, action, resource, context) -> Allow | Deny` over
+  potentially unbounded request values. Reasoning
   is designed around a **decidable** SMT fragment rather than open-ended proof
   search. Results are explicit: proved, violated, vacuous, inconsistent, or
   unknown.
@@ -59,7 +63,7 @@ to each frontend's vocabulary.
   Automated SMT is the pragmatic fit for the current decidable problem class;
   interactive proof assistants are not part of the runtime architecture.
 - **SMT backend: Z3 CLI via SMT-LIB2 text**, not language bindings or Why3. We
-  do finite-domain constraint solving, not verification-condition generation
+  do symbolic decision-policy constraint solving, not verification-condition generation
   over imperative programs. The boundary is inspectable and replaceable behind
   the encoder and solver modules.
 - **Monorepo, shared core + thin connectors.** Connectors depend on core; core
@@ -74,10 +78,25 @@ to each frontend's vocabulary.
    to Z3 — i.e. ask "does there *exist* a request the config allows but the
    property forbids?"
 4. **Solve:**
-   - **UNSAT** → no violating request exists → **proof** (holds for all requests).
-   - **SAT**   → the satisfying assignment **is** a concrete counterexample.
-5. **Lift** the SMT model back into the connector's vocabulary (actionable in the
-   user's own config terms).
+   - **UNSAT** → no violating request exists in the asserted model → a
+     solver-backed proof relative to that model and its assumptions.
+   - **SAT** → decode and validate the request against the actual obligation.
+     Invalid models become unknown before verdicts, lifting, or evidence traces.
+5. **Lift** the checked model into the connector's vocabulary. Conservative
+   approximations may produce candidates that need target investigation.
+
+Safety uses possible allowance; functionality uses definite allowance. Preserve
+`must_allow ⊆ actual_allow ⊆ may_allow`: incomplete matches cannot suppress
+possible winners, and incomplete guards cannot prove required access. Evidence
+bundles permit formula replay; they are not independently checked UNSAT
+certificates or a proof of the parser, encoder, or target model.
+
+Frozen multi-clause verification first checks inhabitance, then consistency,
+then the ordered policy clauses. Verdicts are explicit: **proved** (all required
+obligations hold), **violated** (a validated modeled clause counterexample),
+**vacuous** (an empty required request class), **inconsistent** (overlapping
+must-allow/must-deny intent), or **unknown** (unsupported semantics, solver
+failure/timeout, or invalid witness). Only proved exits zero at the gate.
 
 ## What a new connector touches
 
@@ -113,6 +132,10 @@ to each frontend's vocabulary.
   versioned contract artifact outside the model-controlled loop. The loop may
   change the *config*, never the *property* — no weakening the spec to make
   buggy output pass. Frozen reports carry the artifact's normalized identity.
+  The CI Action reads the immutable PR base-commit contract (or the exact
+  protected-default-branch push commit), not the candidate's contract file.
+  Trusted workflow/action sources, fixed contract selection, required checks,
+  fresh-base reruns, and separate contract approval are external prerequisites.
 
 ---
 
@@ -128,9 +151,9 @@ together:
   counterexample; they cannot substitute property or scope arguments. MCP
   without `--contract` remains a manual exploration mode and is not frozen.
   **MCP is an adapter, not a new agent framework.**
-- **Hard / gate (CI):** the CLI runs in CI / a pre-apply hook and **blocks
-  merge/apply on non-zero exit**, regardless of what any agent did. This is the
-  actual guarantee — never rely on a prompt for it.
+- **Hard / gate (CI):** the CLI exits nonzero for every non-proof. A trusted,
+  required, non-bypassable CI/pre-apply workflow uses that status to block
+  merge/apply. Soundcheck does not install repository protection automatically.
 
 **Integration surfaces** (all thin wrappers over `soundcheck_core` + connectors):
 CLI (`soundcheck verify`), machine-readable **JSON output** (the universal
@@ -139,11 +162,13 @@ service**, and a **GitHub Action**. A third-party PR-reviewer bot, custom agent,
 IDE plugin, or CI all plug in via whichever surface fits.
 
 **Design commitments that keep it embeddable (non-negotiable):**
-- All logic stays in `soundcheck_core`; every adapter (`cli/`, `mcp/`, `http/`)
-  stays thin — never bake verification logic into an adapter.
+
+- Generic decision/encoding/solver logic stays in `soundcheck_core`; parsing,
+  target semantics, and lifting belong to connectors. Every adapter (`cli/`,
+  `mcp/`, `http/`) stays thin — never bake verification logic into an adapter.
 - The **JSON result schema is a stable, versioned contract**, e.g.
   `{ "result": "violated|proved|vacuous|inconsistent|unknown", "property": "...",
-     "counterexample": { "principal": "...", "method": "...", "path": "...",
+     "counterexample": { "principal": "...", "action": "...", "path": "...",
      "route": "...", "service": "..." } }`.
 - Functionality is expressed as a frozen multi-clause contract, not inferred
   from the config under repair. `authenticated-access` pairs anonymous denial
@@ -162,27 +187,30 @@ the public near-term direction is summarized in `README.md`.
 
 ---
 
-## Conceptual structure
+## Repository structure
 
-This describes architectural ownership, not an exact filesystem listing.
+Current ownership; connector #2 and later targets remain planned.
 
 ```
-core/            shared engine (fat, valuable)
-  ir/            decision model: principal, action, resource, context, effect
-  properties/    invariant templates (reachability, non-escalation, isolation,
-                 equivalence, shadowing, least-privilege)
-  encode/        IR + property → SMT constraints
-  solve/         Z3 orchestration + model extraction
-  counterexample/ SMT model → abstract counterexample (in IR terms)
-connectors/      thin frontends (parse→IR, lift counterexample→config)
-  kong/          FIRST
-  app_authz/     SECOND (tenant isolation)
-  k8s_rbac/      later
-  opa_rego/      later (decidable fragment only)
-evidence/        audit report emitter (proof + provenance + version hash)
-cli/             `verify <config> --policy <p>`  (ship this first)
-api/             service interface (later)
-bench/           labeled corpora, mutation tests, regression
+core/                 shared decision/verification engine
+  ir.ml               request model, possible and definite allowance
+  property.ml         single-property templates
+  contract_verify.ml  ordered frozen multi-clause obligations and traces
+  shadowing.ml        conservative candidate-pair selection
+  smt_encode.ml       IR + obligations → SMT-LIB2
+  solve.ml            Z3 orchestration (with solver_process/protocol modules)
+  witness.ml          model-level SAT obligation validation
+  report.ml           stable result serialization
+  evidence.ml         audit artifacts, digests, provenance (not certificates)
+connectors/kong/       parse, target boundary/lowering, comparisons, lifting
+cli/                  verify / compare / profile / mcp subcommands
+mcp/                  config-only frozen verification adapter
+ci/                   GitHub annotation formatting
+action.yml            approved-base-contract CI adapter
+scripts/              local/full/clean-commit checks and gate helper
+bench/                corpus and pinned real-Kong conformance
+test/                 regressions, independent oracles, adapter acceptance
+docs/plans/           approved bounded tasks and semantic acceptance evidence
 ```
 
 ## Sequencing
@@ -200,6 +228,10 @@ the Kong verifier is ready for public promotion.
 - For substantial work, read the Soundcheck Codex memory index at
   `~/.codex/memories/projects/-Users-souravkumar-program-analysis-Soundcheck/MEMORY.md`.
   That is the active project tracker; do not use or update the retired Claude memory.
+- Keep standing architectural and working rules here. Record approved bounded
+  task scope, semantic acceptance notes, and evidence in `docs/plans/`; local
+  project memory tracks roadmap status and session context, not a substitute
+  specification that an implementation may silently weaken.
 - Prefix OCaml commands with `eval $(opam env)`.
 - Work on a focused `feat/`, `fix/`, `docs/`, or `chore/` branch; never commit
   directly to `main`.

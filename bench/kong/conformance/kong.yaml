@@ -52,6 +52,19 @@ services:
         paths: [/https-only]
         protocols: [https]
 
+      # With _format_version 3.0 a leading '~' is the regex marker. A '+' in an
+      # ordinary path is literal, not the migrated 1.1/2.1 inferred-regex syntax.
+      - name: literal-plus
+        paths: ['/plain-plus/a+b']
+      - name: regex-anchored
+        paths: ['~/anchored/[0-9]+$']
+      - name: regex-unanchored
+        paths: ['~/unanchored/[0-9]+']
+      - name: regex-escaped-dot
+        paths: ['~/escaped/a\.b$']
+      - name: regex-digit-class
+        paths: ['~/classes/[\d]+$']
+
 routes:
   - name: service-less
     paths: [/service-less]

@@ -113,4 +113,36 @@ assumptions:
     "contract.assumptions.source_ip_integrity must be";
   expect_error "non-normalized contract scope"
     "schema_version: 1\nkind: authenticated-access\nscope: {path_prefix: /admin/../secret}\n"
-    "contract.scope.path_prefix \"/admin/../secret\" is not normalized; use \"/secret\""
+    "contract.scope.path_prefix \"/admin/../secret\" is not normalized; use \"/secret\"";
+  List.iter
+    (fun (label, source, where) -> expect_error label source (where ^ ": duplicate field"))
+    [ ("duplicate schema version",
+       "schema_version: 1\nschema_version: 2\nkind: authenticated-access\nscope: {path_prefix: /admin}\n",
+       "contract");
+      ("duplicate kind",
+       "schema_version: 1\nkind: authenticated-access\nkind: network-restricted-access\nscope: {path_prefix: /admin}\n",
+       "contract");
+      ("duplicate scope",
+       "schema_version: 1\nkind: authenticated-access\nscope: {path_prefix: /admin}\nscope: {path_prefix: /public}\n",
+       "contract");
+      ("duplicate path prefix",
+       "schema_version: 1\nkind: authenticated-access\nscope: {path_prefix: /admin, path_prefix: /public}\n",
+       "contract.scope");
+      ("duplicate optional scope",
+       "schema_version: 1\nkind: authenticated-access\nscope: {path_prefix: /admin, method: GET, method: POST}\n",
+       "contract.scope");
+      ("duplicate source assumption",
+       "schema_version: 1\nkind: network-restricted-access\nscope: {path_prefix: /admin, trusted_cidr: 10.0.0.0/8}\nassumptions: {source_ip_integrity: externally-enforced, source_ip_integrity: ignored}\n",
+       "contract.assumptions");
+      ("recursive duplicate before field lookup",
+       "schema_version: 1\nkind: authenticated-access\nscope: {path_prefix: /admin, host: [{nested: {key: one, key: two}}]}\n",
+       "contract.scope.host[0].nested") ];
+  expect_error "second contract document"
+    "schema_version: 1\nkind: authenticated-access\nscope: {path_prefix: /admin}\n---\nschema_version: 2\n"
+    "contract YAML: expected a single document";
+  expect_error "tagged contract scalar"
+    "schema_version: !!str 1\nkind: authenticated-access\nscope: {path_prefix: /admin}\n"
+    "contract YAML: explicit tags are unsupported";
+  expect_error "contract merge"
+    "schema_version: 1\nkind: authenticated-access\nscope: {path_prefix: /admin, <<: {method: GET}}\n"
+    "contract.scope: YAML merge keys are unsupported"

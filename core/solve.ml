@@ -23,9 +23,10 @@ let version ?(z3 = "z3") ?(timeout = default_timeout) () =
   let text = String.trim output in
   if String.starts_with ~prefix:"Z3 version " text
      && String.length text > String.length "Z3 version "
+     && String.is_valid_utf_8 text
      && not (String.contains text '\n') && not (String.contains text '\r')
   then Ok text
-  else Error ("could not determine Z3 version: " ^ text)
+  else Error ("could not determine Z3 version: " ^ Solver_process.diagnostic text)
 
 let write_file path text =
   let channel = open_out_bin path in
@@ -59,7 +60,11 @@ let model bindings =
   let open Solver_protocol in
   let malformed name = raise (Invalid ("missing or malformed model field: " ^ name)) in
   let string name =
-    match List.assoc_opt name bindings with Some (String text) -> text | _ -> malformed name
+    match List.assoc_opt name bindings with
+    | Some (String text) ->
+      (try decode_string text with Invalid reason ->
+         raise (Invalid ("malformed model field " ^ name ^ ": " ^ reason)))
+    | _ -> malformed name
   in
   let boolean name =
     match List.assoc_opt name bindings with
@@ -108,13 +113,16 @@ let model bindings =
               String.sub encoded (separator + 1) (String.length encoded - separator - 1)
             in
             (match decode_hex key, decode_hex value with
-             | Some key, Some value -> if enabled then Some (key, value) else None
+             | Some key, Some value ->
+               if not (String.is_valid_utf_8 key && String.is_valid_utf_8 value) then
+                 raise (Invalid ("decoded header model field " ^ name ^ " is not valid UTF-8"));
+               if enabled then Some (key, value) else None
              | _ -> malformed name))
       bindings
     |> List.sort_uniq compare
   in
-  (* SMT string escaping beyond doubled quotes, and validation of the lifted
-     request against its obligation, remain separate semantic work. *)
+  (* Validation of the lifted request against its obligation remains separate
+     from faithful model-value decoding. *)
   { path = string "path"; method_ = string "method"; is_anon = boolean "is_anon";
     src_ip; host = string "host"; scheme = string "scheme"; sni = string "sni";
     headers }
@@ -131,9 +139,8 @@ let check ?(z3 = "z3") ?(timeout = default_timeout) ?emit_smt smtlib =
     in
     let decode parse text =
       try Ok (parse text) with Solver_protocol.Invalid reason ->
-        let excerpt = if String.length text <= 2048 then text
-          else String.sub text 0 2048 ^ " [truncated]" in
-        Error (reason ^ "; stdout: " ^ String.trim excerpt)
+        Error (Solver_process.diagnostic reason
+               ^ "; stdout: " ^ Solver_process.diagnostic text)
     in
     let ( let* ) = Result.bind in
     let result =
@@ -160,10 +167,12 @@ let check ?(z3 = "z3") ?(timeout = default_timeout) ?emit_smt smtlib =
     | Ok result -> result
     | Error reason -> Unknown reason
   with
-  | Solver_protocol.Invalid reason -> Unknown ("unsupported SMT query: " ^ reason)
-  | Sys_error reason -> Unknown reason
+  | Solver_protocol.Invalid reason ->
+    Unknown ("unsupported SMT query: " ^ Solver_process.diagnostic reason)
+  | Sys_error reason -> Unknown (Solver_process.diagnostic reason)
   | Unix.Unix_error (error, operation, argument) ->
-    Unknown (Printf.sprintf "%s(%s): %s" operation argument (Unix.error_message error))
+    Unknown (Solver_process.diagnostic
+               (Printf.sprintf "%s(%s): %s" operation argument (Unix.error_message error)))
 
 let string_of_result = function
   | Proved -> "PROVED (no violating request exists)"

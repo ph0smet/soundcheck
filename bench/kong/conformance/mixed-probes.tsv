@@ -1,0 +1,20 @@
+# name|scheme|method|path|host|sni|principal|headers|decision|route|service|status|model-class|flavors
+method-category|http|GET|/mixed-method|-|-|anonymous|-|allow|method-get|mixed-upstream|200|exact|both
+method-fallback|http|POST|/mixed-method|-|-|anonymous|-|allow|method-fallback|mixed-upstream|-|exact|both
+host-category|http|GET|/mixed-host|api.example|-|anonymous|-|allow|host-exact|mixed-upstream|200|exact|both
+host-fallback|http|GET|/mixed-host|other.example|-|anonymous|-|allow|host-fallback|mixed-upstream|200|exact|both
+header-category|http|GET|/mixed-header|-|-|anonymous|x-region:us|allow|header-region|mixed-upstream|200|exact|both
+header-fallback|http|GET|/mixed-header|-|-|anonymous|x-region:eu|allow|header-fallback|mixed-upstream|200|exact|both
+service-less|http|GET|/mixed-service-less|-|-|anonymous|-|deny|service-less|-|-|exact|both
+default-deny|http|GET|/not-configured|-|-|anonymous|-|deny|-|-|404|exact|both
+sni-exact|https|GET|/mixed-sni|api.example|api.example|anonymous|-|allow|sni-exact|mixed-upstream|200|exact|both
+sni-mismatch|https|GET|/mixed-sni|api.example|other.example|anonymous|-|deny|-|-|404|exact|both
+sni-http-bypass|http|GET|/mixed-sni|api.example|-|anonymous|-|deny|sni-exact|mixed-upstream|426|exact|both
+https-only|https|GET|/mixed-https|-|-|anonymous|-|allow|https-only|mixed-upstream|200|exact|both
+https-only-http-deny|http|GET|/mixed-https|-|-|anonymous|-|deny|https-only|mixed-upstream|426|exact|both
+# Traditional only treats a singleton ~* header value as regex. Compatible
+# transforms each mixed-list value separately. Keep both routing candidates.
+mixed-header-literal|http|GET|/header-regex-boundary|-|-|anonymous|x-mode:literal|allow|header-pattern|mixed-upstream|200|conservative|both
+mixed-header-pattern|http|GET|/header-regex-boundary|-|-|anonymous|x-mode:prod-us|allow|header-pattern-fallback|mixed-upstream|200|conservative|traditional
+mixed-header-pattern|http|GET|/header-regex-boundary|-|-|anonymous|x-mode:prod-us|allow|header-pattern|mixed-upstream|200|conservative|traditional_compatible
+mixed-header-negative|http|GET|/header-regex-boundary|-|-|anonymous|x-mode:other|allow|header-pattern-fallback|mixed-upstream|200|conservative|both

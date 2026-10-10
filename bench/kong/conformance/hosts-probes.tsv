@@ -1,0 +1,8 @@
+# name|scheme|method|path|host|sni|principal|headers|decision|route|service|status|model-class|flavors
+# Traditional's final plain-host matcher does not use its synthesized port;
+# compatible uses the fixture's explicitly advertised destination port 80.
+default-host-port|http|GET|/host-port-default|port.example|-|anonymous|-|deny|-|-|404|conservative|traditional
+default-host-port|http|GET|/host-port-default|port.example|-|anonymous|-|allow|default-port|hosts-upstream|200|conservative|traditional_compatible
+empty-wildcard-prefix|http|GET|/host-empty-prefix|example.|-|anonymous|-|allow|empty-prefix|hosts-upstream|200|conservative|both
+empty-wildcard-suffix|http|GET|/host-empty-suffix|.probe.example|-|anonymous|-|deny|-|-|404|conservative|traditional
+empty-wildcard-suffix|http|GET|/host-empty-suffix|.probe.example|-|anonymous|-|allow|empty-suffix|hosts-upstream|200|conservative|traditional_compatible

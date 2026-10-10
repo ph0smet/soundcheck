@@ -11,10 +11,9 @@
    z3 versions genuinely pick differently. Pinning the one our machine happened to
    produce made the corpus fail on a solver upgrade rather than on a real
    regression. So the diff masks [path] and [action], and the witness is instead
-   CHECKED against the reference semantics: it must really be allowed by the
-   policy, and really be in the property's forbidden class. That is a stronger
-   claim than string equality — it asserts the counterexample is genuine rather
-   than merely unchanged. Everything that IS deterministic (result, property,
+   CHECKED against the model: it must be possibly allowed by an eligible rule
+   and be in the property's forbidden class. This validates more than string
+   equality, but is not independent target replay. Everything deterministic (result, property,
    route, service, shadowed_route, schema_version) is still compared exactly. *)
 
 open Soundcheck_core
@@ -128,9 +127,9 @@ let request_of (ce : Report.counterexample) : Ir.request =
     scheme = ce.scheme;
     sni = ce.sni }
 
-(* Is the reported counterexample a genuine one? Checked with {!Ir.evaluate}, the
-   concrete reference semantics, which is independent of the SMT encoding — so
-   this also cross-checks encoder against evaluator. *)
+(* Cross-check the modeled witness using the concrete evaluator, including the
+   property's structural route filter. This shares the IR/lowering and does not
+   independently validate target semantics. *)
 let validate config validation report_clause (ce : Report.counterexample) : string option =
   match Parse.parse_string config with
   | Error e -> Some ("config parse error: " ^ e)
@@ -144,9 +143,9 @@ let validate config validation report_clause (ce : Report.counterexample) : stri
     match validation with
     | Structural -> None
     | Single prop ->
-      if Ir.evaluate policy req <> Ir.Allow then
+      if not (Ir.possibly_allows ~reach_via:prop.Property.reach_via policy req) then
         Some
-          (Printf.sprintf "witness %S is not actually allowed by the policy" ce.path)
+          (Printf.sprintf "witness %S is not possibly allowed via an eligible rule" ce.path)
       else check_class prop.Property.forbidden_when
     | Contract contract ->
       (match report_clause with
@@ -163,9 +162,9 @@ let validate config validation report_clause (ce : Report.counterexample) : stri
             | Some _ as error -> error
             | None ->
               match clause with
-              | Contract.Must_deny _ ->
-                if Ir.evaluate policy req = Ir.Allow then None
-                else Some "must-deny witness is not actually allowed"
+              | Contract.Must_deny safety ->
+                if Ir.possibly_allows ~reach_via:safety.reach_via policy req then None
+                else Some "must-deny witness is not possibly allowed via an eligible rule"
               | Contract.Must_allow _ ->
                 if not (Ir.definitely_allows policy req) then None
                 else Some "must-allow witness is actually definitely allowed")))

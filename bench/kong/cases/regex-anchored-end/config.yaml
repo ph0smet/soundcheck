@@ -1,12 +1,7 @@
-# Scenario: Kong leaves the END of a regex path unanchored, so ~/admin/\d+ also
-# serves /admin/1/secret. An explicit '$' pins the end, and the route then serves
-# ONLY exactly-matching paths.
-#
-# Here the open regex route sits alongside a guarded deeper route. With the '$'
-# the two languages are disjoint and nothing is shadowed. Drop the '$' and the
-# open route swallows /admin/1/secret, bypassing the key-auth written for it —
-# so this case fails if the trailing anchor is ignored.
-# Expected: PROVED (no-shadowed-routes).
+# Preserved historical anchor fixture. Kong's two routers differ on final-LF
+# handling for $, independently observed by the pinned conformance probe.
+# Profile v11 fails the whole config closed instead of asserting exactness.
+# Expected: UNKNOWN (unsupported trailing anchor).
 _format_version: "3.0"
 services:
   - name: admin-api

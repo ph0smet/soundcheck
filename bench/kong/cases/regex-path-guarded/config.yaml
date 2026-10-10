@@ -1,8 +1,6 @@
-# Scenario: the SAME regex admin route as regex-path-explicit, but with key-auth
-# attached. Guards against the lazy failure mode where every regex route is
-# reported violated because its language is over-approximated to "anything":
-# here the route is genuinely modelled and genuinely protected.
-# Expected: PROVED (no-anonymous-access).
+# Authentication does not license ignoring an unsupported route language.
+# This preserved fixture fails closed before verification in profile v11.
+# Expected: UNKNOWN (unsupported shorthand class), formerly PROVED.
 _format_version: "3.0"
 services:
   - name: admin-api

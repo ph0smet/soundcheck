@@ -1,0 +1,19 @@
+_format_version: "3.0"
+# The harness pins port_maps=80:8000,443:8443 for this matrix only. Traditional
+# synthesizes the scheme-default port during category detection but compares
+# plain route hosts with raw/no-port forms during the final route match.
+# Compatible uses explicit Host port or the advertised destination port. The
+# model deliberately leaves that target-port dimension unknown.
+services:
+  - name: hosts-upstream
+    url: http://127.0.0.1:8001/status
+    routes:
+      - name: default-port
+        paths: [/host-port-default]
+        hosts: ['port.example:80']
+      - name: empty-prefix
+        paths: [/host-empty-prefix]
+        hosts: ['example.*']
+      - name: empty-suffix
+        paths: [/host-empty-suffix]
+        hosts: ['*.probe.example']

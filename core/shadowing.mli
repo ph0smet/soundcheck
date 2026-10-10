@@ -6,19 +6,21 @@
     See {!Smt_encode.shadowing_query} for the emitted formula. *)
 
 type pair = {
-  shadowing : Ir.rule;  (** higher priority: the rule that actually serves *)
-  shadowed  : Ir.rule;  (** lower priority: the rule written to handle it *)
+  shadowing : Ir.rule;  (** possible permissive winner *)
+  shadowed  : Ir.rule;  (** route whose protection is not established *)
 }
 
 val strictly_weaker : Ir.condition -> Ir.condition -> bool
-(** Whether the first guard permits requests the second would stop. Conservative:
-    an unrecognised pairing is reported as not-weaker, which costs findings but
-    never soundness. *)
+(** Legacy syntactic constraint-subset heuristic, retained for compatibility.
+    [false] does NOT imply that no violating request exists. Do not use this
+    incomplete heuristic to exclude pairs from a sound shadowing check. *)
 
 val candidates : Ir.policy -> pair list
-(** Statically-pruned pairs worth querying: priority at least as high, strictly
-    weaker guard, and distinct routes (a route split across paths cannot shadow
-    itself). Match overlap is left to the solver.
+(** Statically-pruned pairs worth querying: priority at least as high and distinct
+    routes (a route split across paths cannot shadow itself). Guard pruning is
+    allowed only when a syntactic implication proves the pair cannot violate;
+    unrelated guards still require a query. Match overlap is left to the solver.
+    An incomplete match cannot prune a lower-priority possible winner.
 
     Equal priority counts, because it means the order is undetermined and the
     weaker rule may serve. Excluding ties would report [proved] for a config whose

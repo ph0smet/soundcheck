@@ -1,7 +1,7 @@
-# Scenario: a plugin IS attached to the admin route — but it's cors + rate-limiting,
-# not an authentication plugin. Looks configured; provides no auth. The classic
-# "looks-secured-but-isn't" trap.
-# Expected: VIOLATED — anonymous still reaches /admin via route "admin-route".
+# Unmodeled active HTTP plugins may affect routing, policy or targets.
+# Profile v11 rejects the whole config rather than assuming cors is harmless.
+# The known rate-limit plugin does not make the unknown plugin verifiable.
+# Expected: UNKNOWN (unsupported plugin); configuration bytes are otherwise retained.
 _format_version: "3.0"
 services:
   - name: admin-api

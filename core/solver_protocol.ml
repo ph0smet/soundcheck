@@ -8,6 +8,90 @@ exception Invalid of string
 
 let whitespace = function ' ' | '\t' | '\r' | '\n' -> true | _ -> false
 
+(* Encode bytes explicitly, including a backslash so literal text such as
+   [\u0041] never acquires Unicode-escape semantics inside the solver. *)
+let encode_string text =
+  let output = Buffer.create (String.length text + 2) in
+  Buffer.add_char output '"';
+  String.iter
+    (function
+      | '"' -> Buffer.add_string output "\"\""
+      | '\\' -> Buffer.add_string output "\\u{5c}"
+      | c when Char.code c < 32 || Char.code c >= 127 ->
+        Buffer.add_string output (Printf.sprintf "\\u{%x}" (Char.code c))
+      | c -> Buffer.add_char output c)
+    text;
+  Buffer.add_char output '"';
+  Buffer.contents output
+
+(* The Unicode Strings theory interprets only \uHHHH and \u{H...H} (one to
+   five hex digits, at most 0x2ffff); other backslashes are literal characters.
+   This runs AFTER lexical unquoting, only for returned model strings. Query
+   framing must not reinterpret or reject constants in an UNSAT obligation.
+
+   Soundcheck's current IR/regex operates on bytes, as does Z3 4.16.0's input
+   of unescaped literals (zstring.cpp). Thus codepoints 0..255 denote bytes,
+   not Latin-1 to be transcoded into UTF-8. Larger codepoints cannot be lifted
+   faithfully into that model. The resulting bytes must be valid UTF-8 for
+   the existing JSON result contract; surrogates and malformed byte sequences
+   must not become a supposedly concrete counterexample.
+
+   https://smt-lib.org/theories-UnicodeStrings.shtml
+   https://github.com/Z3Prover/z3/blob/z3-4.16.0/src/util/zstring.cpp *)
+let decode_string text =
+  let length = String.length text in
+  let output = Buffer.create length in
+  let hex = function
+    | '0' .. '9' as c -> Some (Char.code c - Char.code '0')
+    | 'a' .. 'f' as c -> Some (10 + Char.code c - Char.code 'a')
+    | 'A' .. 'F' as c -> Some (10 + Char.code c - Char.code 'A')
+    | _ -> None
+  in
+  let escape index =
+    if index + 2 >= length || text.[index] <> '\\' || text.[index + 1] <> 'u'
+    then None
+    else if text.[index + 2] = '{' then
+      let rec digits next count value =
+        if next >= length then None
+        else if text.[next] = '}' then
+          if count > 0 && value <= 0x2ffff then Some (value, next + 1) else None
+        else if count = 5 then None
+        else
+          match hex text.[next] with
+          | None -> None
+          | Some digit -> digits (next + 1) (count + 1) (value * 16 + digit)
+      in
+      digits (index + 3) 0 0
+    else
+      let rec digits next count value =
+        if count = 4 then Some (value, next)
+        else if next >= length then None
+        else
+          match hex text.[next] with
+          | None -> None
+          | Some digit -> digits (next + 1) (count + 1) (value * 16 + digit)
+      in
+      digits (index + 2) 0 0
+  in
+  let rec loop index =
+    if index < length then
+      match escape index with
+      | Some (codepoint, next) ->
+        if codepoint > 255 then
+          raise (Invalid
+                   (Printf.sprintf
+                      "SMT string codepoint U+%04X is outside the byte request representation"
+                      codepoint));
+        Buffer.add_char output (Char.chr codepoint);
+        loop next
+      | None -> Buffer.add_char output text.[index]; loop (index + 1)
+  in
+  loop 0;
+  let value = Buffer.contents output in
+  if not (String.is_valid_utf_8 value) then
+    raise (Invalid "decoded model string is not valid UTF-8");
+  value
+
 let parse text =
   let length = String.length text in
   let rec skip index =

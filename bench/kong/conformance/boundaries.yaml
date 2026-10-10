@@ -1,0 +1,19 @@
+_format_version: "3.0"
+services:
+  - name: boundary-upstream
+    url: http://127.0.0.1:8001/status
+    routes:
+      - name: unicode-one
+        paths: ['~/unicode-one/.$']
+      - name: unicode-two
+        paths: ['~/unicode-two/..$']
+      - name: unicode-word
+        paths: ['~/unicode-word/\w+$']
+      - name: unicode-digit
+        paths: ['~/unicode-digit/\d+$']
+      - name: unicode-negated
+        paths: ['~/unicode-negated/[^/]$']
+      - name: final-newline
+        paths: ['~/newline/a$']
+      - name: alternate
+        paths: ['~/alternate/a|/alternate/b$']
