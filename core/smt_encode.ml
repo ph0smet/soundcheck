@@ -1,13 +1,4 @@
-(* SMT-LIB2 string literals escape a double-quote by doubling it. Our inputs are
-   paths/methods, so this is sufficient. *)
-let smt_str s =
-  let b = Buffer.create (String.length s + 2) in
-  Buffer.add_char b '"';
-  String.iter
-    (fun c -> if c = '"' then Buffer.add_string b "\"\"" else Buffer.add_char b c)
-    s;
-  Buffer.add_char b '"';
-  Buffer.contents b
+let smt_str = Solver_protocol.encode_string
 
 let hex s =
   s |> String.to_seq

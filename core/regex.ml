@@ -250,14 +250,7 @@ let parse (src : string) : (parsed, string) result =
 
 (* --- SMT-LIB2 translation --- *)
 
-let smt_string s =
-  let b = Buffer.create (String.length s + 2) in
-  Buffer.add_char b '"';
-  String.iter
-    (fun c -> if c = '"' then Buffer.add_string b "\"\"" else Buffer.add_char b c)
-    s;
-  Buffer.add_char b '"';
-  Buffer.contents b
+let smt_string = Solver_protocol.encode_string
 
 (* [re.union] and [re.++] are binary-or-more in SMT-LIB, so a singleton list must
    collapse to the element itself and an empty one to the identity. *)

@@ -80,6 +80,27 @@ remaining decisions explicitly; do not mark the Goal complete on partial work.
   at `8cd7b80`. No remote writes.
 - Baseline toolchain: OCaml 5.5.0, Dune 3.24.0, Z3 4.16.0. Initial Docker
   daemon check hit the filesystem sandbox; requested scoped permission.
+- Docker 28.4.0 is available. The unchanged baseline passed build and forced
+  full regression tests (50 corpus cases). Plan checkpoint `4e53890` also
+  passed `scripts/check-commit.sh` in a clean throwaway worktree.
+- B2 implemented and independently reviewed: byte-faithful SMT escapes and
+  literal serialization, explicit failure for unrepresentable model values,
+  and UTF-8-safe solver diagnostics. Before fixes, handwritten escape tests
+  returned literal escape text, real Z3 changed literal `\\u0041` into `A`,
+  and invalid diagnostic bytes produced invalid JSON. Positive/negative tests
+  now cover every modeled string field, header bytes, single-pass escaping,
+  non-byte values, process failures, and truncation within multibyte text.
+  Source basis: SMT-LIB Unicode Strings theory and Z3 4.16.0 `zstring.cpp`;
+  direct Z3 queries confirm raw UTF-8 input is represented byte-by-byte.
+  The isolated patch passed full build/forced tests; integration validation
+  is running. Obligation-level witness validation remains I1, not closed by B2.
+- Independent B1 review caught a further scalar-resolution mismatch: the OCaml
+  YAML library and Kong's pinned LYAML disagree on octal-looking numbers and
+  single-letter booleans. The patch is being corrected before integration.
+- S1 source check found that Kong 3.9.3 migrates explicit format 1.1/2.1 paths
+  before routing. Therefore removing unconditional legacy regex inference must
+  retain version-specific migration, rather than changing legacy fixture
+  expectations. Modern format 3.0 uses only the explicit regex marker.
 
 ## Final review package (to fill as work lands)
 

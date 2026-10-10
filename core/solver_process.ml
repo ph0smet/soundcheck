@@ -18,11 +18,42 @@ exception Failed of string
 let output_limit = 4 * 1024 * 1024
 let close descriptor = try Unix.close descriptor with Unix.Unix_error _ -> ()
 
-let error_message = function
-  | Unix.Unix_error (error, operation, argument) ->
-    Printf.sprintf "%s(%s): %s" operation argument (Unix.error_message error)
-  | Sys_error reason -> reason
-  | exception_ -> Printexc.to_string exception_
+(* External output and OS errors are bytes, not guaranteed UTF-8. Normalize
+   only diagnostic text: successful stdout must reach the protocol decoder
+   unchanged. Bound excerpts without splitting a valid Unicode scalar, preserve
+   valid Unicode, and visibly escape each invalid byte instead of losing it. *)
+let diagnostic text =
+  let text = String.trim text in
+  let length = String.length text in
+  let limit = min length 2048 in
+  let output = Buffer.create limit in
+  let rec copy index =
+    if index >= limit then index
+    else
+      let decoded = String.get_utf_8_uchar text index in
+      if Uchar.utf_decode_is_valid decoded then
+        let width = Uchar.utf_decode_length decoded in
+        if index + width > limit then index
+        else begin
+          Buffer.add_substring output text index width;
+          copy (index + width)
+        end
+      else begin
+        Buffer.add_string output (Printf.sprintf "\\x%02x" (Char.code text.[index]));
+        copy (index + 1)
+      end
+  in
+  let consumed = copy 0 in
+  if consumed < length then Buffer.add_string output " [truncated]";
+  Buffer.contents output
+
+let error_message exception_ =
+  diagnostic
+    (match exception_ with
+     | Unix.Unix_error (error, operation, argument) ->
+       Printf.sprintf "%s(%s): %s" operation argument (Unix.error_message error)
+     | Sys_error reason -> reason
+     | exception_ -> Printexc.to_string exception_)
 
 let deadline timeout =
   if not (Float.is_finite timeout) || timeout <= 0. then
@@ -106,9 +137,7 @@ let cleanup process =
   end
 
 let excerpt buffer =
-  let text = Buffer.contents buffer |> String.trim in
-  if String.length text <= 2048 then text
-  else String.sub text 0 2048 ^ " [truncated]"
+  diagnostic (Buffer.contents buffer)
 
 let diagnostics process reason =
   let stdout = excerpt process.stdout and stderr = excerpt process.stderr in
@@ -180,5 +209,5 @@ let run ~deadline binary arguments =
         | (Unix.Unix_error _ | Sys_error _) as exception_ ->
           Error (diagnostics process (error_message exception_)))
   with
-  | Failed reason -> Error reason
+  | Failed reason -> Error (diagnostic reason)
   | (Unix.Unix_error _ | Sys_error _) as exception_ -> Error (error_message exception_)

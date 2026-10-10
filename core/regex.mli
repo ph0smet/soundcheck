@@ -43,8 +43,9 @@ val to_smt : t -> string
 (** SMT-LIB2 regular expression (sort [RegLan]), for use under [str.in_re]. *)
 
 val smt_string : string -> string
-(** A string as an SMT-LIB2 literal, quotes doubled. Exposed so callers emitting
-    [str.in_re] alongside a subject escape it exactly as {!to_smt} does. *)
+(** A byte-oriented string as an ASCII SMT-LIB2 literal. Quotes are doubled;
+    backslashes and nonprintable bytes use Unicode escapes. Exposed so callers
+    emitting [str.in_re] alongside a subject escape it exactly as {!to_smt} does. *)
 
 val matches_full : t -> string -> bool
 (** Concrete membership: does the {b whole} string belong to the language?
