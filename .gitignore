@@ -18,5 +18,8 @@ _opam/
 *~
 *.swp
 
+# start.sh runtime state (pids, logs)
+.run/
+
 # Local Claude settings
 .claude/settings.local.json
