@@ -82,6 +82,10 @@
  (libraries soundcheck_core soundcheck_kong))
 
 (test
+ (name parse_t)
+ (libraries soundcheck_core soundcheck_kong))
+
+(test
  (name kong_assurance_t)
  (libraries soundcheck_kong))
 

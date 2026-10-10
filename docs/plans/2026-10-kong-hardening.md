@@ -109,7 +109,11 @@ remaining decisions explicitly; do not mark the Goal complete on partial work.
   YAML library and Kong's pinned LYAML disagree on octal-looking numbers and
   single-letter booleans. Raw-style scalar decoding now follows LYAML 6.2.8 for
   the accepted forms and rejects ambiguous numeric forms. A second independent
-  review and focused parser/contract checks passed; integration is next.
+  review and focused parser/contract checks passed. Integration build, forced
+  full regressions (50 corpus cases), and whitespace checks passed. Duplicate
+  keys, malformed consumed structures, tags, aliases/merges, and extra documents
+  now reject consistently for config and frozen-contract readers. No public
+  schema or frozen contract changed; this is not full Kong schema validation.
 - S1 source check found that Kong 3.9.3 migrates explicit format 1.1/2.1 paths
   before routing. Therefore removing unconditional legacy regex inference must
   retain version-specific migration, rather than changing legacy fixture
@@ -133,6 +137,7 @@ remaining decisions explicitly; do not mark the Goal complete on partial work.
   than dropping all pairs of unnamed routes. Independent review, focused tests,
   and full forced regressions passed (50 corpus cases); no golden changed.
   Negative-position approximation is still S2, not closed by this checkpoint.
+  Checkpoint `084a886` passed clean-worktree build and forced full regressions.
 
 ## Final review package (to fill as work lands)
 

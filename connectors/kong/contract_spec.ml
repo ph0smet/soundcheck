@@ -88,7 +88,7 @@ let parse_source_ip_assumption fields =
        | Error _ as error -> error)
   | Some _ -> Error "contract.assumptions must be an object"
 
-let parse_value = function
+let parse_unique_value = function
   | `O fields ->
     (match
        allowed_fields "contract"
@@ -143,10 +143,15 @@ let parse_value = function
          | Ok kind -> Error (Printf.sprintf "unsupported contract kind %S" kind))
   | _ -> Error "contract artifact must be an object"
 
+let parse_value value =
+  match Parse.check_unique_fields "contract" value with
+  | Error _ as error -> error
+  | Ok () -> parse_unique_value value
+
 let parse_string source =
-  match Yaml.of_string source with
+  match Parse.yaml_value ~where:"contract" source with
   | Ok value -> parse_value value
-  | Error (`Msg message) -> Error ("contract YAML: " ^ message)
+  | Error _ as error -> error
 
 let read_file path =
   try
