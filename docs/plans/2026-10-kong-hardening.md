@@ -114,6 +114,7 @@ remaining decisions explicitly; do not mark the Goal complete on partial work.
   keys, malformed consumed structures, tags, aliases/merges, and extra documents
   now reject consistently for config and frozen-contract readers. No public
   schema or frozen contract changed; this is not full Kong schema validation.
+  Checkpoint `5ee1e02` passed clean-worktree build and forced full regressions.
 - S1 source check found that Kong 3.9.3 migrates explicit format 1.1/2.1 paths
   before routing. Therefore removing unconditional legacy regex inference must
   retain version-specific migration, rather than changing legacy fixture
@@ -139,7 +140,78 @@ remaining decisions explicitly; do not mark the Goal complete on partial work.
   Negative-position approximation is still S2, not closed by this checkpoint.
   Checkpoint `084a886` passed clean-worktree build and forced full regressions.
 
-## Final review package (to fill as work lands)
+## Integrated semantics and independent acceptance
+
+The support boundary is now profile **`kong-traditional-http-v11`**, targeting
+Kong OSS 3.9.3 and both router flavors. Report schema 9, profile schema 1,
+comparison schemas, and frozen-contract schemas/artifacts are unchanged.
+
+| Package | Integrated change and acceptance evidence |
+| --- | --- |
+| S1: parsing/migration | Modern `/a+b` stays literal; explicit 1.1/2.1 uses the pinned migration, including percent handling and the legacy final-LF classification. Baseline literal-plus tests failed; focused migration tests now pass. |
+| S1: regex | Strict escape/class/group/repetition parsing, anchor parity, typed class endpoints, checked limits, and syntax metadata. Shared connector rejects flavor-dependent languages and unsafe transformations. Initial 58 parser/boundary failures plus six class cases reproduced defects; fixed tests include 5,000 deterministic malformed inputs and independently specified real-Z3 membership expectations. Two independent parser reviews passed. |
+| S1: order | Retain only common criterion-count precedence, with detailed path order under identical non-path predicates. Regex pattern length is not a rank. Accepted regexes are non-suppressing may-matches because runtime failure is not modeled. Source-predicted reducer/category differences were reproduced against both pinned routers. |
+| S2: may/must | Allowance is a union of possible allowing winners, not deny-overrides. Guard failure cannot invoke an allowing default; incomplete matches cannot suppress/prune, incomplete guards cannot establish functionality, and shadowing negates a must-guard. An independent concrete refinement oracle checks 91,200 worlds (2,160 exact deterministic worlds) and detects four broken controls: deny-overrides (4,872), default fallthrough (660), incomplete suppressors (84), mixed key shapes (112). |
+| S2: connector | Remove disabled-service routes; use plugin subsystem activation; reject unknown active HTTP plugins, unresolved nested relationships and consumer/consumer-group plugins; weaken unknown allow lists without dropping their possible members. Conditional termination, anonymous fallback and rate-limit state cannot prove definite access. Focused public-verdict tests and independent review pass. |
+| S2: header/Host | Mixed `~*` header arrays differ by flavor; retain all possible matches. Effective default Host ports and empty wildcard matches reproduced false paired-contract proofs in the old lowering. Port-bearing hosts are unconstrained/incomplete; wildcard hosts use a possibly empty upper bound. Regression verdicts are conservative violations, never false proofs. |
+| I1: SAT validation | Validate inhabitance, consistency, safety, functionality, shadowing, exact-policy preflights and all four comparison obligations before verdicts or trace insertion. Lift by selected match/guard and structural rule filter; ambiguous service ownership is not invented. Initial tests failed 23 checks; 101 focused checks now pass, including real Z3 and frozen/manual MCP consistency. Independent code review found no blocker. |
+| G1: contract source | Read the exact immutable event base commit, or protected-default push commit; fail closed on unsupported contexts, malformed/missing Git objects, nonregular blobs and unsafe config paths. Candidate contract edits/deletion/symlinks cannot replace the base contract. 61 local Git cases pass, including real CLI weakening/repair and shallow-fetch controls; no network used by this test. |
+| G1: build trust | Trusted Action source owns helper/verifier. Reject preexisting workspace `_opam`; disable candidate autopinning and caches; select fresh switch explicitly. Metadata tests execute five guard cases. Smoke CI builds once and requires exit 3 for the negative case, so setup failure cannot masquerade as a successful rejection test. Independent review passed. |
+| D1: claims | README/AGENTS now distinguish model-relative results, conservative candidates, audit artifacts, and absent independent proof certificates. The Action's external approval/protection prerequisites and narrowed v11 boundary are explicit. No branding or connector-roadmap change. Independent review passed. |
+
+Ordering-only assurance findings may proceed to comparison's exactness check:
+complete predicates and identical observations, or a solver-proved absence of
+relevant overlap, are still required. Identical-effect ties can prove decision
+equivalence; unresolved route identity cannot prove the stronger modes. Other
+conservative/unsupported findings fail closed. This integration adjustment and
+the incomplete-match shadowing-prune safeguard were independently reviewed.
+
+### Reviewed expectation changes
+
+No config semantics or frozen contract was weakened to pass tests. Original
+corpus YAML is retained; only stale explanatory comments changed.
+
+- All 50 expected reports carry profile v11.
+- Six formerly accepted regex fixtures now expect unknown: final `$`, shorthand
+  classes, or migrated dot syntax differ across target flavors. The existing
+  backreference rejection remains unknown with updated guidance.
+- `host-scoped-ranking` becomes a conservative violation through `admin-narrow`:
+  its guarded regex is no longer assumed to suppress reliably. This is an
+  upper-bound candidate, not a claim that this simple regex fails at runtime.
+- `host-scoped-suppressor` retains its violating route and gains uncertainty
+  findings. Equal-order shadowing gains the order finding without changing verdict.
+- General rate-limit cases keep structural coverage verdicts while reporting
+  that runtime quota cannot guarantee functionality.
+- `wrong-plugin` becomes unknown/unsupported because an unmodeled active plugin
+  cannot safely be assumed to alter only an authorization guard.
+- Generic regex/SMT agreement now accepts the empty wildcard-host suffix in its
+  shared upper bound; target observations are checked separately. Header ranking
+  asserts retained alternatives rather than pretending both routers have one
+  total order. Comparison tests preserve their semantic expectations; rejection
+  reasons reflect the earlier, stricter boundary.
+
+The updated 50-case corpus passes. Full final integration, expanded real-Kong
+acceptance, and the next clean checkpoint are recorded below when completed.
+
+### Primary semantic sources
+
+Kong source is pinned to tag 3.9.3, commit
+`a643428bc4d5397152164a63bcc0f8bc65fce69d`:
+
+- [`traditional.lua`](https://github.com/Kong/kong/blob/a643428bc4d5397152164a63bcc0f8bc65fce69d/kong/router/traditional.lua): category sorting, request-global reduction, header arrays, synthesized Host ports, wildcard matching, PCRE execution.
+- [`transform.lua`](https://github.com/Kong/kong/blob/a643428bc4d5397152164a63bcc0f8bc65fce69d/kong/router/transform.lua): compatible priority packing, wildcard prefix/suffix predicates, per-value header regexes, regex source rewriting.
+- [`migrate_path_280_300.lua`](https://github.com/Kong/kong/blob/a643428bc4d5397152164a63bcc0f8bc65fce69d/kong/db/migrations/migrate_path_280_300.lua): legacy literal/regex classification and percent migration.
+- [`plugins_iterator.lua`](https://github.com/Kong/kong/blob/a643428bc4d5397152164a63bcc0f8bc65fce69d/kong/runloop/plugins_iterator.lua), entity schemas and declarative lowering: plugin subsystem activation, disabled services, scoped/nested relationships and URL shorthand.
+- PCRE2 10.44 and the pinned ATC router (`ffd11db657115769bf94f0c4f915f98300bc26b6`, Rust regex 1.11.1): escape/Unicode/anchor differences and compile limits. Syntax restrictions do not prove absence of runtime failures.
+- LYAML 6.2.8 and LuaSocket 3.0-rc1: scalar resolution and service URL parsing; SMT-LIB Unicode Strings and Z3 4.16.0 source: solver literal/model boundaries.
+
+An initial independent 26-observation target experiment confirmed Unicode dot,
+shorthand and negated-class differences, `$` before a final LF, top-level
+alternation anchoring, reducer selection, and wildcard-host/path category order.
+These observations are not counted as exact model agreement merely because the
+updated shared profile rejects or conservatively bounds them.
+
+## Final review package (integration checks pending)
 
 - Ordered local commits and combined diff.
 - Package-by-package acceptance evidence and independent review findings.

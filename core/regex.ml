@@ -27,7 +27,7 @@
 
 type t =
   | Empty                                (* matches only the empty string *)
-  | Any                                  (* [.] *)
+  | Any                                  (* any byte, including newline *)
   | Lit of string                        (* a literal run of characters *)
   | Class of bool * (char * char) list   (* negated?, ranges — [a-z0-9], [^/] *)
   | Concat of t list
@@ -43,21 +43,56 @@ type t =
    into the AST, which stays a pure language. *)
 type parsed = { re : t; anchored_end : bool }
 
+(* Syntax that cannot be recovered from the language AST. Connectors may need
+   a narrower target-compatible subset than this byte-oriented parser. *)
+type syntax = {
+  shorthand_classes : char list;
+  named_captures : string list;
+  angle_named_captures : int;
+  max_group_depth : int;
+  expansion_cost : int;
+}
+
 exception Unsupported of string
 
 let unsupported fmt = Printf.ksprintf (fun s -> raise (Unsupported s)) fmt
 
+(* A saturating syntax cost, not a target-specific compilation-size estimate.
+   Carry it through parsing so groups erased from [t], including their names,
+   remain counted inside numeric repetitions. *)
+let add_cost a b = if a > max_int - b then max_int else a + b
+let multiply_cost a b =
+  if a = 0 || b = 0 then 0 else if a > max_int / b then max_int else a * b
+
+let measured_leaf re =
+  let cost = match re with
+    | Empty | Any -> 1
+    | Lit s -> max 1 (String.length s)
+    | Class (_, ranges) -> add_cost 1 (multiply_cost 2 (List.length ranges))
+    | _ -> unsupported "internal non-leaf regex atom"
+  in
+  (re, cost)
+
+let measured_sequence constructor values =
+  (constructor (List.map fst values),
+   List.fold_left (fun total (_, cost) -> add_cost total cost) 1 values)
+
 (* --- parser (recursive descent) --- *)
 
-let parse_exn (input : string) : parsed =
+let parse_exn (input : string) : parsed * syntax =
   (* Strip anchors up front, so the scanner below sees a pure pattern. A leading
      [^] is redundant (the caller already anchors the start) and a trailing
      unescaped [$] becomes the [anchored_end] flag. *)
   let input = if String.length input > 0 && input.[0] = '^'
               then String.sub input 1 (String.length input - 1) else input in
   let ln = String.length input in
+  let rec preceding_backslashes i count =
+    if i >= 0 && input.[i] = '\\' then preceding_backslashes (i - 1) (count + 1)
+    else count
+  in
   let src, anchored_end =
-    if ln > 0 && input.[ln - 1] = '$' && not (ln > 1 && input.[ln - 2] = '\\')
+    if ln > 0 && input.[ln - 1] = '$'
+       && preceding_backslashes (ln - 2) 0 mod 2 = 0
     then (String.sub input 0 (ln - 1), true)
     else (input, false)
   in
@@ -66,12 +101,19 @@ let parse_exn (input : string) : parsed =
   let peek () = if !pos < n then Some src.[!pos] else None in
   let eat () = let c = src.[!pos] in incr pos; c in
   let accept c = if !pos < n && src.[!pos] = c then (incr pos; true) else false in
+  let shorthand_classes = ref [] in
+  let named_captures = ref [] in
+  let angle_named_captures = ref 0 in
+  let depth = ref 0 in
+  let max_group_depth = ref 0 in
+  let is_digit c = c >= '0' && c <= '9' in
+  let is_alpha c = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') in
 
   let shorthand = function
     | 'd' -> Some [ ('0', '9') ]
     | 'w' -> Some [ ('a', 'z'); ('A', 'Z'); ('0', '9'); ('_', '_') ]
-    | 's' -> Some [ (' ', ' '); ('\t', '\t'); ('\n', '\n'); ('\r', '\r');
-                    ('\012', '\012') ]
+    | 's' -> Some [ (' ', ' '); ('\t', '\t'); ('\n', '\n'); ('\011', '\011');
+                    ('\012', '\012'); ('\r', '\r') ]
     | _ -> None
   in
   let negated_shorthand c =
@@ -80,54 +122,114 @@ let parse_exn (input : string) : parsed =
     | _ -> None
   in
 
+  let hex_digit = function
+    | '0' .. '9' as c -> Some (Char.code c - Char.code '0')
+    | 'a' .. 'f' as c -> Some (Char.code c - Char.code 'a' + 10)
+    | 'A' .. 'F' as c -> Some (Char.code c - Char.code 'A' + 10)
+    | _ -> None
+  in
+  let parse_hex () =
+    let digit () =
+      match peek () with
+      | Some c -> (match hex_digit c with
+          | Some value -> incr pos; value
+          | None -> unsupported "expected a hexadecimal digit in \\x escape")
+      | None -> unsupported "incomplete \\x escape"
+    in
+    if accept '{' then begin
+      let lo = digit () in
+      let value = if accept '}' then lo else begin
+        let value = (lo * 16) + digit () in
+        if not (accept '}') then
+          unsupported "braced \\x escape must contain one or two hex digits (one byte)";
+        value
+      end in
+      Char.chr value
+    end else
+      let hi = digit () in
+      let lo = digit () in
+      Char.chr ((hi * 16) + lo)
+  in
   let parse_escape () =
     if !pos >= n then unsupported "trailing backslash";
     let c = eat () in
     match shorthand c with
-    | Some rs -> Class (false, rs)
+    | Some rs ->
+      shorthand_classes := c :: !shorthand_classes;
+      Class (false, rs)
     | None -> (
       match negated_shorthand c with
-      | Some rs -> Class (true, rs)
-      | None ->
-        if c >= '1' && c <= '9' then
+      | Some rs ->
+        shorthand_classes := c :: !shorthand_classes;
+        Class (true, rs)
+      | None -> (match c with
+        | 'a' -> Lit "\007"
+        | 'f' -> Lit "\012"
+        | 'n' -> Lit "\n"
+        | 'r' -> Lit "\r"
+        | 't' -> Lit "\t"
+        | 'x' -> Lit (String.make 1 (parse_hex ()))
+        | '1' .. '9' ->
           unsupported "backreference \\%c is not a regular language" c
-        else if String.contains "bBAzZG" c then
+        | ('b' | 'B' | 'A' | 'z' | 'Z' | 'G' | '<' | '>') ->
           unsupported "zero-width assertion \\%c" c
-        else Lit (String.make 1 c))
+        | _ when c >= ' ' && c <= '~' && not (is_alpha c || is_digit c) ->
+          Lit (String.make 1 c)
+        | _ -> unsupported "unsupported escaped byte %C" c))
   in
 
   let parse_class () =
     let negated = accept '^' in
     let ranges = ref [] in
     let first = ref true in
+    let class_item () =
+      (* Rust gives these pairs set-operation semantics whereas PCRE does not.
+         Likewise '[' introduces nested/POSIX syntax, not a literal here. *)
+      if !pos + 1 < n && src.[!pos] = src.[!pos + 1]
+         && String.contains "&-~" src.[!pos] then
+        unsupported "character-class set operations are unsupported";
+      if accept '\\' then
+        match parse_escape () with
+        | Lit s -> `Char s.[0]
+        | Class (false, rs) -> `Ranges rs
+        | Class (true, _) -> unsupported "negated shorthand inside a character class"
+        | _ -> unsupported "unsupported character-class atom"
+      else if accept '[' then
+        unsupported "nested and POSIX character classes are unsupported"
+      else if !pos >= n then unsupported "unterminated character class"
+      else `Char (eat ())
+    in
+    let range_follows () =
+      (* Check BEFORE consuming a range separator: otherwise the first '-' of
+         '--' can disappear into a PCRE range, hiding Rust's set difference. *)
+      if !pos + 1 < n && src.[!pos] = '-' && src.[!pos + 1] = '-' then
+        unsupported "character-class set operations are unsupported";
+      !pos + 1 < n && src.[!pos] = '-' && src.[!pos + 1] <> ']'
+    in
     let rec go () =
       if !pos >= n then unsupported "unterminated character class";
       if src.[!pos] = ']' && not !first then incr pos
       else begin
+        let raw_initial_closing = !first && src.[!pos] = ']' in
         first := false;
-        let item =
-          if accept '\\' then begin
-            if !pos >= n then unsupported "trailing backslash in character class";
-            let c = eat () in
-            match shorthand c with
-            | Some rs -> `Ranges rs
-            | None -> (
-              match negated_shorthand c with
-              | Some _ -> unsupported "negated shorthand \\%c inside a class" c
-              | None -> `Char c)
-          end
-          else `Char (eat ())
-        in
+        let item = class_item () in
         (match item with
-         | `Ranges rs -> ranges := List.rev_append rs !ranges
+         | `Ranges rs ->
+           if range_follows () then
+             unsupported "character-class range endpoints must be single characters";
+           ranges := List.rev_append rs !ranges
          | `Char lo ->
-           if !pos + 1 < n && src.[!pos] = '-' && src.[!pos + 1] <> ']' then begin
+           if range_follows () then begin
+             if raw_initial_closing then
+               unsupported "a range starting with ] requires an escaped endpoint \\]";
              incr pos;
-             let hi = if accept '\\' then
-                        (if !pos >= n then unsupported "trailing backslash" else eat ())
-                      else eat () in
+             let hi = match class_item () with
+               | `Char c -> c
+               | `Ranges _ ->
+                 unsupported "character-class range endpoints must be single characters"
+             in
              if Char.code hi < Char.code lo then
-               unsupported "reversed range %c-%c in character class" lo hi;
+               unsupported "reversed range %C-%C in character class" lo hi;
              ranges := (lo, hi) :: !ranges
            end
            else ranges := (lo, lo) :: !ranges);
@@ -138,15 +240,30 @@ let parse_exn (input : string) : parsed =
     Class (negated, List.rev !ranges)
   in
 
-  let skip_group_name () =
+  let parse_group_name () =
+    let start = !pos in
     while !pos < n && src.[!pos] <> '>' do incr pos done;
-    if not (accept '>') then unsupported "unterminated group name"
+    let name = String.sub src start (!pos - start) in
+    if not (accept '>') then unsupported "unterminated group name";
+    if String.length name = 0 || String.length name > 128
+       || not (is_alpha name.[0] || name.[0] = '_')
+       || not (String.for_all (fun c -> is_alpha c || is_digit c || c = '_') name)
+    then unsupported "capture name must be an ASCII identifier of 1 to 128 characters";
+    if List.mem name !named_captures then unsupported "duplicate capture name %S" name;
+    named_captures := name :: !named_captures;
+    String.length name
   in
 
-  let rec parse_alt () =
+  let rec parse_alt ~top_level =
     let branches = ref [ parse_concat () ] in
-    while accept '|' do branches := parse_concat () :: !branches done;
-    match !branches with [ one ] -> one | many -> Alt (List.rev many)
+    while accept '|' do
+      if top_level then
+        unsupported "top-level alternation requires an explicit enclosing group";
+      branches := parse_concat () :: !branches
+    done;
+    match !branches with
+    | [ one ] -> one
+    | many -> measured_sequence (fun values -> Alt values) (List.rev many)
 
   and parse_concat () =
     let items = ref [] in
@@ -156,20 +273,23 @@ let parse_exn (input : string) : parsed =
       | Some _ -> items := parse_repeat () :: !items; go ()
     in
     go ();
-    match !items with [] -> Empty | [ one ] -> one | many -> Concat (List.rev many)
+    match !items with
+    | [] -> measured_leaf Empty
+    | [ one ] -> one
+    | many -> measured_sequence (fun values -> Concat values) (List.rev many)
 
   and parse_repeat () =
-    let atom = parse_atom () in
+    let atom, cost = parse_atom () in
     let quantified =
       match peek () with
-      | Some '*' -> incr pos; Some (Star atom)
-      | Some '+' -> incr pos; Some (Plus atom)
-      | Some '?' -> incr pos; Some (Opt atom)
-      | Some '{' -> parse_brace atom
+      | Some '*' -> incr pos; Some (Star atom, add_cost 1 cost)
+      | Some '+' -> incr pos; Some (Plus atom, add_cost 1 cost)
+      | Some '?' -> incr pos; Some (Opt atom, add_cost 1 cost)
+      | Some '{' -> Some (parse_brace atom cost)
       | _ -> None
     in
     match quantified with
-    | None -> atom
+    | None -> (atom, cost)
     | Some q ->
       (* A following [?] is LAZY: same language, so accept it. A following [+] is
          POSSESSIVE: different language, so refuse. *)
@@ -178,41 +298,43 @@ let parse_exn (input : string) : parsed =
         unsupported "possessive quantifier changes the accepted language"
       else q
 
-  and parse_brace atom =
-    (* Only a well-formed {n}, {n,} or {n,m} is a quantifier; anything else is a
-       literal brace, as PCRE treats it. *)
-    let save = !pos in
+  and parse_brace atom cost =
+    (* PCRE's literal-brace fallback is not shared by other engines. Reject it.
+       The 65535 limit is PCRE2's numeric repeat limit, not an OCaml int limit. *)
     incr pos;
     let digits () =
-      let b = Buffer.create 4 in
-      while !pos < n && src.[!pos] >= '0' && src.[!pos] <= '9' do
-        Buffer.add_char b (eat ())
+      let start = !pos in
+      while !pos < n && is_digit src.[!pos] do
+        incr pos
       done;
-      Buffer.contents b
+      if start = !pos then None
+      else match int_of_string_opt (String.sub src start (!pos - start)) with
+        | Some count when count <= 65535 -> Some count
+        | _ -> unsupported "repetition count exceeds the supported maximum of 65535"
     in
-    let lo = digits () in
-    if lo = "" then (pos := save; None)
-    else
-      let hi =
-        if accept ',' then
-          let h = digits () in
-          if h = "" then Some None else Some (Some (int_of_string h))
-        else Some (Some (int_of_string lo))
-      in
-      match hi with
-      | Some h when accept '}' ->
-        let lo = int_of_string lo in
-        (match h with
-         | Some hi when hi < lo -> unsupported "reversed repetition {%d,%d}" lo hi
-         | _ -> ());
-        Some (Repeat (atom, lo, h))
-      | _ -> pos := save; None
+    let lo = match digits () with
+      | Some count -> count
+      | None -> unsupported "repetition requires a decimal lower bound"
+    in
+    let hi = if accept ',' then digits () else Some lo in
+    if not (accept '}') then unsupported "malformed or unterminated repetition";
+    (match hi with
+     | Some hi when hi < lo -> unsupported "reversed repetition {%d,%d}" lo hi
+     | _ -> ());
+    let copies = match hi with Some hi -> max 1 hi | None -> lo + 1 in
+    (Repeat (atom, lo, hi), add_cost 1 (multiply_cost copies cost))
 
   and parse_atom () =
     match peek () with
-    | None -> Empty
+    | None -> measured_leaf Empty
     | Some '(' ->
       incr pos;
+      incr depth;
+      max_group_depth := max !max_group_depth !depth;
+      (* Keep recursion bounded independently of OCaml's available stack. *)
+      if !depth > 250 then unsupported "group nesting exceeds the supported maximum of 250";
+      let name_cost = ref 0 in
+      let read_name () = name_cost := parse_group_name () in
       if accept '?' then begin
         match peek () with
         | Some ':' -> incr pos
@@ -220,33 +342,45 @@ let parse_exn (input : string) : parsed =
         | Some '=' -> unsupported "lookahead (?=...)"
         | Some '!' -> unsupported "lookahead (?!...)"
         | Some 'P' -> incr pos;
-          if accept '<' then skip_group_name () else unsupported "unsupported (?P group"
+          if accept '<' then read_name () else unsupported "unsupported (?P group"
         | Some '<' -> incr pos;
           (match peek () with
            | Some '=' -> unsupported "lookbehind (?<=...)"
            | Some '!' -> unsupported "lookbehind (?<!...)"
-           | _ -> skip_group_name ())
+           | _ -> incr angle_named_captures; read_name ())
         | _ -> unsupported "unsupported group modifier"
       end;
-      let inner = parse_alt () in
+      let inner, cost = parse_alt ~top_level:false in
       if not (accept ')') then unsupported "unbalanced (";
-      inner
-    | Some '[' -> incr pos; parse_class ()
-    | Some '.' -> incr pos; Any
-    | Some '\\' -> incr pos; parse_escape ()
+      decr depth;
+      (inner, add_cost 1 (add_cost !name_cost cost))
+    | Some '[' -> incr pos; measured_leaf (parse_class ())
+    | Some '.' -> incr pos; measured_leaf (Class (true, [ ('\n', '\n') ]))
+    | Some '\\' -> incr pos; measured_leaf (parse_escape ())
     | Some '^' -> unsupported "^ anchor in the middle of a pattern"
     | Some '$' -> unsupported "$ anchor in the middle of a pattern"
     | Some ')' -> unsupported "unbalanced )"
-    | Some ('*' | '+') -> unsupported "quantifier with nothing to repeat"
-    | Some _ -> Lit (String.make 1 (eat ()))
+    | Some ('*' | '+' | '?' | '{') -> unsupported "quantifier with nothing to repeat"
+    | Some '}' -> unsupported "unescaped closing repetition brace"
+    | Some _ -> measured_leaf (Lit (String.make 1 (eat ())))
   in
 
-  let re = parse_alt () in
+  let re, expansion_cost = parse_alt ~top_level:true in
   if !pos <> n then unsupported "unexpected %C" src.[!pos];
-  { re; anchored_end }
+  ({ re; anchored_end },
+   { shorthand_classes = List.rev !shorthand_classes;
+     named_captures = List.rev !named_captures;
+     angle_named_captures = !angle_named_captures;
+     max_group_depth = !max_group_depth;
+     expansion_cost })
+
+let parse_with_syntax src =
+  try Ok (parse_exn src) with
+  | Unsupported why -> Error why
+  | Stack_overflow -> Error "regular expression exceeds parser resource limits"
 
 let parse (src : string) : (parsed, string) result =
-  try Ok (parse_exn src) with Unsupported why -> Error why
+  Result.map fst (parse_with_syntax src)
 
 (* --- SMT-LIB2 translation --- *)
 

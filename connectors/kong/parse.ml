@@ -286,6 +286,13 @@ let plugin_at where value =
       (match value with `String name -> name | _ -> assert false)
   in
   field_at ~nullable:false bool_at where "enabled" fields;
+  field_at ~nullable:false
+    (array_at (fun where value ->
+       string_at where value;
+       match value with
+       | `String ("http" | "https" | "grpc" | "grpcs" | "tcp" | "tls" | "udp" | "tls_passthrough") -> ()
+       | _ -> invalid where "a known Kong protocol"))
+    where "protocols" fields;
   let config_at where value =
     let fields = object_at where value in
     (match name with
@@ -319,6 +326,7 @@ let route_at where value =
 
 let service_at where value =
   let fields = object_at where value in
+  field_at ~nullable:false bool_at where "enabled" fields;
   List.iter (fun key -> field_at string_at where key fields)
     [ "name"; "path" ];
   List.iter (fun key -> field_at ~nullable:false string_at where key fields)
@@ -340,6 +348,14 @@ let check_structure value =
     field_at (array_at service_at) "config" "services" fields;
     field_at (array_at route_at) "config" "routes" fields;
     field_at (array_at plugin_at) "config" "plugins" fields;
+    List.iter
+      (fun collection ->
+        field_at
+          (array_at (fun where value ->
+             let fields = object_at where value in
+             field_at (array_at plugin_at) where "plugins" fields))
+          "config" collection fields)
+      [ "consumers"; "consumer_groups" ];
     Ok ()
   with Invalid_config message -> Error message
 
@@ -376,6 +392,15 @@ let plugin_of x =
     in
     Some
       ({ name; enabled = enabled_of x;
+         protocols =
+           (match member "protocols" x with
+            | None -> [ "http"; "https" ]
+            | value -> string_list value);
+         has_relationships =
+           List.exists
+             (fun key ->
+               match member key x with None | Some `Null -> false | Some _ -> true)
+             [ "route"; "service"; "consumer"; "consumer_group" ];
          allow = list_in "allow"; deny = list_in "deny";
          trigger =
            (match cfg with
@@ -467,6 +492,7 @@ let route_of (v : Yaml.value) : Ast.route =
        | some -> string_list some);
     plugins = plugins_of (member "plugins" v);
     hosts = string_list (member "hosts" v);
+    hosts_present = (match member "hosts" v with Some (`A _) -> true | _ -> false);
     snis = string_list (member "snis" v);
     headers = headers_of (member "headers" v);
     has_sources_or_destinations =
@@ -482,6 +508,7 @@ let route_of (v : Yaml.value) : Ast.route =
 let service_of (v : Yaml.value) : Ast.service =
   {
     name = name_of v ~default:"<unnamed-service>";
+    enabled = enabled_of v;
     url = optional_string_field "url" v;
     protocol = optional_string_field "protocol" v;
     host = optional_string_field "host" v;
@@ -497,15 +524,46 @@ let top_level_route_of value : Ast.top_level_route =
   { route = route_of value; service; unsupported_reference }
 
 let config_of (v : Yaml.value) : Ast.config =
+  let migrate_route (route : Ast.route) =
+    match member "_format_version" v with
+    | Some (`String ("1.1" | "2.1")) ->
+      { route with paths = List.map Path_normalization.migrate_legacy_path route.paths }
+    | _ -> route
+  in
   let global_plugins, scoped_plugins = root_plugins_of (member "plugins" v) in
+  (* Declarative nesting is a foreign-key scope, not an unrelated opaque entity.
+     Consumers/credentials themselves remain outside the identity abstraction,
+     but nested plugins must reach the existing fail-closed scope boundary. *)
+  let consumer_plugins =
+    [ "consumers"; "consumer_groups" ]
+    |> List.concat_map (fun collection ->
+         match member collection v with
+         | Some (`A values) ->
+           List.concat_map (fun value -> plugins_of (member "plugins" value)) values
+         | _ -> [])
+    |> List.map (fun plugin : Ast.scoped_plugin ->
+         { plugin; service = None; route = None; consumer_scoped = true;
+           unsupported_reference = false })
+  in
+  let scoped_plugins = scoped_plugins @ consumer_plugins in
   let top_level_routes =
     match member "routes" v with
-    | Some (`A values) -> List.map top_level_route_of values
+    | Some (`A values) ->
+      List.map
+        (fun value ->
+          let top = top_level_route_of value in
+          { top with route = migrate_route top.route })
+        values
     | _ -> []
   in
   let services =
     match member "services" v with
-    | Some (`A values) -> List.map service_of values
+    | Some (`A values) ->
+      List.map
+        (fun value ->
+          let service = service_of value in
+          { service with routes = List.map migrate_route service.routes })
+        values
     | _ -> []
   in
   let services =

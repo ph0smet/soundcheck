@@ -27,7 +27,7 @@ let () =
       "VACUOUS  admin-api-not-reachable\n\
       \         The admin API must not be reachable, unauthenticated, from outside 0.0.0.0/0\n\
       \         The property's forbidden request class is empty; no config was verified.\n\
-      \         Assurance: kong-traditional-http-v10 (within_profile)"
+      \         Assurance: kong-traditional-http-v11 (within_profile)"
     in
     let got_human = Report.to_human report in
     if got_human <> expected_human then
@@ -35,7 +35,7 @@ let () =
         (Printf.sprintf "unexpected human report\nexpected: %s\ngot:      %s"
            expected_human got_human);
     let expected =
-      {|{"result":"vacuous","schema_version":9,"property":"admin-api-not-reachable","assurance":{"profile":"kong-traditional-http-v10","status":"within_profile","findings":[]},"frozen_spec":null,"clause":null,"counterexample":null}|}
+      {|{"result":"vacuous","schema_version":9,"property":"admin-api-not-reachable","assurance":{"profile":"kong-traditional-http-v11","status":"within_profile","findings":[]},"frozen_spec":null,"clause":null,"counterexample":null}|}
     in
     let got = Report.to_json report in
     if got <> expected then

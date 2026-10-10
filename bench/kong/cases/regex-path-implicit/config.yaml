@@ -1,8 +1,7 @@
-# Scenario: a pre-3.0 config, where the regex marker was implicit — Kong compiled
-# a path as a regex if it contained characters outside the plain-path set. No
-# leading '~' here, but the metacharacters make it a regex all the same, and it
-# is inside the supported fragment so it gets a verdict.
-# Expected: VIOLATED (no-anonymous-access).
+# Legacy format 2.1 migrates this implicit regex to ~/admin(/.*)?.
+# Migration is modeled, but dot has differing byte/Unicode behavior across
+# the two supported router flavors.
+# Expected: UNKNOWN (unsupported wildcard language).
 _format_version: "2.1"
 services:
   - name: admin-api

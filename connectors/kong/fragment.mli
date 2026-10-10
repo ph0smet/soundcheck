@@ -1,11 +1,9 @@
 (** Decidability boundary: reject Kong configs the encoder cannot model soundly.
 
-    Literal-prefix and regex paths are both modelled, so what remains outside the
-    fragment is exactly what {!Regex.parse} refuses — constructs that are not
-    regular, or whose language we decline to guess. Root-level plugins carrying
-    consumer relationships or non-string foreign keys are also rejected. This
-    includes non-string service references on top-level routes. Such a config
-    reports [unknown] rather than being approximated. *)
+    Regex support is the bounded common language accepted by
+    {!Regex_boundary.parse}, not every regular expression. Unmodeled plugins,
+    unresolved nested/consumer relationships, and non-string foreign keys also
+    fail closed. Such a config reports [unknown] rather than being approximated. *)
 
 type finding = {
   service : string;
@@ -15,12 +13,11 @@ type finding = {
 }
 
 val is_regex_path : string -> bool
-(** Whether Kong would compile this path as a regex: a leading ['~'] (Kong 3.x) or,
-    for pre-3.0 configs where the marker was implicit, any character outside
-    Kong's plain-path set. *)
+(** Whether an already migrated path has the explicit Kong 3.x ['~'] marker.
+    {!Parse} performs the version-specific 1.1/2.1 migration first. *)
 
 val pattern_of : string -> string
-(** The path with Kong's leading ['~'] marker removed, ready for {!Regex.parse}. *)
+(** The path with Kong's leading ['~'] marker removed. *)
 
 val findings : Ast.config -> finding list
 (** Every path outside the supported fragment, in service-then-route order. *)

@@ -5,14 +5,15 @@
 Soundcheck takes a policy artifact, such as an API-gateway config, and proves security
 invariants over it. It returns a solver-backed verdict that no violating request exists
 within the modeled semantics, or a concrete counterexample expressed in the config's
-own vocabulary.
+own vocabulary. Counterexamples are checked against the modeled obligation;
+under conservative approximations they are candidates for investigation, not
+guaranteed reproductions against a running gateway.
 
 ```
 $ soundcheck verify kong.yaml
 VIOLATED no-anonymous-access
-         anonymous request GET /admin is ALLOWED via route "admin-route"
-         (service "admin-api") — no authentication plugin is attached at route,
-         service, or global scope.
+         Conservative model-level candidate, not a guaranteed target replay:
+         anonymous request GET /admin may be ALLOWED via route "admin-route" ...
 $ echo $?
 3
 ```
@@ -28,19 +29,21 @@ AI systems increasingly write the configuration that decides who may reach what:
 routes, RBAC bindings, IAM policies. These artifacts are security-critical, easy to get
 subtly wrong, and reviewed by eye if they are reviewed at all.
 
-Testing a policy samples a handful of requests from an unbounded space. That is fine for
-catching typos and useless for establishing absence. The interesting property of a policy
+Testing a policy samples requests from an unbounded space. It can find semantic
+mistakes and validate model assumptions, but finite samples alone do not establish
+absence of violations over that space. The interesting property of a policy
 is universally quantified: *for all requests, X is denied.* You cannot sample your way to
 that.
 
 Soundcheck's bet is that a valuable subset of this problem can be modeled in decidable
-logic and closed with automated reasoning. Declarative policy reduces to a finite decision
-function, `(principal, action, resource, context) → Allow | Deny`. Results distinguish
+logic and closed with automated reasoning. A finite declarative policy defines a decision
+function over potentially unbounded requests, `(principal, action, resource, context) → Allow | Deny`. Results distinguish
 proved, violated, vacuous, inconsistent, and unknown, leaving no place for a model's
 confidence to stand in for a guarantee.
 
 That makes it a natural fit for checking AI-generated output: the generator can be
-unreliable so long as the checker is not.
+unreliable while a separate, model-independent checker enforces the reviewed contract.
+The checker, target model, solver, and deployment assumptions remain part of the trust boundary.
 
 ## How it works
 
@@ -62,8 +65,9 @@ unreliable so long as the checker is not.
    property as SMT-LIB2: does there exist a request this config allows but the property
    forbids?
 4. **Solve.** Hand it to Z3. `UNSAT` means no violating request exists in the modeled
-   semantics. `SAT` means the satisfying assignment is itself a concrete counterexample.
-5. **Lift.** Translate the SMT model back into the connector's vocabulary, so the output
+   semantics. Each decoded `SAT` request is checked against that obligation before
+   use; a failed check becomes `unknown`, including in evidence traces.
+5. **Lift.** Translate the checked model-level witness into the connector's vocabulary, so the output
    names a route and a service rather than a bitvector.
 
 `--emit-smt PATH` keeps a single-property query as an audit artifact. It is plain SMT-LIB2,
@@ -78,6 +82,7 @@ The core is the reusable asset and connectors stay thin.
 
 Requires OCaml 5.x, dune, the `yaml` opam library, and the **`z3` CLI binary** on `PATH`
 (the solver shells out to `z3 -smt2`).
+The full test suite also needs Git, Bash, and `jq` for approved-contract gate tests.
 
 Use [Z3 4.16.0](https://github.com/Z3Prover/z3/releases/tag/z3-4.16.0) to match
 the regression-tested solver baseline. On Linux, extract the matching official
@@ -193,12 +198,15 @@ over the same post-normalization path domain: percent triplets are canonicalized
 non-reserved bytes are decoded, dot segments are removed, and duplicate slashes are
 merged. Literal route paths and contract/property prefixes must already be normalized,
 matching Kong's route-schema requirement; invalid inputs fail with a suggested canonical
-path. Regex route paths remain authored regex patterns and are not rewritten.
+path. For explicit format 1.1/2.1 inputs, the parser first applies Kong's legacy path
+migration, including implicit regex detection and percent decoding. Format 3.0
+and omitted-format partial configs use only a leading `~` as the regex marker;
+punctuation such as `/a+b` remains a literal prefix.
 
 Exact route-header criteria are modeled case-insensitively, including repeated
-request values and Kong's header-count priority rule. A sole header value beginning
-with `~*` is Kong's regex form; it remains a conservative profile finding rather
-than being treated as an exact string.
+request values. Any header-value list containing `~*` is conservative: traditional
+recognizes singleton regex lists while traditional_compatible recognizes each value.
+Route ordering retains only a partial order justified for both flavors.
 
 HTTP and HTTPS routing are modeled separately where Kong's behavior differs.
 HTTPS-only routes reject matching HTTP requests, while exact SNI criteria are
@@ -216,7 +224,7 @@ identically by CI, the MCP tool, and eventually the repair loop.
   "schema_version": 9,
   "property": "no-anonymous-access",
   "assurance": {
-    "profile": "kong-traditional-http-v10",
+    "profile": "kong-traditional-http-v11",
     "status": "within_profile",
     "findings": []
   },
@@ -247,7 +255,7 @@ locations. Frozen runs populate `frozen_spec` with the artifact schema,
 kind, and normalized canonical content, binding the verdict to the reviewed input.
 Manual property runs emit `null`. `shadowed_route` is populated only by
 `no-shadowed-routes`, which
-names two routes: the one that serves the request and the one written to handle it.
+names two routes: a possible modeled winner and the one written to handle it.
 `host` and `source_ip` are meaningful only where the config or property constrains
 them; elsewhere the solver picked them freely.
 
@@ -273,8 +281,9 @@ forbidden request class is empty, Soundcheck instead returns `"result": "vacuous
 this is not a proof about the config and exits nonzero. A config outside the supported
 fragment gets `"result": "unknown"` with a `"reason"` naming the routes responsible,
 never a quiet pass. Both are verdicts rather than tool errors: the MCP tool returns
-them as normal results so an agent can correct the property or rewrite the offending
-route and re-verify.
+them as normal results so an agent can rewrite the offending config and re-verify.
+Property correction is available only in manual mode; a frozen specification
+requires separate approval outside the repair loop.
 
 ## Evidence bundles
 
@@ -300,12 +309,17 @@ schema v9 verdict), and `queries/<obligation-id>.smt2` for every planned obligat
 - Ordered `obligations`, each with `id`, `phase` (`inhabitance`, `consistency`, `clause`),
   related `clauses`, query artifact, `execution`, `solver_result`, `model`, and `reason`.
 
-An executed obligation records the raw solver result `sat`, `unsat`, or `unknown`.
-SAT includes the abstract request model; unknown includes its reason. An unexecuted
+An executed obligation records the checked result `sat`, `unsat`, or `unknown`.
+SAT includes a validated abstract request model; a decoded SAT that fails its
+obligation is recorded as unknown, with its validation reason and no witness. An unexecuted
 obligation has `execution: "not_executed"` and null result, model, and reason, but its
 query remains present. SAT for inhabitance establishes a nonempty request class;
 SAT for consistency or a policy clause instead prevents a proof. Interpret each
 query using its phase rather than treating every SAT as a policy violation.
+
+These are reproducible audit artifacts, not independently checked proof certificates.
+Re-running Z3 checks the retained formula, not the fidelity of Kong lowering. No
+independent UNSAT-certificate checker is shipped.
 
 Verification keeps its short-circuit order and existing exit codes. A config rejected
 as unsupported before lowering still produces an `unknown` bundle, with an unavailable
@@ -350,8 +364,9 @@ acceptance test drives `soundcheck mcp --contract ...` over stdio rather than ca
 the verifier in-process, so it also pins contract loading and the public MCP boundary.
 
 **Hard, at the gate: CI.** The same binary runs in CI or a pre-apply hook and blocks on
-non-zero exit, regardless of what any agent did or claimed. This is where the actual
-guarantee lives. A prompt is not an enforcement mechanism; an exit code is.
+non-zero exit, regardless of what any agent did or claimed. Enforcement requires
+a trusted, required workflow that cannot be edited or bypassed by that agent;
+an exit code alone does not establish repository protection.
 
 In GitHub Actions, `--format github` emits a workflow-command annotation. Failed
 clauses, counterexample route/service, frozen-spec identity, assurance profile,
@@ -359,26 +374,39 @@ and uncertainty findings are included when available. Non-proof outcomes retain
 their normal non-zero exit codes, so the annotation and branch-protection gate
 cannot disagree.
 
-The reusable Action accepts only a configuration and a reviewed frozen contract:
+The reusable Action accepts a candidate configuration and the repository-relative
+path of the approved contract. On a PR it reads that contract from the immutable
+event `pull_request.base.sha`, never from the candidate checkout. On a non-forced,
+non-deleted push it accepts only the protected default branch and reads the event's
+exact `after` commit. Other events, including `pull_request_target`, `merge_group`,
+and manual dispatch, fail closed.
 
 ```yaml
 steps:
   - uses: actions/checkout@v4
-  - uses: ph0smet/soundcheck@v1
+  - uses: ph0smet/soundcheck@<reviewed-full-commit-sha>
     with:
       config: kong.yaml
       contract: soundcheck-contract.yaml
 ```
 
-The initial Action targets Ubuntu/Linux, installs OCaml and Z3, builds the
-version of Soundcheck pinned by the Action reference, and emits native GitHub
-annotations. Pin an immutable commit SHA for the strongest supply-chain
-guarantee; use the `v1` tag when automatic compatible fixes are preferred. The
-Action intentionally exposes no property or scope inputs, so a generated repair
-cannot substitute or weaken the reviewed contract.
+Replace the placeholder with a reviewed immutable commit SHA. Run this in a
+fresh Ubuntu job with no prior candidate-code execution. The Action rejects a
+preexisting workspace `_opam`, disables automatic opam pinning and caches, and
+builds dependencies/verifier from its own Action sources. It uses a private
+temporary copy of the approved Git blob and preserves the verifier's exit code.
 
-Both surfaces are thin adapters over one core, so they cannot drift apart in what they
-consider verified. Soundcheck is also consumable directly as an OCaml library.
+Protection of the base branch, separate review of contract changes, the trusted
+workflow and fixed contract-path input, required checks, and rerunning against
+an updated base remain deployment responsibilities. A candidate-controlled
+workflow or `uses: ./` is not an approval boundary; the latter is used only to
+test this Action's implementation in this repository. No branch rules are
+installed automatically. OCaml/setup actions and dependencies are not a fully
+pinned supply chain.
+
+Both surfaces are thin adapters over the same verification implementation, with
+consistency regressions across CLI, MCP, and evidence. Soundcheck is also consumable
+directly as an OCaml library.
 
 ## Properties
 
@@ -418,14 +446,15 @@ and asks whether that guard actually covers the traffic the route's own match wo
 accept:
 
 ```
-∃ req.  selected_i(req) ∧ match_k(req) ∧ guard_i(req) ∧ ¬guard_k(req)
+∃ req.  selected_i(req) ∧ may_match_k(req) ∧ may_guard_i(req) ∧ ¬must_guard_k(req)
 ```
 
-A request the higher-ranked rule `i` serves and lets through, which rule `k` was written
-to handle and would have stopped. It is asked once per candidate pair rather than once
+A model-level candidate that permissive rule `i` may serve, while rule `k`'s
+protection is not established for it. It is asked once per candidate pair rather than once
 per config, since it quantifies over *which rule serves* a request rather than over
-requests alone. Pairs are pruned statically (rank, strictly weaker guard, distinct
-routes) and the first satisfiable one is reported with both routes named.
+requests alone. Pairs are pruned only by justified rank, distinct identity, or a
+sufficient guard-implication check; unrelated guards still require a solver query.
+The first validated satisfiable pair is reported with both routes named.
 
 ## Targets
 
@@ -443,103 +472,111 @@ are untouched, and the property templates above come along for free.
 
 This is an early project and the boundaries are worth stating plainly.
 
-- **HTTP routing is modelled over normalized path, method, host, exact headers,
-  protocol, and exact SNI.** Stream `sources`/`destinations` remain out of scope.
-  A route carrying an unmodelled criterion is given a rank incomparable with
-  every other route, so it neither suppresses nor is suppressed. Upstream-URI
-  comparison models `strip_path` and `path_handling` for literal route paths;
-  regex-path transformation fails closed. A route whose host contains uppercase
-  is also left incomparable, since the server lowercases the request Host.
-- **Route priority is derived from prefix length only.** Routing is winner-takes-all, as a
-  real gateway does it, but Kong also ranks on the number of match criteria, which is not
-  modelled. Rather than guess an order, unmodelled cases are left as **ties**, and a tie
-  means "order unknown" rather than "same rank". The two properties then treat ties in
-  opposite directions, both away from a false proof: reachability admits every tied rule
-  as selectable (over-approximating what is reachable), while shadowing treats a tie as a
-  candidate (over-approximating what might be shadowed, since the config does not
-  determine which route wins).
-- **`no-shadowed-routes` reports structure, not intent.** It finds guards that do not cover
-  what they appear to cover, and that shape is occasionally deliberate. A public
-  `/admin/health` for load balancers is the usual example. It is therefore opt-in via
-  `--property` and never part of a default run, and its findings are worth reviewing
-  rather than treating as automatic vulnerabilities.
-- **Regex paths are modelled for the regular subset; the rest is rejected, not
-  approximated.** Literals, `.`, character classes, `?`/`*`/`+`, bounded repetition,
-  alternation and grouping translate to `str.in_re`. Backreferences are not regular at
-  all, and possessive quantifiers and atomic groups change the accepted language
-  (`a*+a` never matches `aa`), so those report `unknown` naming the route and the
-  construct. Rejection is whole-config: the route we cannot model may be the one that
-  decides the property.
-- **Route ranking follows Kong's own two layers.** Routes are grouped into categories by
-  which criteria they use, and categories are walked by criteria *count* first, so a
-  route matching on path and method outranks one matching on path alone whatever their
-  paths look like. Within a category the order is `submatch_weight` (a regex path raises
-  it, so a regex route outranks a prefix route however long the prefix), then
-  `regex_priority`, then path length. `created_at` breaks Kong's remaining ties and is
-  absent from a declarative config, so rules equal on everything above it stay tied.
-  A rule whose match criteria include something unmodelled is left unordered against
-  everything, so it neither suppresses nor is suppressed.
-- **Request-path normalization is modelled.** Symbolic request paths are restricted to
-  Kong's normalized URI domain, while non-normalized literal route paths are rejected
-  with their normalized replacement. This keeps proofs and witnesses inside the request
-  language Kong actually hands to its router.
-- **The Admin API is recognised by upstream port** (8001 and 8444, Kong's defaults). A
-  gateway on a non-default admin port is not recognised, and `admin-api-not-reachable`
-  then stays quiet about it. That is the *false-negative* direction for this one property,
-  which is why the port list is documented rather than buried.
-- **Source addresses are IPv4 and are the connection peer.** `ip-restriction` reads the
-  raw connection address and ignores `X-Forwarded-For`, so behind a load balancer every
-  request appears to come from the balancer; the model inherits that. IPv6 and malformed
-  entries are dropped from the modeled guard and reported as conservative findings,
-  which weakens the restriction and therefore over-reports.
-- **Auth and rate-limiting plugins are recognised by name.** A custom or unlisted plugin
-  is not counted, so a route it protects is treated as open and reported as violated. That
-  errs toward a false alarm rather than a false clean bill, which is the direction this
-  tool should fail in, but it does mean unusual setups need the list extended.
-- **Authentication bypass settings are not mistaken for enforcement.** A configured
-  anonymous Consumer leaves failed authentication reachable, while Key Auth and JWT
-  with `run_on_preflight: false` allow anonymous `OPTIONS` requests. Anonymous Consumer
-  references are conservatively treated as valid because their identities are not yet resolved.
-- **Global plugins and plugin precedence are modelled.** A relationship-free root
-  `plugins:` entry applies globally. Kong selects the most specific enabled configuration
-  for a plugin name in route+service → route → service → global order. Root plugins may
-  target nested routes and services by string name. Consumer-scoped and non-string
-  references remain unsupported rather than being mistaken for global.
-- **Top-level routes participate in routing.** String `service` references resolve to
-  their declared service, while service-less routes win selection normally and deny
-  upstream access with Kong's 503 behavior. Non-string service references remain unsupported.
-- **Unconditional `request-termination` denies upstream access.** A configured trigger
-  is conservative because Kong checks both header and query-parameter presence, and query
-  parameters are not yet in the IR.
-- Anything outside the supported fragment should surface as `unknown` with a reason rather
-  than as a quiet pass. Keeping that boundary explicit is a design rule, not a nicety.
+- **The current target is Kong OSS 3.9.3, both `traditional` and
+  `traditional_compatible`.** The shared profile is intentionally narrower than
+  either router. It is not a certification of all Kong releases, editions,
+  deployment settings, or arbitrary plugins.
+- **Possible and definite access are different.** Safety uses an upper bound on
+  allowed requests; functionality uses a lower bound. Incomplete matches cannot
+  suppress other routes, and incomplete guards cannot prove required access.
+  A selected route's failing guard denies; it does not reroute to a fallback.
+  Tied possible denying routes must not hide possible allowing routes.
+- **Route order is a common partial order.** Criterion count is retained where
+  justified. Detailed path order is used only when all active routes have
+  identical non-path criteria. Request-global reducers, differing category/header
+  precedence, out-of-range packed priorities, SNI, and absent tie-break data
+  prevent stronger claims. Unresolved winners remain possible, not arbitrarily
+  selected. Exact equivalence rejects unresolved behavior.
+- **Regex support is bounded and conservative.** Accepted syntax uses ASCII
+  literals/positive classes, grouping, grouped alternation, and supported
+  quantifiers. Source length is limited to 2,048 bytes, nesting to 32, numeric
+  repetition bounds to 64, and expanded syntax cost to 512. These are
+  compile-complexity limits, not a runtime guarantee or a request-length limit.
+  End `$`, shorthand classes such as `\\d`, dot, negated classes, non-ASCII
+  atoms, top-level alternation, backreferences, lookarounds, ambiguous escapes,
+  and unsafe name rewrites fail closed. Arbitrary UTF-8 request suffixes are
+  not forbidden to make the model appear exact. Even accepted regexes remain
+  possible matches because Kong's PCRE runtime can fail at its match limit.
+  They neither suppress other routes nor establish definite functionality.
+- **Host, header and SNI boundaries are explicit.** Exact lowercase hosts without
+  route ports and exact case-insensitive header values are modeled. Wildcard
+  hosts use an upper bound; route host ports are unconstrained because Kong may
+  synthesize an omitted request port. Both are incomplete. Uppercase hosts,
+  regex headers, wildcard SNI, and stream source/destination criteria remain
+  conservative. Exact SNI is enforced on HTTPS and bypassed for HTTP selection.
+- **Request paths are post-normalization.** Percent triplets, decoded non-reserved
+  bytes, dot segments, and duplicate slashes follow the modeled Kong domain.
+  Legacy format migration precedes validation. This is not a full HTTP parser
+  or a validation of every Kong schema constraint.
+- **`no-shadowed-routes` reports structure, not intent.** A deliberate public
+  `/admin/health` exception can be reported. Findings require review and are not
+  automatic vulnerability claims. Ambiguous route identities fail closed.
+- **Admin API recognition is a port heuristic** for 8001/8444, including URL
+  shorthand and explicit service targets. Non-default Admin ports are not
+  recognized. A proof covers recognized targets only, not discovery of every
+  administrative endpoint.
+- **Source addresses are IPv4 values supplied by Kong's client-IP derivation.**
+  Trusted proxy configuration is an external assumption, explicitly frozen for
+  network contracts. Unknown allow-list entries weaken the entire allow
+  restriction; unknown deny entries are not treated as definite enforcement.
+  Invalid/IPv6 CIDRs prevent definite allowance.
+- **Plugin support is a named, configuration-level model.** Unknown active HTTP
+  plugins fail the whole config as unsupported: they may change routing,
+  enforcement or upstream targets. This is not a proof of plugin implementations.
+  Rate-limit presence establishes structural coverage, not live quota behavior.
+  Runtime quota cannot prove functionality. Anonymous fallback and conditional
+  termination are also conservative; unconditional request termination denies.
+- **Plugin scope and disabled services matter.** Enabled plugin precedence and
+  HTTP-subsystem activation are modeled. Disabled services contribute no routes.
+  Consumer/consumer-group plugins, unresolved nested plugin relationships, and
+  non-string references fail closed. Ordinary consumer credentials do not become
+  an invented principal model.
+- **Top-level routes participate in routing.** String service references resolve
+  to declared services. Service-less winners deny upstream access; unmodeled
+  references cannot silently disappear.
+- **Comparisons need exact modeled observations.** The four strengths compare
+  decisions, route/service identity, service targets, and upstream URI. Literal
+  route URI transformations are supported; regex transformations and incomplete
+  predicates return unknown. An order-only finding can still prove equivalence
+  when complete predicates establish identical requested observations or disjoint
+  alternatives. A proof is relative to the selected strength and scope.
+- **The trust boundary is explicit.** Parser/lowering, encoder, concrete validator,
+  Z3, supported target assumptions, and trusted gate deployment are not formally
+  verified here. Passing tests and target probes are important evidence, not a
+  universal soundness proof.
 
 ## Testing
 
-`bench/kong/cases/` holds 50 labeled cases, each a config plus a golden `expected.json`
-produced by the engine and hand-checked against intent. They span the real
-misconfiguration shapes: a missing plugin, service versus route-level auth inheritance, an
-open sibling route, a method-specific gap (`GET` guarded, `POST` open), a leak in a second
-service, a non-auth plugin mistaken for auth, an auth plugin left `enabled: false`, and the
-rate-limit variants.
+`bench/kong/cases/` holds 50 labeled regression cases with reviewed
+`expected.json` artifacts. Profile v11 deliberately changes previous unsupported
+regex claims to unknown, marks shared-order/runtime approximations, and rejects
+unmodeled plugins. The original configs are retained; expectations are justified
+in the [hardening execution plan](docs/plans/2026-10-kong-hardening.md), not regenerated
+merely to make a suite green.
 
-The rest pin boundaries from *both* sides, which is where the value is. A guarded route
-outranking an open catch-all must come out `proved`, since that arrangement is correct and
-reporting it would be a false alarm. A shadowed route must be found whether the shadowing
-route strictly outranks it or merely ties with it. A regex route must be verified when its
-pattern is in the subset and `unknown` when it is not. The guarded regex case must
-come out `proved`, which is what stops the encoder passing by over-approximating every
-pattern to "anything". One case turns on a single `$`: with it the languages are disjoint
-and nothing is shadowed, without it the open route swallows a guarded path.
+The suite includes strict YAML/contract input rejection, solver process and
+string decoding failures, malformed-model injection, obligation-level witness
+checks, all four comparison modes, and frozen CLI/MCP/evidence consistency.
+An independent finite refinement oracle enumerates 91,200 worlds and checks
+`must_allow ⊆ actual_allow ⊆ may_allow`; deliberate broken controls must fail.
+This checks the abstraction rules, not every Kong behavior.
 
-`test/regex_agree.ml` is a differential test rather than a golden one. For each pattern it
-compares `Regex.matches_full` against Z3's answer for `str.in_re`, because the verifier
-relies on both readings agreeing: the encoder to find counterexamples, the matcher to
-confirm they are genuine. A one-character error in the translation is caught by several
-cases at once.
+`test/regex_agree.ml` cross-checks the generic concrete matcher and SMT encoding.
+`test/regex_boundary_t.ml` separately pins the narrower connector boundary.
+Neither agreement between two readers of the same IR nor lifecycle mocks counts
+as independent target conformance.
 
-`dune test` verifies every case in-process and diffs against its golden, failing on any
-mismatch. It runs on every PR via GitHub Actions.
+The pinned real-Kong harness checks fixed target observations in both flavors,
+distinguishing exact model agreement, conservative bounds, and unsupported cases.
+Unsupported rows must produce public `unknown` with an unsupported assessment;
+they are boundary checks, never counted as exact model agreement. Wrong target
+observations, missing possible winners, invalid bounds, and silent class changes fail.
+
+`dune test --force` runs the local suite and corpus. CI also runs real-Kong
+conformance. `bash scripts/check.sh full` runs both locally with Docker;
+`bash scripts/check-commit.sh <revision>` independently checks a committed revision
+in a clean worktree without Docker. Gate tests use synthetic local Git repositories
+and real verifier end-to-end checks; they do not install remote branch protection.
 
 ## Repo layout
 
@@ -551,13 +588,15 @@ core/          shared engine, the reusable asset
   regex.ml       regex AST: parser, SMT translation, concrete matcher
   smt_encode.ml  IR + property → SMT-LIB2
   solve.ml       Z3 orchestration + model extraction
+  witness.ml     obligation-level validation of decoded SAT requests
   cidr.ml        IPv4 blocks: parsing, membership, bitvector encoding
   report.ml      Report.t + human/JSON serializers (the stable contract)
   evidence.ml    frozen-contract audit bundles, manifest, and provenance
   sha256.ml      portable byte-exact artifact and executable digests
 connectors/    thin frontends (parse→IR, lift counterexample→config vocabulary)
   kong/          decK YAML, first connector
-    fragment.ml    decidability boundary: reject what the encoder cannot model
+    fragment.ml    reject unsupported configuration semantics
+    regex_boundary.ml  shared-router regex language and complexity limits
     path_normalization.ml  Kong request domain and literal-path validation
 cli/           soundcheck verify, soundcheck profile, soundcheck mcp
 mcp/           soundcheck mcp, JSON-RPC 2.0 over stdio
@@ -572,8 +611,8 @@ The immediate focus is Kong-first depth: demonstrate the frozen MCP workflow end
 publish a versioned assurance profile, expand the paired contract catalogue, improve
 semantic coverage, and differentially validate the model against real Kong behavior.
 
-Real-gateway differential conformance is available as an opt-in Docker check. It
-compares Soundcheck's concrete routing decision with pinned Kong OSS 3.9.3 under
+Real-gateway differential conformance runs in CI and is also available locally
+with Docker. It checks fixed target observations and model bounds against pinned Kong OSS 3.9.3 under
 both supported router flavors; see [`bench/kong/conformance/`](bench/kong/conformance/).
 Security-decision equivalence compares two Kong configs over every modeled request
 and returns either equivalence, a concrete distinguishing request, or unknown when
@@ -604,7 +643,7 @@ path/method/host scope did not change:
 soundcheck compare before.yaml after.yaml --contract contract.yaml --format json
 ```
 
-Both stronger modes compose with `--contract` to preserve their observations
+All comparison modes compose with `--contract` to preserve their observations
 outside the frozen repair scope.
 
 With `--contract`, `--emit-smt` writes the outside-scope preservation query; the

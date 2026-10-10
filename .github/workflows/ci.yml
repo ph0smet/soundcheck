@@ -14,6 +14,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install gate test dependency
+        run: sudo apt-get update && sudo apt-get install -y jq
+
       # Ubuntu's Z3 4.8.12 times out on regex-anchored-end within our unchanged
       # 10-second solver deadline. Use the regression-tested release, not apt's
       # distro version, and verify the archive before extracting or executing it.
@@ -99,6 +102,10 @@ jobs:
   action-smoke:
     # This separately exercises the composite Action's distro-provided Z3;
     # it is a frozen-workflow smoke test, not the full regression baseline.
+    # Local uses: ./ tests this implementation, not a trusted production gate.
+    # The Action deliberately rejects unprotected pushes. Its context rejection
+    # is covered by the local gate tests on every build, including those pushes.
+    if: github.event_name == 'pull_request' || github.ref_protected
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -110,15 +117,18 @@ jobs:
           contract: bench/kong/contracts/admin-get.yaml
 
       - name: Violated frozen configuration
-        id: violated
-        continue-on-error: true
-        uses: ./
-        with:
-          config: bench/kong/workflows/frozen-admin/unsafe.yaml
-          contract: bench/kong/contracts/admin-get.yaml
-
-      - name: Require the unsafe configuration to fail
-        if: always()
+        # Reuse the verifier built above, not a second Action setup in the same
+        # job. Require the violation exit code; a setup error is not success.
+        shell: bash
         env:
-          VIOLATED_OUTCOME: ${{ steps.violated.outcome }}
-        run: test "$VIOLATED_OUTCOME" = failure
+          SOUNDCHECK_CONFIG_INPUT: bench/kong/workflows/frozen-admin/unsafe.yaml
+          SOUNDCHECK_CONTRACT_INPUT: bench/kong/contracts/admin-get.yaml
+        run: |
+          set -euo pipefail
+          if bash scripts/verify-approved-contract.sh; then
+            echo 'Expected the unsafe configuration to be violated.' >&2
+            exit 1
+          else
+            soundcheck_status=$?
+            test "$soundcheck_status" -eq 3
+          fi

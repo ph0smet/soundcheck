@@ -1,12 +1,7 @@
-# Scenario: the precision that modelling hosts buys back. Both routes are scoped
-# to the same host, so they share a category; the guarded one has a regex path,
-# which raises submatch_weight above the plain-path route, so it serves every
-# request the narrower route would have. Nothing reaches the unguarded route.
-#
-# While hosts were unmodelled these routes were left unordered and neither could
-# suppress the other, so the union let the narrow open route through and this
-# reported VIOLATED — a false alarm on a correctly-scoped config.
-# Expected: PROVED (no-anonymous-access).
+# Profile v11: accepted regexes are possible matches only because runtime failure
+# cannot justify suppression. The open literal candidate remains reachable in
+# the upper bound; this is not a claim that this specific regex fails in Kong.
+# Expected: conservative VIOLATED via admin-narrow, formerly PROVED.
 _format_version: "3.0"
 services:
   - name: api

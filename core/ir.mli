@@ -28,7 +28,8 @@ type request = {
   resource  : resource;
   context   : context;
   source    : int32;
-      (** IPv4 source address of the connection. A dedicated field rather than a
+      (** Connector-supplied IPv4 source address (Kong's derived client IP, whose
+          integrity is a deployment assumption). A dedicated field rather than a
           [context] binding because it is a typed symbolic dimension the encoder
           reasons about, not an opaque attribute. *)
   host      : string;
@@ -62,9 +63,8 @@ type condition =
   | Requires_auth             (** [principal] is [Authenticated _] *)
   | Source_in   of Cidr.t     (** [source] falls inside the address block *)
   | Host_matches of Regex.t
-      (** [host] belongs to the language, in full. Kong compiles both plain and
-          wildcard host patterns down to a regex, so one condition covers both and
-          the connector owns the translation. *)
+      (** [host] belongs to the language, in full. The connector owns the
+          translation and its completeness guarantee. *)
   | Scheme_is of string
   | Sni_is of string
   | Header_has of string * string
@@ -85,7 +85,7 @@ type priority = {
   key        : int list;
       (** The target's own ordering, most significant first, higher wins. A list
           rather than named fields because targets rank on several levels and the
-          number of them is the target's business — Kong uses six. *)
+          number of them is the target's business. *)
 }
 
 val outranks : priority -> priority -> bool
@@ -108,7 +108,12 @@ type rule = {
           cannot establish functionality. *)
   guard        : condition;
       (** POLICY applied once this rule serves the request (e.g. Requires_auth).
-          Failing the guard denies the request; it does not re-route it. *)
+          An upper bound on allowance. Failing the guard denies the request;
+          it does not re-route it. Never negate this upper bound as a definite
+          denial test unless [guard_complete] is true. *)
+  guard_complete : bool;
+      (** Whether [guard] is exact. Otherwise definite allowance is false, while
+          possible allowance still uses [guard]. *)
   priority     : priority;
       (** Which rule wins when several match. The encoder suppresses only rules
           that STRICTLY {!outranks} another, so anything the connector cannot
@@ -145,17 +150,24 @@ val matches : condition -> request -> bool
 (** Concrete semantics of a condition against a concrete request. *)
 
 val selected : policy -> request -> rule -> bool
-(** Whether [rule] is the one that SERVES [request]: its routing criteria match
+(** Whether [rule] is a possible winner for [request]: its routing criteria match
     and no rule that {!outranks} it does. Rules whose order is unknown — equal or
-    incomparable — are all selectable. *)
+    incomparable — are all selectable. Incomplete matches never suppress another
+    possible winner, regardless of a caller's priority key. *)
+
+val must_guard : rule -> condition
+(** Lower bound on a rule's allowance: its exact guard, or false when incomplete. *)
+
+val possibly_allows : ?reach_via:(rule -> bool) -> policy -> request -> bool
+(** Upper bound on allowance through an eligible possible winner. A possible
+    denying winner cannot veto another possible allowing winner. The default
+    may apply only when no complete routing match is known. *)
 
 val evaluate : policy -> request -> decision
-(** Reference (ground-truth) decision function. Requests outside
-    [request_domain] deny. Within it, a rule counts when it both
-    {!selected} the request and permits it (its guard holds); those are then
-    combined {b deny-overrides}: [Deny] if any is [Deny]; else [Allow] if any is
-    [Allow]; else [default]. Kept in step with {!Smt_encode.allowed_formula} —
-    the two are the same semantics, one concrete and one symbolic. *)
+(** Concrete upper-approximation: [Allow] exactly when {!possibly_allows}.
+    Not a ground-truth target oracle for uncertain matches, guards, or ordering.
+    Mirrors {!Smt_encode.allowed_formula}; guard rejection does not fall through
+    to an allowing default. *)
 
 val definitely_allows : policy -> request -> bool
 (** Conservative functionality semantics. If routing has one known winner, that

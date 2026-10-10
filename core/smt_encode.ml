@@ -49,7 +49,8 @@ let rec cond (c : Ir.condition) : string =
      a structural property is not counting it as a "reaching" rule; filtering it
      here would let us claim reachability via a route that is in fact shadowed. *)
 let selected (all : Ir.rule list) (r : Ir.rule) : string =
-  match List.filter (fun (o : Ir.rule) -> Ir.outranks o.priority r.priority) all with
+  match List.filter
+      (fun (o : Ir.rule) -> o.match_complete && Ir.outranks o.priority r.priority) all with
   | [] -> cond r.match_
   | higher ->
     Printf.sprintf "(and %s %s)" (cond r.match_)
@@ -58,18 +59,13 @@ let selected (all : Ir.rule list) (r : Ir.rule) : string =
             (fun (o : Ir.rule) -> Printf.sprintf "(not %s)" (cond o.match_))
             higher))
 
-(* The policy's "allowed" predicate (mirrors {!Ir.evaluate}):
-     allowed = (not matched_deny) and (matched_allow or default)
-   where a rule counts as matched when it both SERVES the request (selected) and
-   PERMITS it (guard). [reach_via] filters which Allow rules count as reaching
-   (the Deny side is unfiltered) — this is how a structural property (e.g.
-   rate-limit-on-public) asks "reachable specifically via a rule of this kind". *)
+(* Possible allowance is a UNION over eligible possible winners, not
+   deny-overrides: tied/incomplete deniers are alternatives and cannot hide a
+   possible allowing winner. A definitely matching route prevents fallthrough
+   to a default-Allow policy even when that route's guard rejects. *)
 let allowed_formula ~reach_via (p : Ir.policy) : string =
-  let matched (want : Ir.decision) =
-    let keep (r : Ir.rule) =
-      r.decision = want && (match want with Ir.Allow -> reach_via r | Ir.Deny -> true)
-    in
-    let rs = List.filter keep p.rules in
+  let matched =
+    let rs = List.filter (fun (r : Ir.rule) -> r.decision = Ir.Allow && reach_via r) p.rules in
     match rs with
     | [] -> "false"
     | _ ->
@@ -80,10 +76,16 @@ let allowed_formula ~reach_via (p : Ir.policy) : string =
                 Printf.sprintf "(and %s %s)" (selected p.rules r) (cond r.guard))
               rs))
   in
-  let a = matched Ir.Allow in
-  let d = matched Ir.Deny in
-  let def = match p.default with Ir.Allow -> "true" | Ir.Deny -> "false" in
-  Printf.sprintf "(and (not %s) (or %s %s))" d a def
+  let default =
+    match p.default with
+    | Ir.Deny -> "false"
+    | Ir.Allow ->
+      cond (Ir.Not (Ir.Or
+        (List.filter_map
+           (fun (rule : Ir.rule) -> if rule.match_complete then Some rule.match_ else None)
+           p.rules)))
+  in
+  Printf.sprintf "(or %s %s)" matched default
 
 let rec header_atoms = function
   | Ir.Header_has (name, value) -> [ (name, value) ]
@@ -181,7 +183,7 @@ let definitely_allowed_formula (p : Ir.policy) : string =
               (fun (r, selected) ->
                 let allows =
                   match r.Ir.decision with
-                  | Ir.Allow when r.Ir.match_complete -> cond r.Ir.guard
+                  | Ir.Allow when r.Ir.match_complete -> cond (Ir.must_guard r)
                   | Ir.Allow -> "false"
                   | Ir.Deny -> "false"
                 in
@@ -255,7 +257,7 @@ let shadowing_query (p : Ir.policy) (pair : Shadowing.pair) : string =
   Buffer.add_string b "; the server lets it through ...\n";
   Buffer.add_string b (Printf.sprintf "(assert %s)\n" (cond i.Ir.guard));
   Buffer.add_string b "; ... where the shadowed route would have stopped it:\n";
-  Buffer.add_string b (Printf.sprintf "(assert (not %s))\n" (cond k.Ir.guard));
+  Buffer.add_string b (Printf.sprintf "(assert (not %s))\n" (cond (Ir.must_guard k)));
   epilogue b headers
 
 let decision_equivalence_query ?(when_ = Ir.True) (left : Ir.policy)

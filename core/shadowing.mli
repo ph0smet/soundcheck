@@ -6,8 +6,8 @@
     See {!Smt_encode.shadowing_query} for the emitted formula. *)
 
 type pair = {
-  shadowing : Ir.rule;  (** higher priority: the rule that actually serves *)
-  shadowed  : Ir.rule;  (** lower priority: the rule written to handle it *)
+  shadowing : Ir.rule;  (** possible permissive winner *)
+  shadowed  : Ir.rule;  (** route whose protection is not established *)
 }
 
 val strictly_weaker : Ir.condition -> Ir.condition -> bool
@@ -20,6 +20,7 @@ val candidates : Ir.policy -> pair list
     routes (a route split across paths cannot shadow itself). Guard pruning is
     allowed only when a syntactic implication proves the pair cannot violate;
     unrelated guards still require a query. Match overlap is left to the solver.
+    An incomplete match cannot prune a lower-priority possible winner.
 
     Equal priority counts, because it means the order is undetermined and the
     weaker rule may serve. Excluding ties would report [proved] for a config whose

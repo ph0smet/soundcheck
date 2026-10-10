@@ -11,30 +11,46 @@ inputs:
     description: Path to the Kong declarative configuration, relative to the caller workspace
     required: true
   contract:
-    description: Path to the reviewed Soundcheck contract, relative to the caller workspace
+    description: Repository-relative path to the approved contract in the PR base commit or protected default-branch push commit
     required: true
 
 runs:
   using: composite
   steps:
+    - name: Require a fresh Action build switch
+      shell: bash
+      run: |
+        set -euo pipefail
+        if [[ "${GITHUB_WORKSPACE:-}" != /* || ! -d "$GITHUB_WORKSPACE" ]]; then
+          echo '::error::A checked-out workspace is required for the Action build.' >&2
+          exit 1
+        fi
+        if [[ -e "$GITHUB_WORKSPACE/_opam" || -L "$GITHUB_WORKSPACE/_opam" ]]; then
+          echo '::error::The Action requires a fresh job without preexisting workspace _opam state.' >&2
+          exit 1
+        fi
+
     - name: Set up OCaml
       uses: ocaml/setup-ocaml@v3
       with:
         ocaml-compiler: "5"
+        opam-pin: false
+        cache: false
+        dune-cache: false
 
-    - name: Install Z3
+    - name: Install gate dependencies
       shell: bash
-      run: sudo apt-get update && sudo apt-get install --yes z3
+      run: sudo apt-get update && sudo apt-get install --yes z3 jq
 
     - name: Install Soundcheck dependencies
       shell: bash
       working-directory: ${{ github.action_path }}
-      run: opam install . --deps-only --yes
+      run: opam install --switch="$GITHUB_WORKSPACE" . --deps-only --yes
 
     - name: Build Soundcheck
       shell: bash
       working-directory: ${{ github.action_path }}
-      run: opam exec -- dune build cli/main.exe
+      run: opam exec --switch="$GITHUB_WORKSPACE" -- dune build cli/main.exe
 
     - name: Verify frozen contract
       shell: bash
@@ -42,15 +58,4 @@ runs:
         SOUNDCHECK_CONFIG_INPUT: ${{ inputs.config }}
         SOUNDCHECK_CONTRACT_INPUT: ${{ inputs.contract }}
       run: |
-        config_path="$SOUNDCHECK_CONFIG_INPUT"
-        contract_path="$SOUNDCHECK_CONTRACT_INPUT"
-
-        if [[ "$config_path" != /* ]]; then
-          config_path="$GITHUB_WORKSPACE/$config_path"
-        fi
-        if [[ "$contract_path" != /* ]]; then
-          contract_path="$GITHUB_WORKSPACE/$contract_path"
-        fi
-
-        "$GITHUB_ACTION_PATH/_build/default/cli/main.exe" verify "$config_path" \
-          --contract "$contract_path" --format github
+        bash "$GITHUB_ACTION_PATH/scripts/verify-approved-contract.sh"

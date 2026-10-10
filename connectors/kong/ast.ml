@@ -8,6 +8,10 @@
 type plugin = {
   name    : string;
   enabled : bool;
+  protocols : string list;
+      (* Entity activation is by Kong subsystem, not exact request scheme. *)
+  has_relationships : bool;
+      (* Explicit relationships on a nested plugin need separate resolution. *)
   allow   : string list;
       (* ip-restriction's config.allow — IPs or CIDRs. A whitelist: when present,
          anything not listed is refused. Empty for other plugins. *)
@@ -32,6 +36,7 @@ type route = {
   protocols      : string list;   (* schema default: [http; https] *)
   plugins        : plugin list;   (* route-level plugins *)
   hosts          : string list;   (* lowercase exact/wildcard hosts are modeled *)
+  hosts_present  : bool;          (* an empty hosts table still affects priority *)
   snis           : string list;
   headers        : (string * string list) list;
       (* Header names and values as authored. Exact values are modeled
@@ -50,6 +55,7 @@ type route = {
 
 type service = {
   name    : string;
+  enabled : bool;          (* disabled services' routes are absent from router *)
   url     : string option; (* Kong shorthand for the upstream target *)
   protocol : string option;
   host     : string option;

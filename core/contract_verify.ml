@@ -23,6 +23,7 @@ type trace_entry = {
 
 type planned = {
   public : obligation;
+  satisfies : Ir.request -> bool;
   decide : Solve.result -> result option;
 }
 
@@ -60,6 +61,8 @@ let planned (policy : Ir.policy) (contract : Contract.t) =
                 Smt_encode.condition_query ~domain:policy.request_domain
                   ~name ~description:(Contract.description clause)
                   (Contract.request_class clause) };
+          satisfies = Witness.condition ~domain:policy.request_domain
+              (Contract.request_class clause);
           decide =
             (function
               | Solve.Proved -> Some (Vacuous clause)
@@ -78,6 +81,9 @@ let planned (policy : Ir.policy) (contract : Contract.t) =
                  smtlib =
                    Smt_encode.overlap_query ~domain:policy.request_domain safety
                      functionality };
+             satisfies = Witness.condition ~domain:policy.request_domain
+                 (Ir.And [Contract.request_class safety;
+                          Contract.request_class functionality]);
              decide =
                (function
                  | Solve.Violated _ -> Some (Inconsistent (safety, functionality))
@@ -93,6 +99,7 @@ let planned (policy : Ir.policy) (contract : Contract.t) =
               phase = Clause;
               clauses = [ name ];
               smtlib = Smt_encode.contract_clause_query policy clause };
+          satisfies = Witness.clause policy clause;
           decide =
             (function
               | Solve.Violated model -> Some (Violated (clause, model))
@@ -105,11 +112,14 @@ let planned (policy : Ir.policy) (contract : Contract.t) =
 let plan policy contract =
   planned policy contract |> List.map (fun item -> item.public)
 
-let run_with_trace policy contract =
+let run_with_trace ?z3 policy contract =
   let rec execute checked = function
     | [] -> (Proved, List.rev checked)
     | item :: rest ->
-      let solver_result = Solve.check item.public.smtlib in
+      let solver_result =
+        Solve.check ?z3 item.public.smtlib
+        |> Witness.validate ~obligation:item.public.id item.satisfies
+      in
       let entry = { obligation = item.public; execution = Executed solver_result } in
       (match item.decide solver_result with
        | None -> execute (entry :: checked) rest
@@ -124,4 +134,4 @@ let run_with_trace policy contract =
   in
   execute [] (planned policy contract)
 
-let run policy contract = fst (run_with_trace policy contract)
+let run ?z3 policy contract = fst (run_with_trace ?z3 policy contract)

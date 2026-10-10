@@ -18,6 +18,7 @@ let () =
     Ir.{ id = "admin-route";
          match_ = Path_prefix admin_prefix;
          match_complete = true;
+         guard_complete = true;
          guard;
          priority = { Ir.comparable = true; key = [ 1; 0x10; 0; 0; 0; String.length admin_prefix ] };
          decision = Allow;

@@ -4,6 +4,11 @@ val normalize_literal : string -> string
 (** Normalize a literal path using Kong's percent-decoding, dot-segment removal,
     and duplicate-slash merging behavior. *)
 
+val migrate_legacy_path : string -> string
+(** Kong 3.9.3's declarative path migration for explicit format 1.1/2.1 inputs.
+    Adds regex markers only for legacy implicit syntax and preserves escaped
+    metacharacters while percent-decoding. Not applied to modern/omitted format. *)
+
 val is_normalized_literal : string -> bool
 (** Whether a configured literal route/property path is absolute and already in
     the canonical form required by Kong's route schema. *)

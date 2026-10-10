@@ -30,44 +30,52 @@ type assessment = {
 let feature code description = { code; description }
 
 let profile =
-  { id = "kong-traditional-http-v10";
+  { id = "kong-traditional-http-v11";
     connector = "kong";
-    version = 10;
-    target = "Kong Gateway traditional/traditional_compatible HTTP routing";
+    version = 11;
+    target = "Kong OSS 3.9.3 traditional/traditional_compatible HTTP routing";
     modeled =
       [ feature "literal-path-prefix" "literal HTTP path-prefix matching";
         feature "normalized-request-path" "Kong-normalized request-path domain and literal route validation";
-        feature "regular-path-regex" "the documented regular subset of Kong path regexes";
+        feature "regular-path-regex" "bounded shared ASCII-atom regex language; matching remains an upper bound";
         feature "http-method" "HTTP method matching";
-        feature "lowercase-host" "lowercase exact and wildcard Host matching";
+        feature "lowercase-host" "lowercase exact Host matching without an explicit route port";
         feature "exact-header-match" "case-insensitive exact HTTP header matching, including repeated values";
         feature "http-https-protocol" "HTTP subsystem selection and HTTPS-only rejection";
         feature "exact-sni" "exact SNI matching for HTTPS and Kong's HTTP bypass";
-        feature "traditional-route-priority" "two-layer traditional-router priority without created_at";
+        feature "shared-route-priority" "common criterion-count order; detailed path order only with identical non-path predicates";
         feature "known-auth-plugins" "authentication requirement from Soundcheck's known plugin list";
         feature "auth-preflight-bypass" "Key Auth and JWT OPTIONS bypass when run_on_preflight is false";
         feature "general-request-rate-limit" "request-rate coverage from rate-limiting and rate-limiting-advanced";
         feature "ipv4-ip-restriction" "IPv4 ip-restriction allow and deny guards over Kong's derived client IP";
         feature "request-termination" "unconditional request-termination denial with Kong plugin precedence";
         feature "global-plugin-scope" "global plugins with route-over-service-over-global precedence";
+        feature "plugin-subsystem" "plugin protocols activate the HTTP subsystem, not an individual request scheme";
+        feature "disabled-service" "disabled services and their routes are excluded from routing";
         feature "root-route-service-plugin-scope" "root plugins scoped by string route/service references";
         feature "top-level-route" "top-level routes with string service references or denying no-service behavior";
         feature "default-admin-ports" "Admin API recognition on default ports 8001 and 8444";
-        feature "default-deny" "denying fallthrough when no route guard allows a request" ];
+        feature "default-deny" "denying fallthrough when no route matches; a failing guard denies without rerouting" ];
     conservative =
       [ feature "route-created-at-tie" "created_at is absent from decK and unresolved route order remains tied";
+        feature "shared-route-order" "overlapping possible winners are not ordered unless both router flavors justify suppression";
+        feature "regex-match-runtime" "regex engine match-limit failures may remove a match; regex candidates never suppress or establish definite allowance";
+        feature "rate-limit-runtime" "quota and rate-limit runtime state cannot establish definite allowance";
         feature "route-header-regex" "regex header values are over-approximated and the route is left incomparable";
         feature "wildcard-sni" "wildcard SNI depends on router flavor and is over-approximated";
         feature "route-stream-match" "source/destination criteria are over-approximated and the route is left incomparable";
         feature "uppercase-host" "uppercase route hosts are left incomparable because request hosts are lowercased";
-        feature "unrecognized-plugin" "unrecognized plugins provide no modeled auth or rate-limit behavior";
-        feature "invalid-ip-cidr" "IPv6 or malformed ip-restriction entries are dropped, weakening the guard";
+        feature "wildcard-host" "wildcard Host semantics differ; a possibly empty wildcard is only an upper bound";
+        feature "host-port" "effective Host ports are not modeled; port-bearing route hosts are unconstrained and incomplete";
+        feature "invalid-ip-cidr" "unmodeled restrictions use may/must bounds; mixed unknown allow entries do not narrow possible allowance";
         feature "conditional-request-termination" "triggered request-termination depends on unmodeled query parameters";
         feature "auth-anonymous-fallback" "authentication anonymous fallback is over-approximated without resolving Consumers";
         feature "response-rate-limit-dependency" "response rate limiting depends on upstream usage headers outside the config";
         feature "graphql-rate-limit-scope" "GraphQL query-cost limiting does not establish general HTTP request-rate coverage" ];
     unsupported =
       [ feature "unsupported-path-regex" "non-regular or untranslated regex constructs make the whole result unknown";
+        feature "unrecognized-plugin" "unmodeled plugins can alter routing, guards or upstream targets; whole-config verification fails closed";
+        feature "nested-plugin-reference" "explicit nested plugin relationships are not resolved";
         feature "consumer-scoped-plugin" "consumer-scoped plugins require a richer principal identity model";
         feature "non-string-plugin-reference" "non-string root plugin references are not resolved";
         feature "non-string-route-service-reference" "non-string top-level route service references are not resolved" ] }
@@ -82,11 +90,10 @@ let finding ?service ?route code detail = { code; service; route; detail }
 let plugin_findings ?service ?route plugins =
   List.concat_map
     (fun (plugin : Ast.plugin) ->
-      if not plugin.enabled then []
+      if not (Plugin_support.active_http plugin) then []
       else
       let known =
-        Lower.is_auth_plugin plugin.name || Lower.is_rate_limit_plugin plugin.name
-        || plugin.name = "ip-restriction" || plugin.name = "request-termination"
+        Plugin_support.known plugin.name
       in
       let unknown =
         if known then []
@@ -134,8 +141,14 @@ let plugin_findings ?service ?route plugins =
               "graphql-rate-limiting-advanced covers GraphQL query cost, not general HTTP request rate" ]
         | _ -> []
       in
+      let rate_limit_runtime =
+        if Lower.is_general_rate_limit_plugin plugin.name then
+          [ finding ?service ?route "rate-limit-runtime"
+              "quota and runtime state are not modeled, so this plugin cannot establish definite allowance" ]
+        else []
+      in
       unknown @ invalid_cidrs @ conditional_termination @ anonymous_fallback
-      @ specialized_rate_limit)
+      @ specialized_rate_limit @ rate_limit_runtime)
     plugins
 
 let route_findings ?service (route : Ast.route) =
@@ -161,14 +174,26 @@ let route_findings ?service (route : Ast.route) =
           if String.lowercase_ascii host = host then None
           else Some (location "uppercase-host" (Printf.sprintf "route host %S contains uppercase" host)))
         route.hosts
+    @ (if List.exists (fun host -> String.contains host '*') route.hosts then
+         [ location "wildcard-host"
+             "wildcard hosts are possible matches only; shared empty-wildcard and effective-port behavior cannot establish definite selection" ]
+       else [])
+    @ (if List.exists (fun host -> String.contains host ':') route.hosts then
+         [ location "host-port"
+             "explicit route host ports may match an implicit request port; the host constraint is conservatively omitted" ]
+       else [])
   in
   let regex =
     List.filter_map
       (fun path ->
         if not (Fragment.is_regex_path path) then None
         else
-          match Soundcheck_core.Regex.parse (Fragment.pattern_of path) with
-          | Ok _ -> None
+          match Regex_boundary.parse (Fragment.pattern_of path) with
+          | Ok _ ->
+            Some (location "regex-match-runtime"
+              (Printf.sprintf
+                 "path %S is only a possible match: regex runtime failures cannot justify route suppression or definite allowance"
+                 path))
           | Error why ->
             Some
               (location "unsupported-path-regex"
@@ -179,8 +204,45 @@ let route_findings ?service (route : Ast.route) =
   @ plugin_findings ?service ~route:route.name route.plugins
 
 let assess (config : Ast.config) =
+  (* A cheap over-approximation only for assurance labels; actual overlap is
+     queried separately by comparison/shadowing. Disjoint literal prefixes or
+     disjoint method sets cannot compete. Other uncertain pairs stay visible. *)
+  let rec path_prefix = function
+    | Soundcheck_core.Ir.Path_prefix value -> Some value
+    | Soundcheck_core.Ir.And terms -> List.find_map path_prefix terms
+    | _ -> None
+  in
+  let rec methods = function
+    | Soundcheck_core.Ir.Method_is value -> Some [ value ]
+    | Soundcheck_core.Ir.Or terms
+      when List.for_all (function Soundcheck_core.Ir.Method_is _ -> true | _ -> false) terms ->
+      Some (List.filter_map (function Soundcheck_core.Ir.Method_is value -> Some value | _ -> None) terms)
+    | Soundcheck_core.Ir.And terms -> List.find_map methods terms
+    | _ -> None
+  in
+  let policy = Lower.to_policy config in
+  let uncertain_order =
+    Result.is_ok (Fragment.check config)
+    && List.exists (fun (a : Soundcheck_core.Ir.rule) ->
+      List.exists (fun (b : Soundcheck_core.Ir.rule) ->
+        a.id <> b.id
+        && not (Soundcheck_core.Ir.outranks a.priority b.priority)
+        && not (Soundcheck_core.Ir.outranks b.priority a.priority)
+        && (match path_prefix a.match_, path_prefix b.match_ with
+            | Some a, Some b -> String.starts_with ~prefix:a b || String.starts_with ~prefix:b a
+            | _ -> true)
+        && (match methods a.match_, methods b.match_ with
+            | Some a, Some b -> List.exists (fun method_ -> List.mem method_ b) a
+            | _ -> true)) policy.rules) policy.rules
+  in
   let findings =
-    plugin_findings config.global_plugins
+    (Plugin_support.nested config
+     |> List.filter_map (fun (plugin : Ast.plugin) ->
+          if plugin.has_relationships then
+            Some (finding "nested-plugin-reference"
+              (Printf.sprintf "nested plugin %S has unresolved explicit relationships" plugin.name))
+          else None))
+    @ plugin_findings config.global_plugins
     @ List.concat_map
         (fun (scoped : Ast.scoped_plugin) ->
           let plugin_semantics =
@@ -223,6 +285,10 @@ let assess (config : Ast.config) =
         plugin_findings ~service:service.name service.plugins
         @ List.concat_map (route_findings ~service:service.name) service.routes)
       config.services
+    @ (if uncertain_order then
+         [ finding "shared-route-order"
+             "overlapping candidate route order is not established for both router flavors; all possible winners are retained" ]
+       else [])
   in
   let status =
     if
@@ -230,6 +296,7 @@ let assess (config : Ast.config) =
         (fun finding ->
           List.mem finding.code
             [ "unsupported-path-regex"; "consumer-scoped-plugin";
+              "unrecognized-plugin"; "nested-plugin-reference";
               "non-string-plugin-reference";
               "non-string-route-service-reference" ])
         findings

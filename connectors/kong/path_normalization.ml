@@ -58,6 +58,50 @@ let normalize_literal path =
   else if base = "" && absolute then "/"
   else base
 
+(* Kong 3.9.3 declarative/migrations/route_path.lua migrates explicit 1.1/2.1
+   input before routing. This is migrate_path_280_300's bounded path transform:
+   ordinary paths receive URI normalization, implicit regex paths get '~' and
+   one final percent decode with metacharacters escaped. Modern route regexes
+   do NOT receive this transformation. *)
+let migrate_legacy_path path =
+  let plain = function
+    | 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9'
+    | '.' | '-' | '_' | '~' | '/' | '%' -> true
+    | _ -> false
+  in
+  (* The migration's PCRE '$' also accepts one final LF. Preserve that exact
+     classification; a second LF is not accepted by its plain-character class. *)
+  let plain_path =
+    String.for_all plain path
+    || (String.ends_with ~suffix:"\n" path
+        && String.for_all plain (String.sub path 0 (String.length path - 1)))
+  in
+  if plain_path then normalize_literal path
+  else
+    let output = Buffer.create (String.length path + 1) in
+    Buffer.add_char output '~';
+    let rec loop index =
+      if index >= String.length path then ()
+      else if path.[index] = '%' && index + 2 < String.length path then
+        match hex_value path.[index + 1], hex_value path.[index + 2] with
+        | Some high, Some low ->
+          let decoded = Char.chr ((high lsl 4) lor low) in
+          if String.contains reserved decoded then
+            Buffer.add_string output (Printf.sprintf "%%%02X" (Char.code decoded))
+          else begin
+            if String.contains ".^-{}\\|" decoded then Buffer.add_char output '\\';
+            Buffer.add_char output decoded
+          end;
+          loop (index + 3)
+        | _ -> Buffer.add_char output path.[index]; loop (index + 1)
+      else begin
+        Buffer.add_char output path.[index];
+        loop (index + 1)
+      end
+    in
+    loop 0;
+    Buffer.contents output
+
 let has_valid_percent_encoding path =
   let length = String.length path in
   let rec loop index =

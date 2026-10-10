@@ -1,1 +1,1 @@
-{"result":"proved","schema_version":9,"property":"authenticated-access","assurance":{"profile":"kong-traditional-http-v10","status":"within_profile","findings":[]},"frozen_spec":null,"clause":null,"counterexample":null}
+{"result":"proved","schema_version":9,"property":"authenticated-access","assurance":{"profile":"kong-traditional-http-v11","status":"within_profile","findings":[]},"frozen_spec":null,"clause":null,"counterexample":null}

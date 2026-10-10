@@ -89,8 +89,8 @@ let () =
   let unknown_plugin = config ~plugins:"[{name: custom-auth}]" "admin" in
   (match (run unknown_plugin guarded).result with
    | Compare.Unknown reason
-     when String.starts_with ~prefix:"before config is conservative: unrecognized-plugin" reason -> ()
-   | _ -> failwith "conservative plugin semantics must prevent equivalence");
+     when String.starts_with ~prefix:"before config is unsupported: unrecognized-plugin" reason -> ()
+   | _ -> failwith "unmodeled plugin semantics must prevent equivalence");
 
   let unsupported_regex =
     {|services: [{name: api, routes: [{name: admin, paths: ['~/admin/(a+)\1']}]}]|}
@@ -118,7 +118,7 @@ let () =
 
   let json = Compare.to_json (run open_config open_config) in
   let expected =
-    {|{"result":"equivalent","schema_version":1,"comparison":"security_decision","assurance_profile":"kong-traditional-http-v10","witness":null}|}
+    {|{"result":"equivalent","schema_version":1,"comparison":"security_decision","assurance_profile":"kong-traditional-http-v11","witness":null}|}
   in
   if json <> expected then failwith ("unexpected equivalence JSON: " ^ json)
 
@@ -324,7 +324,7 @@ let () =
   (match (run_mode Compare.Upstream_uri regex regex).result with
    | Compare.Unknown reason
      when String.starts_with
-            ~prefix:"before config route \"api-route\" contains a regex route path"
+            ~prefix:"before config is conservative: regex-match-runtime"
             reason -> ()
    | _ -> failwith "regex upstream transformation must fail closed")
 

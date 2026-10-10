@@ -8,20 +8,21 @@
 
    For an ordered pair (shadowing i, shadowed k) the query is
 
-     ∃ req.  selected_i(req) ∧ match_k(req) ∧ guard_i(req) ∧ ¬guard_k(req)
+     ∃ req.  selected_i(req) ∧ may_match_k(req) ∧ may_guard_i(req) ∧ ¬must_guard_k(req)
 
-   read as: a request that i actually serves AND LETS THROUGH, which k was
-   written to handle and WOULD HAVE STOPPED. Satisfiable means k's guard does not
-   cover traffic k's own match would accept, because i outranks it.
+   read as a model-level candidate that i may serve while k's protection is
+   not established. With incomplete matches/guards this can be a conservative
+   finding, not a guaranteed target execution.
 
-   Note the polarity: it is [guard_i] (i permits) and [¬guard_k] (k would deny).
+   Note the polarity: may-guard for i, negated must-guard for k. Negating k's
+   upper bound would omit possible violations under an incomplete guard.
    Writing ¬guard_i instead makes the query trivially unsatisfiable exactly when i
    is unguarded, which is the interesting case, so the property would silently
    find nothing. *)
 
 type pair = {
-  shadowing : Ir.rule;  (** higher priority: the rule that actually serves *)
-  shadowed  : Ir.rule;  (** lower priority: the rule written to handle it *)
+  shadowing : Ir.rule;  (** possible permissive winner *)
+  shadowed  : Ir.rule;  (** route whose protection is not established *)
 }
 
 (* A guard read as the SET of constraints it imposes: [True] imposes nothing, a
@@ -78,11 +79,11 @@ let candidates (p : Ir.policy) : pair list =
       List.filter_map
         (fun (k : Ir.rule) ->
           if
-            (not (Ir.outranks k.Ir.priority i.Ir.priority))
+            (not (k.Ir.match_complete && Ir.outranks k.Ir.priority i.Ir.priority))
             && i.Ir.id <> k.Ir.id
             && i.Ir.decision = Ir.Allow
             && k.Ir.decision = Ir.Allow
-            && may_be_more_permissive i.Ir.guard k.Ir.guard
+            && may_be_more_permissive i.Ir.guard (Ir.must_guard k)
           then Some { shadowing = i; shadowed = k }
           else None)
         p.rules)

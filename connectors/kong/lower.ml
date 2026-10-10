@@ -9,11 +9,11 @@
 open Soundcheck_core
 
 (* Kong authentication plugins: presence means the route is not anonymous. *)
-let auth_plugins =
-  [ "key-auth"; "key-auth-enc"; "jwt"; "basic-auth"; "oauth2"; "hmac-auth";
-    "ldap-auth"; "ldap-auth-advanced"; "openid-connect"; "mtls-auth" ]
+let auth_plugins = Plugin_support.auth
 
 let is_auth_plugin (name : string) = List.mem name auth_plugins
+
+let http_plugin = Plugin_support.active_http
 
 (* Kong executes at most one configuration for a given plugin name. The most
    specific enabled entity wins: route, then service, then global. A disabled
@@ -23,7 +23,7 @@ let effective_plugin (config : Ast.config) name (service : Ast.service)
     (route : Ast.route) =
   let find plugins =
     List.find_opt
-      (fun (plugin : Ast.plugin) -> plugin.enabled && plugin.name = name)
+      (fun (plugin : Ast.plugin) -> http_plugin plugin && plugin.name = name)
       plugins
   in
   let find_scoped service_ref route_ref =
@@ -33,7 +33,7 @@ let effective_plugin (config : Ast.config) name (service : Ast.service)
           scoped.service = service_ref && scoped.route = route_ref
           && not scoped.consumer_scoped
           && not scoped.unsupported_reference
-          && scoped.plugin.enabled && scoped.plugin.name = name
+          && http_plugin scoped.plugin && scoped.plugin.name = name
         then Some scoped.plugin
         else None)
       config.scoped_plugins
@@ -87,11 +87,9 @@ let auth_condition config (service : Ast.service) (route : Ast.route) =
    Response and GraphQL rate limiting are deliberately separate: the former
    depends on upstream usage headers, while the latter covers GraphQL query
    cost rather than arbitrary HTTP traffic. *)
-let general_rate_limit_plugins =
-  [ "rate-limiting"; "rate-limiting-advanced" ]
+let general_rate_limit_plugins = Plugin_support.general_rate_limit
 
-let specialized_rate_limit_plugins =
-  [ "response-ratelimiting"; "graphql-rate-limiting-advanced" ]
+let specialized_rate_limit_plugins = Plugin_support.specialized_rate_limit
 
 let is_general_rate_limit_plugin name =
   List.mem name general_rate_limit_plugins
@@ -101,6 +99,26 @@ let is_specialized_rate_limit_plugin name =
 
 let is_rate_limit_plugin name =
   is_general_rate_limit_plugin name || is_specialized_rate_limit_plugin name
+
+let is_known_plugin = Plugin_support.known
+
+let effective_plugins config service route =
+  config.Ast.global_plugins @ service.Ast.plugins @ route.Ast.plugins
+  @ List.map (fun (scoped : Ast.scoped_plugin) -> scoped.plugin) config.scoped_plugins
+  |> List.map (fun (plugin : Ast.plugin) -> plugin.name)
+  |> List.sort_uniq String.compare
+  |> List.filter_map (fun name -> effective_plugin config name service route)
+
+let guard_complete config service route =
+  effective_plugins config service route
+  |> List.for_all (fun (plugin : Ast.plugin) ->
+       is_known_plugin plugin.name
+       && not (is_rate_limit_plugin plugin.name)
+       && not plugin.anonymous_fallback
+       && (plugin.name <> "request-termination" || plugin.trigger = None)
+       && (plugin.name <> "ip-restriction"
+           || List.for_all (fun value -> Result.is_ok (Cidr.parse value))
+                (plugin.allow @ plugin.deny)))
 
 let rate_limited config (service : Ast.service) (route : Ast.route) : bool =
   List.exists
@@ -127,7 +145,7 @@ let request_termination config (service : Ast.service) (route : Ast.route) =
 let path_condition (p : string) : Ir.condition =
   if not (Fragment.is_regex_path p) then Ir.Path_prefix p
   else
-    match Regex.parse (Fragment.pattern_of p) with
+    match Regex_boundary.parse (Fragment.pattern_of p) with
     | Error _ ->
       (* {!Fragment.check} runs before lowering and rejects these, so this is
          unreachable; fall back to the sound reading rather than raise. *)
@@ -154,8 +172,9 @@ let path_matches (kong_path : string) (concrete : string) : bool =
 
    Four things that follow, none of them guessable from the docs:
 
-   - [*] becomes [.+], ONE or more. So "*.example.com" does NOT match
-     "example.com" — the wildcard requires a label to be present.
+   - traditional uses [.+], but matches a host with a synthesized default port;
+     compatible uses prefix/suffix string matching with a possibly empty wildcard.
+     The shared upper bound therefore uses [.*] and is never a complete match.
    - dots are literal, not "any character".
    - the "a" flag anchors the match at the START, and the pattern ends in [$], so
      a wildcard host is anchored at BOTH ends. (Contrast a regex PATH, where only
@@ -173,22 +192,28 @@ let host_condition (hosts : string list) : Ir.condition option =
   in
   let of_host (h : string) : Ir.condition =
     let has_port = String.contains h ':' in
-    (* split on '*' and rebuild: literals stay literal, each '*' becomes .+ *)
+    (* Request.host does not encode Kong's effective Host port. An omitted raw
+       port can still match an explicit route :80/:443; raw equality would
+       underapproximate. Keep the whole host unconstrained until modeled. *)
+    if has_port then Ir.True else
+    (* Split on '*': literals stay literal; the wildcard may be empty. *)
     let parts = String.split_on_char '*' h in
     let rec interleave = function
       | [] -> []
       | [ last ] -> [ Regex.Lit last ]
-      | p :: rest -> Regex.Lit p :: Regex.Plus Regex.Any :: interleave rest
+      | p :: rest -> Regex.Lit p :: Regex.Star Regex.Any :: interleave rest
     in
     let body = Regex.Concat (interleave parts) in
-    let re = if has_port then body else Regex.Concat [ body; port_suffix ] in
+    let re = Regex.Concat [ body; port_suffix ] in
     Ir.Host_matches re
   in
   match hosts with [] -> None | hs -> Some (Ir.Or (List.map of_host hs))
 
-let is_header_regex = function
-  | [ value ] -> String.starts_with ~prefix:"~*" value
-  | _ -> false
+(* Traditional recognizes regex only for singleton header-value lists; the
+   compatible transformer recognizes each ~* value, including mixed lists.
+   The shared model must not treat such a list as exact literal equality. *)
+let is_header_regex values =
+  List.exists (String.starts_with ~prefix:"~*") values
 
 let routable_headers (route : Ast.route) =
   List.filter
@@ -324,12 +349,17 @@ let ip_restriction_condition config (service : Ast.service) (route : Ast.route) 
         let denied = cidrs_of p.deny in
         let allowed = cidrs_of p.allow in
         (if denied = [] then [] else [ Ir.Not (Ir.Or denied) ])
-        @ if allowed = [] then [] else [ Ir.Or allowed ])
+        @ if allowed = [] || List.length allowed <> List.length p.allow then []
+          else [ Ir.Or allowed ])
       plugins
   in
   match conds with [] -> Ir.True | cs -> Ir.And cs
 
 let guard_condition config (service : Ast.service) (route : Ast.route) : Ir.condition =
+  if List.exists (fun (plugin : Ast.plugin) -> not (is_known_plugin plugin.name))
+       (effective_plugins config service route)
+  then Ir.True
+  else
   let auth = auth_condition config service route in
   let protocol =
     if List.mem "https" route.protocols && not (List.mem "http" route.protocols)
@@ -349,116 +379,72 @@ let guard_condition config (service : Ast.service) (route : Ast.route) : Ir.cond
   | [ c ] -> c
   | cs -> Ir.And cs
 
-(* Route ranking, read off Kong's own comparator (kong/router/traditional.lua
-   [sort_routes]) rather than guessed:
+(* A shared partial order, not a transcription of only traditional's sort.
+   Both flavors first compare criterion counts. At equal counts their category,
+   host/header, and regex tiebreaks differ; traditional also reduces candidates
+   using a request-dependent global URI/header hit before its full category scan.
+   Detailed path order is used only with globally identical non-path predicates.
+   Unresolved cases stay tied; SNI variants and regex runtime matches stay
+   incomparable. Pinned basis: traditional.lua sort_categories/reduce/exec and
+   transform.lua get_priority/split_routes_and_services, Kong 3.9.3. *)
 
-     submatch_weight DESC  >  header count DESC  >  regex_priority DESC
-       >  max_uri_length DESC  >  created_at ASC
+let active_routes (config : Ast.config) =
+  let http (route : Ast.route) =
+    List.exists (fun p -> p = "http" || p = "https") route.protocols
+  in
+  (List.concat_map
+     (fun (service : Ast.service) -> if service.enabled then service.routes else [])
+     config.services
+   @ List.filter_map
+       (fun (top : Ast.top_level_route) ->
+         if top.service = None && not top.unsupported_reference then Some top.route else None)
+       config.top_level_routes)
+  |> List.filter http
 
-   and [MATCH_SUBRULES] has only three flags — HAS_REGEX_URI, PLAIN_HOSTS_ONLY,
-   HAS_WILDCARD_HOST_PORT. Two concern hosts, which we do not model; the third
-   means a REGEX PATH RAISES submatch_weight. Since that term is compared first,
-   a regex route outranks every plain-prefix route no matter how long the prefix
-   is — surprising, but it is what the source says. Methods contribute nothing to
-   submatch_weight, so they cannot disturb prefix ordering.
+let detailed_path_order config =
+  let signature (route : Ast.route) =
+    (route.methods, route.hosts_present, route.hosts, route.headers, route.snis,
+     route.protocols, route.has_sources_or_destinations)
+  in
+  match active_routes config with
+  | [] -> true
+  | first :: rest -> List.for_all (fun route -> signature route = signature first) rest
 
-   Hence [tier]: regex routes sit above prefix routes. Within regex routes the
-   declared [regex_priority] is the rank (Kong consults it only for regex routes).
-   Within prefix routes the rank is path length, which is [max_uri_length].
-
-   [shape] carries what we still cannot order. Kong groups routes into CATEGORIES
-   by which criteria they use and iterates categories in an order we have not
-   modelled, so a route constraining methods and one not constraining them are
-   left incomparable rather than ranked against each other. Equal regex_priority
-   also leaves two regex routes tied, since the next tiebreak (max_uri_length over
-   a pattern) is not something we can justify. *)
-(* Route ranking, transcribed from Kong's own two layers rather than guessed.
-
-   Layer 1, [sort_categories]: routes are grouped into CATEGORIES by which
-   criteria they use, and categories are walked in order of
-     match_weight DESC  >  category_bit DESC
-   where match_weight is simply the COUNT of criteria kinds used. So a host+path
-   route beats a path-only route regardless of path length — this layer dominates
-   everything below it.
-
-   Layer 2, [sort_routes], within a category:
-     submatch_weight DESC > header count DESC > regex_priority DESC
-       > max_uri_length DESC > created_at ASC
-
-   [created_at] is absent from a declarative config, so rules equal on everything
-   above it stay tied, which is the sound reading.
-
-   Criteria bits and subrule bits are verbatim from kong/router/traditional.lua. *)
-let rule_host = 0x40
-let rule_header = 0x20
-let rule_uri = 0x10
-let rule_method = 0x08
-let rule_sni = 0x04
-
-let sub_regex_uri = 0x01
-let sub_plain_hosts_only = 0x02
-let sub_wildcard_host_port = 0x04
-
-let is_wildcard_host h = String.contains h '*'
-
-(* A wildcard host "includes a port" when a colon follows the host part. *)
-let wildcard_host_has_port h = is_wildcard_host h && String.contains h ':'
-
-(* Criteria Kong matches on that we do NOT model exactly: wildcard SNIs, regex
-   header values, stream-only sources/destinations, and uppercase hosts. A route
-   carrying one is marked incomparable — see {!Ir.priority}. *)
 let unmodelled_match (variant : sni_variant) (route : Ast.route) : bool =
   route.has_sources_or_destinations
   || (variant = Https_sni && has_wildcard_sni route)
-  || List.exists (fun (_, values) -> is_header_regex values)
-       (routable_headers route)
-  (* An uppercase host can never match: the server lowercases the Host before
-     routing, while route hosts are stored as written. Rather than lowercase it —
-     which would over-approximate the match, unsafe in the suppression position —
-     such a route is left unranked. *)
+  || List.exists (fun (_, values) -> is_header_regex values) (routable_headers route)
   || List.exists (fun h -> String.lowercase_ascii h <> h) route.hosts
+  || List.exists (fun h -> String.contains h ':' || String.contains h '*') route.hosts
 
-let priority_of ~(regex_priority : int) ~(include_sni : bool)
+let priority_of ?(detailed = false) ~(regex_priority : int) ~(include_sni : bool)
     (route : Ast.route) (path : string option) : Ir.priority =
-  let headers = routable_headers route in
-  let has_uri = path <> None in
-  let has_method = route.methods <> [] in
-  let has_host = route.hosts <> [] in
-  let has_headers = headers <> [] in
-  let has_sni = include_sni in
-  let bit b present = if present then b else 0 in
-  let category_bit =
-    bit rule_uri has_uri lor bit rule_method has_method lor bit rule_host has_host
-    lor bit rule_header has_headers lor bit rule_sni has_sni
-  in
   let match_weight =
-    List.length
-      (List.filter Fun.id
-         [ has_uri; has_method; has_host; has_headers; has_sni ])
+    List.length (List.filter Fun.id
+      [ path <> None; route.methods <> []; route.hosts <> [];
+        routable_headers route <> []; include_sni ])
   in
-  let is_regex = match path with Some p -> Fragment.is_regex_path p | None -> false in
-  let submatch_weight =
-    bit sub_regex_uri is_regex
-    lor bit sub_plain_hosts_only
-          (has_host && not (List.exists is_wildcard_host route.hosts))
-    lor bit sub_wildcard_host_port
-          (List.exists wildcard_host_has_port route.hosts)
+  let is_regex = Option.fold ~none:false ~some:Fragment.is_regex_path path in
+  let uri_length =
+    match path with Some p when not is_regex -> String.length p | _ -> 0
   in
-  (* regex_priority is consulted only for regex-URI routes; using 0 otherwise lets
-     the comparison fall through to the next level, exactly as Kong's guard does. *)
-  let rp = if is_regex then regex_priority else 0 in
-  let uri_length = match path with Some p -> String.length p | None -> 0 in
-  { Ir.comparable = true;
-    key =
-      [ match_weight; category_bit; submatch_weight; List.length headers; rp;
-        uri_length ] }
+  (* Compatible packs regex_priority into 32 bits and literal length into 19.
+     Values outside this justified domain must not contaminate count ordering. *)
+  let comparable =
+    regex_priority >= 0 && Int64.of_int regex_priority <= 0xffffffffL
+    && uri_length <= 0x7ffff && route.snis = []
+  in
+  { Ir.comparable;
+    key = if detailed then
+      [ match_weight; (if is_regex then 1 else 0);
+        (if is_regex then regex_priority else 0); uri_length ]
+    else [ match_weight; 0; 0; 0 ] }
 
 (* One IR rule per (route, path) rather than per route. A Kong route may carry
    several paths of different lengths, which would leave a single rule with no
-   well-defined priority. Splitting keeps priority exact, and is behaviour-
-   preserving under the current flat-OR encoder since (or (or p1 p2)) = (or p1 p2).
-   Both rules keep the route's name as [id], so counterexample lifting is
-   unaffected. *)
+   well-defined priority. Both pinned routers split paths before ordering;
+   compatible groups regex paths / same-length prefixes. Only the justified
+   common partial order above is retained. Variants keep one entity identity. *)
 let rules_of_route ?(decision = Ir.Allow) config (service : Ast.service)
     (route : Ast.route) : Ir.rule list =
   if
@@ -472,6 +458,7 @@ let rules_of_route ?(decision = Ir.Allow) config (service : Ast.service)
     match route.paths with [] -> [ None ] | ps -> List.map (fun p -> Some p) ps
   in
   let guard = guard_condition config service route in
+  let guard_complete = guard_complete config service route in
   let rate_limited = rate_limited config service route in
   let targets_admin = targets_admin_api service in
   let variants =
@@ -482,16 +469,23 @@ let rules_of_route ?(decision = Ir.Allow) config (service : Ast.service)
     (fun path ->
       List.map
         (fun variant : Ir.rule ->
-          let match_complete = not (unmodelled_match variant route) in
+          (* PCRE match-limit failures cause Kong to continue to other routes.
+             Language membership is therefore only a may-match bound for regex
+             routes, even for syntax shared by both flavors. Such a match must
+             never suppress another candidate or prove definite functionality. *)
+          let regex = Option.fold ~none:false ~some:Fragment.is_regex_path path in
+          let match_complete = not regex && not (unmodelled_match variant route) in
           let priority =
-            priority_of ~regex_priority:route.regex_priority
+            priority_of ~detailed:(detailed_path_order config)
+              ~regex_priority:route.regex_priority
               ~include_sni:(variant = Https_sni) route path
           in
           { id = route.name;
             match_ = match_condition variant path route;
             match_complete;
             guard;
-            priority = { priority with comparable = match_complete };
+            guard_complete;
+            priority = { priority with comparable = priority.comparable && match_complete };
             decision;
             rate_limited;
             targets_admin })
@@ -502,11 +496,13 @@ let to_policy (cfg : Ast.config) : Ir.policy =
   let service_rules =
     List.concat_map
       (fun (service : Ast.service) ->
-        List.concat_map (rules_of_route cfg service) service.routes)
+        if not service.enabled then []
+        else List.concat_map (rules_of_route cfg service) service.routes)
       cfg.services
   in
   let no_service : Ast.service =
     { name = "<no-service>";
+      enabled = true;
       url = None;
       protocol = None;
       host = None;
