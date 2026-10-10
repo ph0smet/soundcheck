@@ -200,6 +200,23 @@ let run_contract ?(show_source = false) ~lift_denied cfg policy contract =
    proof. *)
 let run_shadowing ?emit_smt (cfg : Ast.config) (policy : Ir.policy) :
     Report.outcome =
+  (* Display names currently double as IR route identities. Inspect entities
+     before path/SNI expansion: one multi-path route is fine, two distinct
+     routes with the same name (including unnamed routes) are ambiguous.
+     Never let [candidates]' same-entity pruning turn that ambiguity into proof.
+     Referenced top-level routes are already inserted into service.routes. *)
+  let route_names =
+    List.concat_map
+      (fun (service : Ast.service) ->
+        List.map (fun (route : Ast.route) -> route.name) service.routes)
+      cfg.services
+    @ List.filter_map
+        (fun (top : Ast.top_level_route) ->
+          if top.service = None && not top.unsupported_reference then
+            Some top.route.name
+          else None)
+        cfg.top_level_routes
+  in
   let rec go = function
     | [] -> Report.Proved
     | (pair : Shadowing.pair) :: rest -> (
@@ -210,7 +227,11 @@ let run_shadowing ?emit_smt (cfg : Ast.config) (policy : Ir.policy) :
       | Solve.Unknown s -> Report.Unknown s
       | Solve.Proved -> go rest)
   in
-  go (Shadowing.candidates policy)
+  if List.length route_names <> List.length (List.sort_uniq String.compare route_names)
+  then
+    Report.Unknown
+      "shadowing requires distinct route names: multiple entities share a name or are unnamed"
+  else go (Shadowing.candidates policy)
 
 (* The trace is absent for legacy properties and configs rejected before
    lowering. In particular, unsupported configs never acquire invented queries

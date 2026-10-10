@@ -260,24 +260,46 @@ let match_condition (variant : sni_variant) (path : string option)
 let admin_ports = [ "8001"; "8444" ]
 
 let targets_admin_api (service : Ast.service) : bool =
-  let url = Option.value ~default:"" service.url in
-  (* take the ":port" that follows the host, before any path *)
+  match service.url with
+  | None ->
+    (* The entity schema defaults an omitted explicit port to 80. URL shorthand
+       is handled separately because Kong's non-deprecated shorthand overrides
+       explicit fields (schema/init.lua process_auto_fields). *)
+    Option.fold ~none:false
+      ~some:(fun port -> List.mem (string_of_int port) admin_ports) service.port
+  | Some url ->
+  (* Kong's services.lua shorthand uses socket.url.parse and tonumber on the
+     parsed port. Handle scheme-relative authorities and fragments, and compare
+     the numeric port: leading zeros do not change the upstream endpoint.
+     This remains the documented default-Admin-port heuristic, not a general
+     URL/schema validator or a claim about custom Admin API listeners. *)
   let after_scheme =
-    match String.index_opt url ':' with
+    if String.starts_with ~prefix:"//" url then
+      String.sub url 2 (String.length url - 2)
+    else match String.index_opt url ':' with
     | Some i when i + 3 <= String.length url && String.sub url i 3 = "://" ->
       String.sub url (i + 3) (String.length url - i - 3)
-    | _ -> url
+    | _ -> ""
   in
   let authority =
-    match String.index_opt after_scheme '/' with
-    | Some i -> String.sub after_scheme 0 i
-    | None -> after_scheme
+    let rec finish i =
+      if i = String.length after_scheme then i
+      else
+        match after_scheme.[i] with
+        (* LuaSocket 3.0-rc1 extracts authority before query, so a query without
+           a preceding slash is part of the port and fails Kong's schema. *)
+        | '/' | '#' -> i
+        | _ -> finish (i + 1)
+    in
+    String.sub after_scheme 0 (finish 0)
   in
   match String.rindex_opt authority ':' with
   | None -> false
   | Some i ->
     let port = String.sub authority (i + 1) (String.length authority - i - 1) in
-    List.mem port admin_ports
+    (match float_of_string_opt (String.trim port) with
+     | Some value -> value = 8001. || value = 8444.
+     | None -> false)
 
 (* ip-restriction as a policy guard: it runs after routing, so it constrains who
    may be served, not which route serves.

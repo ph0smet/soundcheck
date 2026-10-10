@@ -11,14 +11,15 @@ type pair = {
 }
 
 val strictly_weaker : Ir.condition -> Ir.condition -> bool
-(** Whether the first guard permits requests the second would stop. Conservative:
-    an unrecognised pairing is reported as not-weaker, which costs findings but
-    never soundness. *)
+(** Legacy syntactic constraint-subset heuristic, retained for compatibility.
+    [false] does NOT imply that no violating request exists. Do not use this
+    incomplete heuristic to exclude pairs from a sound shadowing check. *)
 
 val candidates : Ir.policy -> pair list
-(** Statically-pruned pairs worth querying: priority at least as high, strictly
-    weaker guard, and distinct routes (a route split across paths cannot shadow
-    itself). Match overlap is left to the solver.
+(** Statically-pruned pairs worth querying: priority at least as high and distinct
+    routes (a route split across paths cannot shadow itself). Guard pruning is
+    allowed only when a syntactic implication proves the pair cannot violate;
+    unrelated guards still require a query. Match overlap is left to the solver.
 
     Equal priority counts, because it means the order is undetermined and the
     weaker rule may serve. Excluding ties would report [proved] for a config whose

@@ -34,27 +34,26 @@ let rec constraints (c : Ir.condition) : Ir.condition list =
 
 let subset xs ys = List.for_all (fun x -> List.mem x ys) xs
 
-(* [a] is strictly weaker than [b] when b imposes everything a does and more, so
-   b stops requests a lets through.
-
-   Deliberately set-based rather than a match on specific pairs. An earlier
-   version tested literally for ([True], [Requires_auth]) and silently stopped
-   finding anything the moment guards gained a second conjunct — a false PROVED,
-   caught only because the corpus pinned two shadowing cases. Comparing constraint
-   sets keeps working as the guard vocabulary grows.
-
-   Still conservative: constraints are compared structurally, so two different
-   spellings of the same restriction look unrelated. That costs findings, never
-   soundness. *)
+(* Retained for library compatibility; this syntactic heuristic is incomplete
+   and must not be used to exclude candidate pairs. *)
 let strictly_weaker (a : Ir.condition) (b : Ir.condition) : bool =
   let ca = constraints a and cb = constraints b in
   subset ca cb && not (subset cb ca)
+
+(* Prune only with a sufficient implication proof: every conjunct of [b] also
+   occurs in [a], so [a && not b] is impossible. Otherwise ask the solver.
+   Requiring [a]'s constraints to be a strict subset of [b]'s was UNSOUND:
+   unrelated guards (auth versus a network, or two distinct networks) can still
+   admit a request through [a] that [b] denies. Structural non-implication is
+   not evidence of semantic implication, so it must never suppress a query. *)
+let may_be_more_permissive (a : Ir.condition) (b : Ir.condition) : bool =
+  not (subset (constraints b) (constraints a))
 
 (* Pairs worth asking the solver about. Pruning is purely static and only removes
    pairs whose query could not be interesting:
 
    - i ranks at least as high as k, so it can take the request;
-   - a strictly weaker guard on i, else serving the request is no loss;
+   - i's guard is not syntactically known to imply k's guard;
    - different routes — a route split across several paths cannot shadow itself.
 
    Note the test is "k does not outrank i", not "i outranks k". That admits three
@@ -83,7 +82,7 @@ let candidates (p : Ir.policy) : pair list =
             && i.Ir.id <> k.Ir.id
             && i.Ir.decision = Ir.Allow
             && k.Ir.decision = Ir.Allow
-            && strictly_weaker i.Ir.guard k.Ir.guard
+            && may_be_more_permissive i.Ir.guard k.Ir.guard
           then Some { shadowing = i; shadowed = k }
           else None)
         p.rules)

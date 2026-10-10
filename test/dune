@@ -70,6 +70,10 @@
  (libraries soundcheck_core soundcheck_kong))
 
 (test
+ (name semantic_hardening_t)
+ (libraries soundcheck_core soundcheck_kong))
+
+(test
  (name network_restricted_t)
  (libraries soundcheck_core soundcheck_kong))
 
