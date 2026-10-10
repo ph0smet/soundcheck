@@ -228,7 +228,21 @@
   fixtures/kong_conformance/mock-command.sh
   ../bench/kong/conformance/run.sh
   ../bench/kong/conformance/kong.yaml
-  ../bench/kong/conformance/probes.tsv)
+  ../bench/kong/conformance/probes.tsv
+  ../bench/kong/conformance/auth.yaml
+  ../bench/kong/conformance/auth-probes.tsv
+  ../bench/kong/conformance/paths.yaml
+  ../bench/kong/conformance/paths-probes.tsv
+  ../bench/kong/conformance/mixed.yaml
+  ../bench/kong/conformance/mixed-probes.tsv
+  ../bench/kong/conformance/reducer.yaml
+  ../bench/kong/conformance/reducer-probes.tsv
+  ../bench/kong/conformance/category.yaml
+  ../bench/kong/conformance/category-probes.tsv
+  ../bench/kong/conformance/hosts.yaml
+  ../bench/kong/conformance/hosts-probes.tsv
+  ../bench/kong/conformance/boundaries.yaml
+  ../bench/kong/conformance/boundaries-probes.tsv)
  (action
   (run
    bash

@@ -607,9 +607,11 @@ Connectors depend on core. **Core never depends on connectors.**
 
 ## Roadmap
 
-The immediate focus is Kong-first depth: demonstrate the frozen MCP workflow end to end,
-publish a versioned assurance profile, expand the paired contract catalogue, improve
-semantic coverage, and differentially validate the model against real Kong behavior.
+The immediate focus is trustworthy Kong-first verification before public promotion.
+Frozen MCP acceptance, the assurance profile, paired contracts, configuration
+comparison, CI integration, and evidence bundles are implemented. Semantic hardening
+and independently justified target conformance govern their supported boundary;
+passing the existing corpus alone is not sufficient acceptance.
 
 Real-gateway differential conformance runs in CI and is also available locally
 with Docker. It checks fixed target observations and model bounds against pinned Kong OSS 3.9.3 under
@@ -649,9 +651,11 @@ outside the frozen repair scope.
 With `--contract`, `--emit-smt` writes the outside-scope preservation query; the
 multi-query contract result remains embedded in the comparison report.
 
-Configuration equivalence and frozen-contract CI integration are implemented.
-Frozen verification now emits reproducible evidence bundles. Next is a deterministic
-repair benchmark with structured verifier feedback for external agent and RLVR systems.
+The next development priorities are continuous target conformance, semantic
+acceptance for every supported feature, small authorized deployment pilots, and
+usability improvements informed by that feedback. A deterministic repair benchmark
+with structured feedback for external agent and RLVR systems follows verifier
+hardening and representative evaluation; it is not the immediate next milestone.
 
 Soundcheck remains a model-independent verifier. External agents and optional downstream
 orchestrators may generate or repair configurations through its interfaces, but model
@@ -665,8 +669,9 @@ is OCaml's home turf. Z3 is the automated solver backend, reached through SMT-LI
 rather than language bindings. That keeps the boundary inspectable and replaceable, and
 makes single-property obligations artifacts you can read.
 
-Interactive theorem proving is deliberately avoided. The design premise is that this
-problem class does not need it.
+Interactive theorem proving is not part of the runtime architecture. Automated SMT
+fits the supported policy fragment; future meta-verification of critical semantics
+or proof certificates is a separate question.
 
 ## License
 

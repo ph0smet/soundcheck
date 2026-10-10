@@ -1,0 +1,9 @@
+_format_version: "3.0"
+services:
+  - name: category-upstream
+    url: http://127.0.0.1:8001/status
+    routes:
+      - name: wildcard-host
+        hosts: ['*.probe.example']
+      - name: literal-path
+        paths: [/category]

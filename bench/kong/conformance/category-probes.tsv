@@ -1,0 +1,6 @@
+# Equal criterion counts do not impose the same category order in both routers.
+# name|scheme|method|path|host|sni|principal|headers|decision|route|service|status|model-class|flavors
+category-overlap|http|GET|/category|a.probe.example|-|anonymous|-|allow|wildcard-host|category-upstream|404|conservative|traditional
+category-overlap|http|GET|/category|a.probe.example|-|anonymous|-|allow|literal-path|category-upstream|200|conservative|traditional_compatible
+category-host-only|http|GET|/other|a.probe.example|-|anonymous|-|allow|wildcard-host|category-upstream|404|conservative|both
+category-path-only|http|GET|/category|other.example|-|anonymous|-|allow|literal-path|category-upstream|200|exact|both

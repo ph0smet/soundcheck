@@ -3,7 +3,7 @@ open Soundcheck_kong
 
 let usage () =
   prerr_endline
-    "usage: kong_model_oracle CONFIG SCHEME METHOD PATH HOST SNI [HEADER-NAME:VALUE ...]";
+    "usage: kong_model_oracle CONFIG PRINCIPAL SCHEME METHOD PATH HOST SNI [HEADER-NAME:VALUE ...]";
   exit 2
 
 let parse_header value =
@@ -37,10 +37,40 @@ let service_for_route (config : Ast.config) route =
       (Printf.sprintf "route name %S is not unique across services" route);
     exit 2
 
+let read_file path =
+  let channel = open_in_bin path in
+  Fun.protect ~finally:(fun () -> close_in channel)
+    (fun () -> really_input_string channel (in_channel_length channel))
+
+let confirm_unsupported source =
+  (* Unsupported is a boundary check of the public verification pipeline, not
+     agreement between a target decision and an invented model decision. In
+     particular a solver timeout must never satisfy this expectation. *)
+  match Verify.run ~property:(Verify.No_anonymous_access "/") source with
+  | Ok { Report.result = Report.Unknown _;
+         assurance = Some { status = Report.Unsupported; _ }; _ } ->
+    print_endline "unsupported\tunknown";
+    exit 0
+  | _ ->
+    prerr_endline "fragment rejection did not produce Unknown with Unsupported assurance";
+    exit 2
+
 let () =
-  if Array.length Sys.argv < 7 then usage ();
+  if Array.length Sys.argv < 8 then usage ();
+  (* The fixture, not the policy decision, assigns the abstract principal.
+     In particular an invalid/missing key is anonymous even if Kong permits it
+     through an explicit anonymous-consumer fallback. *)
+  let principal =
+    match Sys.argv.(2) with
+    | "anonymous" -> Ir.Anonymous
+    | "authenticated" -> Ir.Authenticated "conformance-user"
+    | value ->
+      prerr_endline (Printf.sprintf "invalid probe principal %S" value);
+      exit 2
+  in
+  let source = read_file Sys.argv.(1) in
   let config =
-    match Parse.parse_file Sys.argv.(1) with
+    match Parse.parse_string source with
     | Ok config -> config
     | Error error -> prerr_endline error; exit 2
   in
@@ -48,21 +78,21 @@ let () =
    | Error error -> prerr_endline error; exit 2
    | Ok () -> ());
   (match Fragment.check config with
-   | Error error -> prerr_endline error; exit 2
+   | Error _ -> confirm_unsupported source
    | Ok () -> ());
   let headers =
-    List.init (Array.length Sys.argv - 7) (fun index ->
-        parse_header Sys.argv.(index + 7))
+    List.init (Array.length Sys.argv - 8) (fun index ->
+        parse_header Sys.argv.(index + 8))
   in
   let request : Ir.request =
-    { principal = Anonymous;
-      action = String.uppercase_ascii Sys.argv.(3);
-      resource = Sys.argv.(4);
+    { principal;
+      action = String.uppercase_ascii Sys.argv.(4);
+      resource = Sys.argv.(5);
       context = headers;
       source = 0l;
-      host = String.lowercase_ascii Sys.argv.(5);
-      scheme = String.lowercase_ascii Sys.argv.(2);
-      sni = String.lowercase_ascii Sys.argv.(6) }
+      host = String.lowercase_ascii Sys.argv.(6);
+      scheme = String.lowercase_ascii Sys.argv.(3);
+      sni = String.lowercase_ascii Sys.argv.(7) }
   in
   let policy = Lower.to_policy config in
   let routes =
@@ -71,15 +101,22 @@ let () =
     |> List.map (fun (rule : Ir.rule) -> rule.id)
     |> List.sort_uniq String.compare
   in
-  let route, service =
-    match routes with
-    | [] -> ("-", "-")
-    | [ route ] -> (route, service_for_route config route)
-    | _ ->
-      prerr_endline
-        ("model leaves multiple routes selectable: " ^ String.concat ", " routes);
-      exit 2
+  let no_route_possible =
+    not
+      (List.exists
+         (fun (rule : Ir.rule) -> rule.match_complete && Ir.matches rule.match_ request)
+         policy.rules)
   in
-  Printf.printf "%s\t%s\t%s\n"
+  (* Internal harness protocol, not the public report schema. Unknown ordering
+     keeps every possible routing identity. The harness checks containment and
+     must <= actual <= may, and reports conservative checks separately. *)
+  Printf.printf "supported\t%s\t%s\n"
     (Ir.evaluate policy request |> Ir.string_of_decision |> String.lowercase_ascii)
-    route service
+    (if Ir.definitely_allows policy request then "allow" else "deny");
+  (* A possible regex/header/host match may fail in the target. Unless at least
+     one complete route definitely matches, "no selected route" is also a
+     possible identity, independent of the may/must policy decisions above. *)
+  if no_route_possible then print_endline "-\t-";
+  List.iter
+    (fun route -> Printf.printf "%s\t%s\n" route (service_for_route config route))
+    routes

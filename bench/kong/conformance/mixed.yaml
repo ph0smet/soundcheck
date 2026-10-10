@@ -1,0 +1,37 @@
+_format_version: "3.0"
+services:
+  - name: mixed-upstream
+    url: http://127.0.0.1:8001/status
+    routes:
+      - name: method-fallback
+        paths: [/mixed-method]
+      - name: method-get
+        paths: [/mixed-method]
+        methods: [GET]
+      - name: host-fallback
+        paths: [/mixed-host]
+      - name: host-exact
+        paths: [/mixed-host]
+        hosts: [api.example]
+      - name: header-fallback
+        paths: [/mixed-header]
+      - name: header-region
+        paths: [/mixed-header]
+        headers:
+          x-region: [us]
+      - name: sni-exact
+        paths: [/mixed-sni]
+        protocols: [https]
+        snis: [api.example]
+      - name: https-only
+        paths: [/mixed-https]
+        protocols: [https]
+      - name: header-pattern-fallback
+        paths: [/header-regex-boundary]
+      - name: header-pattern
+        paths: [/header-regex-boundary]
+        headers:
+          x-mode: [literal, '~*^prod-']
+routes:
+  - name: service-less
+    paths: [/mixed-service-less]

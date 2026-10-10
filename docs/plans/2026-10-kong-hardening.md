@@ -190,15 +190,25 @@ corpus YAML is retained; only stale explanatory comments changed.
   total order. Comparison tests preserve their semantic expectations; rejection
   reasons reflect the earlier, stricter boundary.
 
-The updated 50-case corpus passes. Full final integration, expanded real-Kong
-acceptance, and the next clean checkpoint are recorded below when completed.
+The updated 50-case corpus passes. Integrated regression and expanded real-Kong
+acceptance results are recorded below; exact clean-checkpoint results accompany
+the final handoff and project-memory record.
+
+- Integrated checkpoint `e73052c3de4075a84e5b25d604aa74bfe47f86cf`
+  (`Fail closed across Kong semantic boundaries`) passed `dune build @all`,
+  forced full regression tests, and a second build/full run through
+  `scripts/check-commit.sh` in a clean detached worktree. This includes all 50
+  corpus cases, four comparison strengths, real-process frozen MCP acceptance,
+  CLI/evidence consistency, 101 witness checks, and 61 approved-contract cases.
+  Expanded real-target acceptance is still pending integration; this checkpoint
+  alone is not completion of C1 or the Goal.
 
 ### Primary semantic sources
 
 Kong source is pinned to tag 3.9.3, commit
 `a643428bc4d5397152164a63bcc0f8bc65fce69d`:
 
-- [`traditional.lua`](https://github.com/Kong/kong/blob/a643428bc4d5397152164a63bcc0f8bc65fce69d/kong/router/traditional.lua): category sorting, request-global reduction, header arrays, synthesized Host ports, wildcard matching, PCRE execution.
+- [`traditional.lua`](https://github.com/Kong/kong/blob/a643428bc4d5397152164a63bcc0f8bc65fce69d/kong/router/traditional.lua): category sorting, request-global reduction, header arrays, raw versus synthesized Host lookup, wildcard matching, PCRE execution.
 - [`transform.lua`](https://github.com/Kong/kong/blob/a643428bc4d5397152164a63bcc0f8bc65fce69d/kong/router/transform.lua): compatible priority packing, wildcard prefix/suffix predicates, per-value header regexes, regex source rewriting.
 - [`migrate_path_280_300.lua`](https://github.com/Kong/kong/blob/a643428bc4d5397152164a63bcc0f8bc65fce69d/kong/db/migrations/migrate_path_280_300.lua): legacy literal/regex classification and percent migration.
 - [`plugins_iterator.lua`](https://github.com/Kong/kong/blob/a643428bc4d5397152164a63bcc0f8bc65fce69d/kong/runloop/plugins_iterator.lua), entity schemas and declarative lowering: plugin subsystem activation, disabled services, scoped/nested relationships and URL shorthand.
@@ -211,10 +221,87 @@ alternation anchoring, reducer selection, and wildcard-host/path category order.
 These observations are not counted as exact model agreement merely because the
 updated shared profile rejects or conservatively bounds them.
 
-## Final review package (integration checks pending)
+### Expanded target acceptance
 
-- Ordered local commits and combined diff.
-- Package-by-package acceptance evidence and independent review findings.
-- Tests actually run, exact target/tool versions, and any skipped/blocked gates.
-- Remaining limitations and user decisions; no implication of broader assurance
-  from this finite regression/conformance matrix.
+The final C1 matrix has 188 authored observations across eight configurations
+and two router flavors: 82 exact comparisons, 36 conservative-bound checks, and
+70 unsupported-boundary checks. Fixed target identities/decisions and specified
+statuses remain mandatory for every class. Unsupported checks require public
+`unknown` plus `unsupported` assurance, never a timeout. The original routing
+expectations are retained but their mixed configuration is now unsupported;
+separate supported fixtures exercise the retained semantics.
+
+Independent harness review passed. Its 21 Docker-free checks cover lifecycle
+failures, incorrect target/model tuples and statuses, class substitution,
+invalid candidates, empty matrices, and escapes from identity/may/must bounds.
+The must-bound negative control uses two candidates so another class condition
+cannot mask a missing must-bound check. README counts/protocol/source wording
+were also independently checked against the implementation.
+
+Pre-final target runs corrected two newly authored fixture assumptions, without
+changing existing expectations or weakening the model: `/exact` also prefixes
+`/exact-escaped`, so the isolated literal fixture now uses `/exact/`; traditional
+plain-host final lookup does not reuse the synthesized port from category
+detection, whereas compatible can use the effective destination port. The host
+fixture pins `port_maps=80:8000,443:8443` and records that flavor difference.
+The first host expectation was therefore corrected from the complete pinned
+source, not accepted from model output. The optional Docker environment array
+was also made nonempty for system Bash 3.x with `nounset`.
+
+After importing only C1-owned files, integration found a mock-fixture setup
+issue: Dune's read-only dependency copy was redundantly overwritten. Removing
+the duplicate copy fixed the test without changing its expectations. Integrated
+`dune build @all` and `dune test --force` then passed, including all 21 harness
+checks and all 50 corpus cases. The first final target attempt did not execute:
+Docker Desktop had become unavailable; restart was requested through the CLI,
+not computer-use automation.
+
+Docker Desktop restarted successfully. The final integrated
+`bash scripts/check.sh conformance` passed all **188 observations: 82 exact,
+36 conservative, 70 unsupported-boundary**. Both flavors' effective-port and
+wildcard cases matched the corrected source-derived expectations. Each owned
+container was removed by the harness. No target check was waived.
+
+## Integrated review package
+
+All nine in-scope packages are implemented on `fix/kong-semantic-hardening`.
+Review the combined diff against `8cd7b80`; local checkpoints isolate the plan,
+solver strings (`da37727`), shadowing/Admin recognition (`084a886`), strict
+inputs (`5ee1e02`), integrated semantics/gate/docs (`e73052c`), and final C1
+conformance integration. All pre-final checkpoints passed their exact clean-
+worktree checks. The final checkpoint is subject to the same check before
+handoff; its revision/result is recorded in project memory and the handoff.
+
+Final integrated checks performed:
+
+- `dune build @all` and `dune test --force`: passed, including all 50 corpus
+  cases, 91,200 refinement worlds, 101 witness checks, 61 approved-contract
+  cases, all four comparison modes, CLI/MCP/evidence consistency, and 21 mocked
+  harness lifecycle/negative controls.
+- Pinned Kong OSS 3.9.3 real-target conformance: all 188 checks passed on both
+  `traditional` and `traditional_compatible` using image digest
+  `sha256:ca71c5591eabaf18de96d26b7eed5e2fdb590dac141e467a779c38017e5bdf81`.
+- Independent implementation/semantic/harness/documentation reviews: no remaining
+  blocker; discovered issues and corresponding fixes are recorded above.
+- Shell syntax and `git diff --check`: passed.
+- Toolchain: OCaml 5.5.0, Dune 3.24.0, Z3 4.16.0, Docker 28.4.0.
+
+The support boundary is deliberately narrower under profile v11. Previously
+accepted flavor-dependent regex languages now return unknown; accepted regex
+runtime behavior, mixed headers, wildcard/port hosts and unresolved order remain
+conservative. Unsupported active plugins fail closed. These are intentional
+coverage reductions under the approved shared-router decision, not full target
+semantics or a universal soundness proof. Public result schemas and frozen
+contracts are unchanged. Evidence bundles remain audit/replay artifacts, not
+independently checked UNSAT certificates.
+
+No hosted CI was run for this local-only batch, and no push, PR, merge, branch-
+protection change, or remote contract approval was performed. Deployment still
+requires a trusted/pinned workflow and Action, fixed approved contract selection,
+separate contract approval, required non-bypassable checks and fresh-base reruns.
+Computer-use automation remained disabled.
+
+Next is human review of this bounded batch and separate authorization to push.
+The broader roadmap still prioritizes continuous conformance/semantic acceptance,
+authorized deployment pilots and evidence-led usability before an agent benchmark
+or new connectors. Those external/expansion milestones are outside this Goal.

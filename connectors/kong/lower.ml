@@ -182,9 +182,12 @@ let path_matches (kong_path : string) (concrete : string) : bool =
    - a pattern without a port still matches a Host that carries one, via the
      appended optional [(?::\d+)?].
 
-   A PLAIN host is an exact table lookup against both the Host and the Host with
-   its port stripped, which is the same language as the wildcard form with no
-   wildcard in it: the literal, optionally followed by a port. *)
+   A PLAIN host is an exact table lookup against both the raw Host and the Host
+   with its port stripped. Unlike wildcard matching, this final lookup does not
+   use the synthesized host_with_port. Compatible routing can instead match an
+   explicit route port against the effective destination port. Portless plain
+   patterns share the literal-plus-optional-port language; port-bearing patterns
+   remain incomplete below. *)
 let host_condition (hosts : string list) : Ir.condition option =
   let port_suffix =
     (* (?::\d+)? — an optional ":" followed by one or more digits *)
@@ -192,8 +195,8 @@ let host_condition (hosts : string list) : Ir.condition option =
   in
   let of_host (h : string) : Ir.condition =
     let has_port = String.contains h ':' in
-    (* Request.host does not encode Kong's effective Host port. An omitted raw
-       port can still match an explicit route :80/:443; raw equality would
+    (* Request.host does not encode Kong compatible's effective Host port. An
+       omitted raw port can match an explicit route :80/:443; raw equality would
        underapproximate. Keep the whole host unconstrained until modeled. *)
     if has_port then Ir.True else
     (* Split on '*': literals stay literal; the wildcard may be empty. *)

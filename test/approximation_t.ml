@@ -84,8 +84,8 @@ services: [{name: api, routes: [{name: admin, paths: [/admin]}]}]|};
   unsupported "consumer-group nested policy must be explicitly unsupported" paired
     {|consumer_groups: [{name: operators, plugins: [{name: request-termination}]}]
 services: [{name: api, routes: [{name: admin, paths: [/admin], plugins: [{name: key-auth}]}]}]|};
-  (* Pinned Kong traditional synthesizes a default port before Host matching;
-     compatible wildcard string predicates also permit an empty wildcard.
+  (* Pinned Kong compatible can use an effective destination port absent from
+     the raw Host; its wildcard string predicates also permit an empty wildcard.
      Raw-host nonempty-wildcard matching previously hid the open winner. *)
   List.iter (fun (route_host, request_host) ->
     let source = Printf.sprintf
