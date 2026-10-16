@@ -1,0 +1,14 @@
+# Check text out with LF on every platform. The engine's tests compare golden
+# files byte for byte, and the Docker image is built from the working tree, so a
+# CRLF checkout (core.autocrlf=true on Windows) would break the image's test
+# gate. The repository already stores LF, so this changes no stored content.
+* text=auto eol=lf
+
+# Binary assets are never converted.
+*.png binary
+*.ico binary
+*.jpg binary
+*.pdf binary
+*.zip binary
+*.woff binary
+*.woff2 binary
