@@ -6,7 +6,7 @@ HTTP-status expectations. It runs both supported router flavors:
 `traditional` and `traditional_compatible`. Soundcheck's concrete IR evaluator
 supplies possible identities and may/must allowance bounds, not target truth.
 
-The default matrix contains **282 observations: 160 exact, 52 conservative,
+The default matrix contains **304 observations: 176 exact, 58 conservative,
 and 70 unsupported-boundary checks**. These classes are deliberately separate:
 
 - **Exact:** one modeled identity; may and must both equal the target decision.
@@ -32,8 +32,8 @@ or every feature in the assurance profile.
 | hosts | Effective ports and empty wildcard matches | 0 | 6 | 0 |
 | boundaries | Unicode, final LF, top-level alternation | 0 | 0 | 16 |
 | ip | IPv4 restrictions, boundaries, effective plugin scopes | 48 | 0 | 0 |
-| termination | Header triggers, scopes, earlier authentication/IP denial | 10 | 16 | 0 |
-| oss-auth | Singleton Basic Auth/JWT credentials and JWT preflight bypass | 20 | 0 | 0 |
+| termination | Header/query triggers, scopes, earlier authentication/IP denial | 10 | 22 | 0 |
+| oss-auth | Basic/JWT credential validity, JWT preflight, protected/public prefixes | 36 | 0 | 0 |
 
 The routing fixture retains its original 18 requests and adds nine path probes.
 Because it contains regexes outside the shared supported fragment, its entire
@@ -83,7 +83,7 @@ Docker or validate Kong semantics; the real-container comparisons remain separat
 Rows are pipe-delimited despite the historical `.tsv` filename:
 
 ```text
-name|scheme|method|path|host|sni|principal|headers|decision|route|service|status|model-class|flavors|source-ip
+name|scheme|method|path|host|sni|principal|headers|decision|route|service|status|model-class|flavors|source-ip[|query]
 ```
 
 Use `-` for absent fields and `;` between headers. Literal `|` and `;` inside
@@ -91,7 +91,7 @@ fields are not supported. `flavors` is `both`, `traditional`, or
 `traditional_compatible`; flavor-specific rows encode independently justified
 differences, not outputs blessed after running Soundcheck.
 
-The final field is mandatory. `source-ip` is `-` for matrices without a source-IP
+The source-IP field is mandatory; the following query field is optional. `source-ip` is `-` for matrices without a source-IP
 observation and a canonical dotted-decimal IPv4 address for every `ip` and
 `termination` row. Prefixes, ports, IPv6, leading-zero octets, malformed values,
 omitted source fields, and a source address on an unrelated matrix fail the
@@ -105,9 +105,15 @@ trust configuration or evidence that a deployment prevents source spoofing.
 
 The reserved source header cannot be supplied in authored headers. Probe header
 names are restricted to ASCII letters, digits, hyphens and underscores. Request
-paths containing literal `?` or `#` are rejected: the harness does not yet
-separate a request target from the modeled normalized path. Header-trigger
-termination is covered; query-trigger execution remains an explicit gap.
+paths containing literal `?` or `#` are rejected. The optional sixteenth field
+supplies a separate transport query for the `termination` matrix only; omitted,
+empty, or `-` means no query. It accepts literal ASCII `name=value` pairs separated
+by `&`, with letters, digits, underscores and hyphens in names/values. Values may
+be empty; names may not. Escapes, whitespace, fragments and URL/glob syntax are
+rejected. The harness appends this query to the quoted curl URL while passing
+only the original normalized path to the model. Query state remains unmodeled;
+query-trigger probes establish the conservative bound on observed allow/deny,
+not exact symbolic query semantics.
 
 The principal is explicitly `anonymous` or `authenticated`. Missing/invalid
 keys, including keys sent under the wrong effective plugin's header name, are
@@ -119,8 +125,19 @@ synthetic data. The standalone Basic Auth and JWT fixtures do not combine
 providers; the fixed HS256 JWT has no expiry/not-before claim requirement.
 This tests several credential outcomes' abstraction; Soundcheck does not verify
 credential stores, expiry, identity-provider availability, or Consumer policy.
-The Basic/JWT invalid samples are malformed credentials, not well-formed wrong
-passwords or signatures; those rejection branches remain a coverage gap.
+Both providers include malformed and well-formed incorrect credentials. The
+wrong Basic password retains the existing fixture username. The bad JWT keeps
+the valid token's header and claims but uses an HS256 signature made with a
+different public fixture secret. These exercise credential validation failures,
+not merely malformed-token rejection.
+
+The same matrix includes route-scoped Key Auth on `/api` and a longer public
+`/api/health` route. Probes exercise protected anonymous denial, valid credential
+allowance, and public prefix access. Literal-prefix matching also permits
+`/api/health/ready` and `/api/healthy`; this is intentionally not an exact-path or
+path-segment exception. These finite target observations support the routing
+and authentication model used by public-exceptions contracts; contract-wide
+proof obligations retain their separate tests.
 
 `allow` means Kong reached an upstream, observed via the upstream-latency
 header, not HTTP 2xx. Some routing suffixes produce an upstream 404; `-` disables
@@ -133,14 +150,17 @@ The internal oracle protocol reports bounds and candidate identities or
 incomplete match includes a no-route candidate unless another complete match
 guarantees selection. It delegates selection and allowance to the shared IR.
 
-The 35 Docker-free harness checks include wrong model-only, target-only, mutually
+The 49 Docker-free harness checks include wrong model-only, target-only, mutually
 agreeing and HTTP-status observations; oracle errors; malformed/duplicate
 candidates; missing probes; improper class substitution; identity escape; and
 both may/must bound escapes. Source controls also reject malformed/missing
 addresses, reserved headers, query-as-path and invalid matrix selection; targeted
 mutants omit source injection, substitute the oracle source, or change the
 trusted real-IP header. A focused selector must run both and only the selected
-matrix's router instances. Separately, 22 Docker-free oracle checks cover
+matrix's router instances. Fourteen additional query controls test literal/empty
+and multiple values, malformed syntax, query in the wrong matrix, omitted query
+transport and accidental query leakage into the modeled path. Separately,
+22 Docker-free oracle checks cover
 address parsing and propagation. These test protocol/model enforcement, not
 independent Kong semantics.
 
@@ -175,10 +195,13 @@ Kong is pinned to 3.9.3, source commit
   returns early when its trigger is absent from both headers and query. Its
   priority follows Key Auth and IP restriction. Header-trigger probes check
   actual allow/deny behavior while retaining the model's conservative bounds;
-  a prior modeled auth/IP denial can still have exact denying bounds.
+  query-trigger presence (including an empty value) and an unrelated query are
+  also sampled. A prior modeled auth/IP denial can still have exact denying bounds.
 - [Basic Auth](https://github.com/Kong/kong/blob/a643428bc4d5397152164a63bcc0f8bc65fce69d/kong/plugins/basic-auth/access.lua)
-  rejects missing/invalid credentials; [JWT](https://github.com/Kong/kong/blob/a643428bc4d5397152164a63bcc0f8bc65fce69d/kong/plugins/jwt/handler.lua)
-  validates a token or follows its configured OPTIONS bypass.
+  rejects missing/invalid credentials, including a correct username with the wrong
+  password; [JWT](https://github.com/Kong/kong/blob/a643428bc4d5397152164a63bcc0f8bc65fce69d/kong/plugins/jwt/handler.lua)
+  validates a token, rejects a valid-format signature made with the wrong secret,
+  or follows its configured OPTIONS bypass.
 
 PCRE2 versus the pinned ATC/Rust regex implementation explains the boundary
 fixtures' Unicode, final-LF and anchoring differences. Their target observations
@@ -189,7 +212,7 @@ for the narrowed profile, independent refinement oracle, and acceptance record.
 
 Remaining gaps include the rest of the recognized authentication list,
 Enterprise-only plugins, provider/credential availability, expiry behavior,
-Consumer scope and multiple-provider identity semantics; query triggers; and
+Consumer scope and multiple-provider identity semantics; richer query forms; and
 runtime rate-limit exhaustion, counters and storage failures. The presence of
 an accepted plugin name is not evidence that this finite OSS matrix exercised
 it. No quota/functionality guarantees or broader v11 claims are added here.

@@ -147,7 +147,7 @@ or CI job.
 | Capability | Current support |
 | --- | --- |
 | Target | Kong OSS 3.9.3 decK YAML; `traditional` and `traditional_compatible` HTTP routing |
-| Verification | Six property templates and two parameterized frozen contract kinds |
+| Verification | Six manual property templates and three parameterized frozen contract kinds |
 | Verdicts | `proved`, `violated`, `vacuous`, `inconsistent`, or `unknown` |
 | Comparisons | Decision, route/service, service target, and literal-path upstream URI equivalence, within their supported boundaries |
 | Interfaces | CLI, schema-v9 JSON, GitHub annotations, frozen/manual MCP, and a reusable GitHub Action |
@@ -232,11 +232,13 @@ Input, output, and verification errors exit `1`; invalid command usage exits
 | `admin-api-not-reachable` | Safety | Can an anonymous request outside a trusted address block reach a recognized Admin API target? |
 | `authenticated-access` | Paired safety + functionality | Are anonymous requests denied while authenticated requests remain definitely allowed in one scope? |
 | `network-restricted-access` | Paired safety + functionality | Are untrusted sources denied while authenticated requests inside a trusted IPv4 block remain definitely allowed? |
+| `protected-prefix-with-public-exceptions` | Frozen safety + functionality | Is anonymous access denied outside explicit public prefixes while authenticated access and each public exception remain available? |
 
 Manual property flags are useful for exploration. For a gate, choose one of the
-two supported frozen contract kinds:
-[`authenticated-access`](bench/kong/contracts/admin-get.yaml) or
-[`network-restricted-access`](bench/kong/contracts/internal-get.yaml). Each pairs
+three supported frozen contract kinds:
+[`authenticated-access`](bench/kong/contracts/admin-get.yaml),
+[`network-restricted-access`](bench/kong/contracts/internal-get.yaml), or
+[`protected-prefix-with-public-exceptions`](bench/kong/contracts/api-public-health.yaml). Each pairs
 denial with required access in an explicit scope; the public artifact format is
 not a general-purpose specification language.
 
@@ -246,6 +248,14 @@ scope overrides, and every report carries the contract's normalized identity.
 Unknown artifact fields, versions, and kinds are rejected. Approval remains a
 workflow responsibility; parsing a contract does not establish that it was
 reviewed or captures all intended requirements.
+
+For example, protect `/api` while keeping `/api/health` public with the
+[public-exceptions workflow](bench/kong/workflows/public-exceptions/README.md).
+It rejects both an exposed API and a repair that locks out health checks.
+Exception prefixes are explicit, nonempty and strictly inside the protected
+prefix; they share its method and host scope. Matching is literal prefix
+matching: `/api/healthcheck` is also included. This kind is available through
+frozen contracts, rather than additional manual property flags.
 
 ## Integrations
 
@@ -423,6 +433,11 @@ See [Contributing: Run the checks](CONTRIBUTING.md#run-the-checks) for local tes
 commands, prerequisites, and serialization rules. The experimental
 [advisory evaluation workflow](bench/pilot/README.md) includes synthetic examples
 only; it does not establish production accuracy or autonomous repair success.
+The [external-agent repair benchmark](bench/repair/README.md) evaluates submitted
+candidate files against evaluator-owned frozen requirements and out-of-scope
+preservation. Its synthetic controls test the evaluator; they are not live-agent
+results. See the [pilot protocol](docs/evaluation/pilot-protocol.md) for the
+separate authorization and review needed for deployment evaluation.
 
 ## Roadmap
 
@@ -439,9 +454,13 @@ evidence to the shared verification core.
   OPA/Rego, IAM, and application authorization remain future targets. Connector
   expansion follows Kong readiness and deployment feedback; each target needs
   precise properties and independently justified semantics.
-- **Support external agent evaluation.** After verifier hardening, develop
-  repair benchmarks and structured feedback for external agents and training
-  systems. Model runtimes and repair orchestration remain outside the core.
+- **Evaluate external agent repairs.** Use the experimental benchmark to collect
+  reproducible results from external agents after inputs and requirements are
+  reviewed. Model runtimes and repair orchestration remain outside the core.
+
+The [connector shortlist](docs/evaluation/connector-selection.md) records the
+criteria and a provisional Kubernetes RBAC feasibility direction. A second
+connector is not implemented or committed for delivery yet.
 
 Connectors depend on the core, and adapters share its verification semantics.
 New targets may require extending the decision model. A common interface does

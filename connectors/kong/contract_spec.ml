@@ -6,6 +6,7 @@ type kind =
       trusted_cidr       : Soundcheck_core.Cidr.t;
       source_ip_integrity : source_ip_integrity;
     }
+  | Protected_prefix_with_public_exceptions of { public_path_prefixes : string list }
 
 type t = {
   schema_version : int;
@@ -18,6 +19,7 @@ type t = {
 let kind_name = function
   | Authenticated_access -> "authenticated-access"
   | Network_restricted_access _ -> "network-restricted-access"
+  | Protected_prefix_with_public_exceptions _ -> "protected-prefix-with-public-exceptions"
 
 let allowed_fields where allowed fields =
   match List.find_opt (fun (name, _) -> not (List.mem name allowed)) fields with
@@ -88,6 +90,24 @@ let parse_source_ip_assumption fields =
        | Error _ as error -> error)
   | Some _ -> Error "contract.assumptions must be an object"
 
+let parse_public_path_prefixes ~path_prefix scope =
+  match List.assoc_opt "public_path_prefixes" scope with
+  | None -> Error "contract.scope.public_path_prefixes is required"
+  | Some (`A values) ->
+    let rec strings = function
+      | [] -> Ok []
+      | `String value :: rest ->
+        (match strings rest with Ok rest -> Ok (value :: rest) | Error _ as error -> error)
+      | _ -> Error "contract.scope.public_path_prefixes must contain only strings"
+    in
+    (match strings values with
+     | Error _ as error -> error
+     | Ok prefixes ->
+       match Verify.validate_public_path_prefixes ~path_prefix prefixes with
+       | Error message -> Error ("contract.scope: " ^ message)
+       | Ok () -> Ok (List.sort String.compare prefixes))
+  | Some _ -> Error "contract.scope.public_path_prefixes must be a list"
+
 let parse_unique_value = function
   | `O fields ->
     (match
@@ -114,6 +134,19 @@ let parse_unique_value = function
                     path_prefix;
                     method_;
                     host })
+         | Ok "protected-prefix-with-public-exceptions" ->
+           if List.mem_assoc "assumptions" fields then
+             Error "contract.assumptions is not valid for protected-prefix-with-public-exceptions"
+           else
+             (match parse_scope fields [ "path_prefix"; "method"; "host"; "public_path_prefixes" ] with
+              | Error _ as error -> error
+              | Ok (scope, path_prefix, method_, host) ->
+                match parse_public_path_prefixes ~path_prefix scope with
+                | Error _ as error -> error
+                | Ok public_path_prefixes ->
+                  Ok { schema_version;
+                       kind = Protected_prefix_with_public_exceptions { public_path_prefixes };
+                       path_prefix; method_; host })
          | Ok "network-restricted-access" ->
            (match
               parse_scope fields
@@ -173,6 +206,12 @@ let to_property spec =
         method_ = spec.method_;
         host = spec.host;
         trusted_cidr }
+  | Protected_prefix_with_public_exceptions { public_path_prefixes } ->
+    Verify.Protected_prefix_with_public_exceptions
+      { path_prefix = spec.path_prefix;
+        method_ = spec.method_;
+        host = spec.host;
+        public_path_prefixes }
 
 let scope_condition spec =
   Soundcheck_core.Ir.And
@@ -221,6 +260,11 @@ let canonical_json spec =
       "{\"schema_version\":%d,\"kind\":%s,\"scope\":{%s,\"trusted_cidr\":%s},\"assumptions\":{\"source_ip_integrity\":\"externally-enforced\"}}"
       spec.schema_version (json_string (kind_name spec.kind)) scope_fields
       (json_string (Soundcheck_core.Cidr.to_string trusted_cidr))
+  | Protected_prefix_with_public_exceptions { public_path_prefixes } ->
+    Printf.sprintf
+      "{\"schema_version\":%d,\"kind\":%s,\"scope\":{%s,\"public_path_prefixes\":[%s]}}"
+      spec.schema_version (json_string (kind_name spec.kind)) scope_fields
+      (public_path_prefixes |> List.sort String.compare |> List.map json_string |> String.concat ",")
 
 let report_identity spec : Soundcheck_core.Report.frozen_spec =
   { schema_version = spec.schema_version;

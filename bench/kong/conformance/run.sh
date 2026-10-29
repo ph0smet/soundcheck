@@ -110,7 +110,7 @@ run_flavor() {
     return 1
   fi
 
-  while IFS='|' read -r name scheme method path host sni principal headers expected_decision expected_route expected_service expected_status model_class flavors source_ip extra; do
+  while IFS='|' read -r name scheme method path host sni principal headers expected_decision expected_route expected_service expected_status model_class flavors source_ip query extra; do
     [[ -z "$name" || "$name" == \#* ]] && continue
     if [[ -n "$extra" || -z "$expected_status" ||
           ( "$scheme" != http && "$scheme" != https ) ||
@@ -123,6 +123,17 @@ run_flavor() {
           -z "$source_ip" || "$path" == *'?'* || "$path" == *'#'* ]]; then
       echo "Invalid probe metadata [$matrix/$name]" >&2
       return 1
+    fi
+    # The optional sixteenth field is transport-only. Query state is absent
+    # from the symbolic request; conditional termination remains conservative.
+    # Accept literal ASCII key=value pairs only, with no URL metacharacters,
+    # escapes, whitespace, fragments, or curl glob syntax in names/values.
+    if [[ -n "$query" && "$query" != - ]]; then
+      local query_pattern='^[a-zA-Z0-9_-]+=[a-zA-Z0-9_-]*(&[a-zA-Z0-9_-]+=[a-zA-Z0-9_-]*)*$'
+      if [[ "$matrix" != termination || ! "$query" =~ $query_pattern ]]; then
+        echo "Invalid probe query [$matrix/$name]" >&2
+        return 1
+      fi
     fi
     if [[ "$source_ip" == - && ( "$matrix" == ip || "$matrix" == termination ) ]]; then
       echo "Missing probe source IP [$matrix/$name]" >&2
@@ -151,6 +162,9 @@ run_flavor() {
       fi
       request_url="https://${tls_name}:${tls_port}${path}"
       curl_args+=(--insecure --resolve "${tls_name}:${tls_port}:127.0.0.1")
+    fi
+    if [[ -n "$query" && "$query" != - ]]; then
+      request_url+="?$query"
     fi
     if [[ "$host" != "-" ]]; then
       host_value="$host"

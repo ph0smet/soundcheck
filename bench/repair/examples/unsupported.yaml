@@ -1,0 +1,11 @@
+services:
+  - name: example-api
+    routes:
+      - name: admin-get
+        paths: [/admin]
+        methods: [GET]
+        plugins:
+          - name: synthetic-unmodeled-plugin
+      - name: public-get
+        paths: [/public]
+        methods: [GET]

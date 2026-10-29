@@ -1,4 +1,4 @@
-# name|scheme|method|path|host|sni|principal|headers|decision|route|service|status|model-class|flavors|source-ip
+# name|scheme|method|path|host|sni|principal|headers|decision|route|service|status|model-class|flavors|source-ip|query (optional)
 # Request termination priority 2 follows key-auth 1250 and IP restriction 990.
 # Triggered requests are conservative; a definite earlier denial remains exact.
 global-termination|http|GET|/termination-global|-|-|anonymous|-|deny|termination-global|termination-global-service|418|exact|both|192.0.2.1
@@ -14,3 +14,6 @@ auth-valid-trigger-absent|http|GET|/termination-auth|-|-|authenticated|apikey:so
 ip-rejects-before-trigger|http|GET|/termination-ip|-|-|anonymous|x-stop:yes|deny|termination-ip|termination-service|403|exact|both|192.0.2.1
 ip-allowed-triggered|http|GET|/termination-ip|-|-|anonymous|x-stop:yes|deny|termination-ip|termination-service|418|conservative|both|10.1.0.1
 ip-allowed-trigger-absent|http|GET|/termination-ip|-|-|anonymous|-|allow|termination-ip|termination-service|200|conservative|both|10.1.0.1
+route-query-trigger-present|http|GET|/termination-route-trigger|-|-|anonymous|-|deny|termination-route-trigger|termination-global-service|418|conservative|both|192.0.2.1|x-stop=yes
+route-query-trigger-empty-value|http|GET|/termination-route-trigger|-|-|anonymous|-|deny|termination-route-trigger|termination-global-service|418|conservative|both|192.0.2.1|x-stop=
+route-query-unrelated|http|GET|/termination-route-trigger|-|-|anonymous|-|allow|termination-route-trigger|termination-global-service|200|conservative|both|192.0.2.1|unrelated=yes

@@ -16,6 +16,9 @@ type kind =
       trusted_cidr        : Soundcheck_core.Cidr.t;
       source_ip_integrity : source_ip_integrity;
     }
+  | Protected_prefix_with_public_exceptions of { public_path_prefixes : string list }
+      (** Nonempty normalized literal prefixes strictly inside [path_prefix].
+          The artifact reader rejects duplicates and sorts prefixes canonically. *)
 
 type t = {
   schema_version : int;

@@ -30,6 +30,33 @@ type property =
     }
       (** paired contract: untrusted sources denied and authenticated trusted
           sources allowed *)
+  | Protected_prefix_with_public_exceptions of {
+      path_prefix : string;
+      method_ : string option;
+      host : string option;
+      public_path_prefixes : string list;
+    }
+      (** anonymous denied except on explicit public prefixes; authenticated
+          access throughout and anonymous access on each exception preserved *)
+
+(* Shared by the artifact reader and the typed API, so callers cannot bypass the
+   strict exception boundary by constructing a property directly. *)
+let validate_public_path_prefixes ~path_prefix prefixes =
+  if prefixes = [] then Error "public_path_prefixes must be a nonempty list"
+  else if List.length (List.sort_uniq String.compare prefixes) <> List.length prefixes
+  then Error "public_path_prefixes must not contain duplicate prefixes"
+  else
+    match List.find_opt
+      (fun prefix -> not (Path_normalization.is_normalized_literal prefix)) prefixes with
+    | Some prefix ->
+      Error (Printf.sprintf "public path prefix %S is not normalized" prefix)
+    | None ->
+      match List.find_opt
+        (fun prefix -> prefix = path_prefix || not (String.starts_with ~prefix:path_prefix prefix))
+        prefixes with
+      | Some prefix ->
+        Error (Printf.sprintf "public path prefix %S must be strictly inside %S" prefix path_prefix)
+      | None -> Ok ()
 
 let request_scope ~path_prefix ~method_ ~host =
   Ir.And
@@ -86,6 +113,28 @@ let network_restricted_access_contract ~path_prefix ~method_ ~host
                scope_description)
           (Ir.And [ scope; Ir.Source_in trusted_cidr; Ir.Requires_auth ]) ] }
 
+let protected_prefix_contract ~path_prefix ~method_ ~host ~public_path_prefixes : Contract.t =
+  let scope = request_scope ~path_prefix ~method_ ~host in
+  let description = scope_description ~path_prefix ~method_ ~host in
+  let prefixes = List.sort String.compare public_path_prefixes in
+  let public = Ir.Or (List.map (fun prefix -> Ir.Path_prefix prefix) prefixes) in
+  { Contract.name = "protected-prefix-with-public-exceptions";
+    description = "Anonymous access is denied except on explicit public prefixes, while required access is preserved for " ^ description;
+    clauses =
+      [ Contract.must_deny ~name:"protected-anonymous-access-denied"
+          ~description:("Anonymous requests outside public exceptions are denied for " ^ description)
+          (Ir.And [ scope; Ir.Is_anonymous; Ir.Not public ]);
+        Contract.must_allow ~name:"authenticated-access-allowed"
+          ~description:("Authenticated requests are allowed throughout " ^ description)
+          (Ir.And [ scope; Ir.Requires_auth ]) ]
+      @ List.mapi
+          (fun index prefix ->
+            Contract.must_allow
+              ~name:(Printf.sprintf "public-access-allowed-%d" (index + 1))
+              ~description:(Printf.sprintf "Anonymous requests with path prefix %s are allowed within %s" prefix description)
+              (Ir.And [ scope; Ir.Is_anonymous; Ir.Path_prefix prefix ]))
+          prefixes }
+
 (* The core property template plus the connector lift that explains its
    counterexample in Kong's own vocabulary. The lift uses the same structural
    [reach_via] predicate and complete modeled winner/guard checks as the query.
@@ -122,6 +171,7 @@ let resolve (cfg : Ast.config) :
             cfg m )
   | Authenticated_access _ -> None
   | Network_restricted_access _ -> None
+  | Protected_prefix_with_public_exceptions _ -> None
   | No_shadowed_routes -> None
 
 let report_clause (clause : Contract.clause) : Report.clause =
@@ -240,7 +290,8 @@ let run_with_trace ?z3 ?emit_smt ~(property : property) (config : string) :
     match property with
     | No_anonymous_access path_prefix
     | Authenticated_access { path_prefix; _ }
-    | Network_restricted_access { path_prefix; _ } -> Some path_prefix
+    | Network_restricted_access { path_prefix; _ }
+    | Protected_prefix_with_public_exceptions { path_prefix; _ } -> Some path_prefix
     | Rate_limit_on_public | No_shadowed_routes | Admin_api_not_reachable _ -> None
   in
   match property_scope with
@@ -250,6 +301,14 @@ let run_with_trace ?z3 ?emit_smt ~(property : property) (config : string) :
       (Printf.sprintf "property path_prefix %S is not normalized; use %S"
          path_prefix (Path_normalization.normalize_literal path_prefix))
   | _ ->
+  let valid_exceptions = match property with
+    | Protected_prefix_with_public_exceptions { path_prefix; public_path_prefixes; _ } ->
+      validate_public_path_prefixes ~path_prefix public_path_prefixes
+    | _ -> Ok ()
+  in
+  match valid_exceptions with
+  | Error _ as error -> error
+  | Ok () ->
   match Parse.parse_string config with
   | Error e -> Error e
   | Ok cfg ->
@@ -273,6 +332,11 @@ let run_with_trace ?z3 ?emit_smt ~(property : property) (config : string) :
             ~missing:
               "the selected route does not enforce the frozen trusted-network boundary."
             cfg )
+      | Protected_prefix_with_public_exceptions
+          { path_prefix; method_; host; public_path_prefixes } ->
+        ( Some (protected_prefix_contract ~path_prefix ~method_ ~host ~public_path_prefixes),
+          false,
+          Lift.counterexample cfg )
       | _ -> (None, false, Lift.counterexample cfg)
     in
     if Option.is_some contract && Option.is_some emit_smt then

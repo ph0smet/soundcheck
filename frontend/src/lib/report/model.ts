@@ -190,7 +190,7 @@ export function buildReport(run: AuditRun): ReportModel {
       "UNKNOWN means no verdict was reached: the config used semantics outside the supported fragment, the solver timed out or failed, or its answer could not be validated. The finding's reason says which. It is never a pass.",
       "A counterexample is one concrete request, chosen by the solver, that violates the property in the model. Values such as the path /v1E are arbitrary choices; the witness shows that this request violates the property, not that other requests of a similar form do. Under conservative modeling it is a candidate to confirm against Kong, not a guaranteed replay.",
       `${BASIS_COPY.exploratory.label}s encode policy assumptions chosen when the audit was run (the protected prefix, the trusted network, which routes should be rate limited). They are not reviewed intent and cannot produce a Pass on their own.`,
-      "Only a human-reviewed frozen contract is a specification. Paired functionality contracts (authenticated-access, network-restricted-access) run only from one.",
+      "Only a human-reviewed frozen contract is a specification. Paired functionality contracts, including protected paths with public exceptions, run only from one.",
       "An INCOMPLETE report is never a pass: checks marked NOT RUN produced no result. Skipped files that may be configs are listed as coverage gaps and prevent a Pass.",
       "For audit-grade evidence of a frozen contract, run `soundcheck verify <config> --contract <contract> --evidence-dir <dir>`. The bundle binds the exact input bytes, verifier and solver with SHA-256.",
     ],

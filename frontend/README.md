@@ -179,8 +179,8 @@ The audit reports exactly one of these outcomes:
 | Pass | All of the above is clean and a frozen contract was attached and proved for every config. |
 
 The built-in checks are **exploratory presets**, not specifications. Each one assumes a
-policy: that everything under the chosen prefix must require authentication, that only
-the chosen network may reach the Admin API, that every public route should be rate
+policy: that everything under the chosen prefix must require authentication, that anonymous
+requests outside the chosen network must not reach a recognized Admin API target, that every public route should be rate
 limited, and that no route should hide another. The report states these assumptions
 next to every preset. Only a human-reviewed frozen contract is a specification, so
 only it can produce a Pass.
@@ -201,6 +201,15 @@ detection rule in `src/lib/server/audit.ts`.
 The audit runs the exploratory presets (see Audit semantics) and an attached frozen
 contract. The paired properties describe intended functionality, which Soundcheck
 never infers from a config, so they run only from a frozen contract.
+
+The contract builder supports authenticated access, network-restricted access,
+and protected prefixes with public exceptions. The latter requires anonymous
+access on each exception as well as authenticated access throughout the outer
+scope. All exception prefixes share the selected method/host; `/api/health`
+also includes `/api/healthcheck`. The saved `api-public-health.yaml` contract
+and Public exceptions workflow samples demonstrate exposed, deny-all, locked
+health and repaired configurations. The engine validates the artifact and
+supplies the canonical identity for verification, evidence and repair checks.
 
 Zips are read strictly, in memory (`src/lib/server/zip.ts`), so the engine verifies
 exactly the bytes the uploader packed. An entry is accepted only when its actual

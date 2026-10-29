@@ -116,13 +116,14 @@ let read_responses channel =
   loop []
 
 let () =
-  if Array.length Sys.argv <> 6 then
-    fail "usage: mcp_frozen_acceptance SOUNDCHECK CONTRACT UNSAFE REPAIRED DENY_ALL";
+  if Array.length Sys.argv <> 6 && Array.length Sys.argv <> 7 then
+    fail "usage: mcp_frozen_acceptance SOUNDCHECK CONTRACT UNSAFE REPAIRED DENY_ALL [UNSAFE_ROUTE]";
   let soundcheck = Sys.argv.(1) in
   let contract_path = Sys.argv.(2) in
   let unsafe = read_file Sys.argv.(3) in
   let repaired = read_file Sys.argv.(4) in
   let deny_all = read_file Sys.argv.(5) in
+  let unsafe_route = if Array.length Sys.argv = 7 then Sys.argv.(6) else "admin-get" in
   let contract =
     match Contract_spec.read_file contract_path with
     | Ok contract -> contract
@@ -159,7 +160,7 @@ let () =
     let unsafe_report =
       assert_frozen_report ~canonical ~verdict:"violated" ~clause:"must_deny" unsafe
     in
-    assert_counterexample ~principal:"anonymous" ~route:(Some "admin-get") unsafe_report;
+    assert_counterexample ~principal:"anonymous" ~route:(Some unsafe_route) unsafe_report;
     ignore (assert_frozen_report ~canonical ~verdict:"proved" repaired);
     let deny_all_report =
       assert_frozen_report ~canonical ~verdict:"violated" ~clause:"must_allow" deny_all

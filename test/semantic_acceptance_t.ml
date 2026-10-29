@@ -78,6 +78,15 @@ let local_file read where path =
 
 type probe = { name : string; model_class : string; flavor : string }
 
+let valid_query value =
+  let literal = String.for_all (function
+      | 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '_' | '-' -> true
+      | _ -> false) in
+  value = "" || value = "-"
+  || List.for_all (fun pair -> match String.split_on_char '=' pair with
+       | [ name; value ] -> name <> "" && literal name && literal value
+       | _ -> false) (String.split_on_char '&' value)
+
 let matrix_probes read matrix =
   if not (identifier matrix) then reject "probe.matrix" "expected matrix identifier";
   let base = "bench/kong/conformance/" in
@@ -89,9 +98,14 @@ let matrix_probes read matrix =
   let probes = List.concat_map (fun row ->
     if row = "" || String.starts_with ~prefix:"#" row then []
     else
-      match String.split_on_char '|' row with
+      let fields = String.split_on_char '|' row in
+      let fields = if List.length fields = 15 then fields @ [ "" ] else fields in
+      match fields with
       | [ name; _scheme; _method; _path; _host; _sni; _principal; _headers;
-          _decision; _route; _service; _status; model_class; flavors; _source_ip ] ->
+          _decision; _route; _service; _status; model_class; flavors; _source_ip; query ] ->
+        if not (valid_query query)
+           || (query <> "" && query <> "-" && matrix <> "termination")
+        then reject path "invalid transport-only query";
         if name = "" || not (List.mem model_class [ "exact"; "conservative"; "unsupported" ])
         then reject path "invalid probe name/class";
         let selected = match flavors with
@@ -100,7 +114,7 @@ let matrix_probes read matrix =
           | _ -> reject path "invalid probe flavor"
         in
         List.map (fun flavor -> { name; model_class; flavor }) selected
-      | _ -> reject path "expected the 15-column internal probe format") rows
+      | _ -> reject path "expected 15 probe columns and optional query column") rows
   in
   ignore (nonempty path probes);
   ignore (unique path (List.map (fun p -> p.name ^ ":" ^ p.flavor) probes));
@@ -318,6 +332,21 @@ let negative_controls read baseline =
     "duplicate matrix identity" baseline;
   rejects ~read:(override "# empty fixture\n") "empty matrix" baseline;
   rejects ~read:(override (probe_row ^ "|unexpected\n")) "malformed matrix row" baseline;
+  let termination = "bench/kong/conformance/termination-probes.tsv" in
+  let query_rows = read termination |> String.split_on_char '\n' in
+  let query_row = List.find (fun row ->
+      String.starts_with ~prefix:"route-query-trigger-present|" row) query_rows in
+  let query_fields = String.split_on_char '|' query_row |> List.mapi
+      (fun i value -> if i = 15 then "" else value) |> String.concat "|" in
+  List.iter (fun query ->
+    let replacement = List.map (fun row ->
+        if row = query_row then query_fields ^ query else row) query_rows
+        |> String.concat "\n" in
+    let override path = if path = termination then replacement else read path in
+    rejects ~read:override ("invalid query " ^ query) baseline)
+    [ "x-stop=yes#fragment"; "x-stop=%79es"; "x-stop=yes extra";
+      "x-stop=yes|extra"; "x-stop"; "x-stop=yes&"; "x-stop=[a]";
+      "x-stop=yes?again=yes" ];
   let one_flavor = String.split_on_char '|' probe_row
     |> List.mapi (fun i value -> if i = 13 then "traditional" else value)
     |> String.concat "|" in

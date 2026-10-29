@@ -258,4 +258,66 @@ for soundcheck_case in focused-ip invalid-source source-cidr source-leading-zero
   fi
   printf '[ok] harness source/selection: %s\n' "$soundcheck_case"
 done
+# Transport query controls keep the normalized model path separate. Positive
+# cases require the exact query at curl; mutants test omission and model leakage.
+for soundcheck_case in query-present query-empty-value query-unrelated query-multiple \
+    query-fragment query-escaped query-whitespace query-glob query-missing-equals \
+    query-trailing-separator query-extra-column query-wrong-matrix \
+    query-not-appended query-in-model; do
+  soundcheck_log="$soundcheck_test_dir/$soundcheck_case.commands"
+  soundcheck_stdout="$soundcheck_test_dir/$soundcheck_case.stdout"
+  soundcheck_stderr="$soundcheck_test_dir/$soundcheck_case.stderr"
+  soundcheck_status=0
+  soundcheck_selection=termination
+  soundcheck_expected_status=1
+  soundcheck_query='x-stop=yes'
+  soundcheck_decision=deny
+  soundcheck_http=418
+  cp "$soundcheck_harness_source" "$soundcheck_test_repo/bench/kong/conformance/run.sh"
+  case "$soundcheck_case" in
+    query-present) soundcheck_expected_status=0 ;;
+    query-empty-value) soundcheck_query='x-stop='; soundcheck_expected_status=0 ;;
+    query-unrelated)
+      soundcheck_query='unrelated=yes'; soundcheck_expected_status=0
+      soundcheck_decision=allow; soundcheck_http=200 ;;
+    query-multiple) soundcheck_query='unrelated=yes&x-stop=yes'; soundcheck_expected_status=0 ;;
+    query-fragment) soundcheck_query='x-stop=yes#fragment' ;;
+    query-escaped) soundcheck_query='x-stop=%79es' ;;
+    query-whitespace) soundcheck_query='x-stop=yes extra' ;;
+    query-glob) soundcheck_query='x-stop=[ab]' ;;
+    query-missing-equals) soundcheck_query='x-stop' ;;
+    query-trailing-separator) soundcheck_query='x-stop=yes&' ;;
+    query-extra-column) soundcheck_query='x-stop=yes|extra' ;;
+    query-wrong-matrix) soundcheck_selection=ip ;;
+    query-not-appended)
+      sed 's/request_url+="?$query"/: # intentionally omit query/' "$soundcheck_harness_source" \
+        > "$soundcheck_test_repo/bench/kong/conformance/run.sh" ;;
+    query-in-model)
+      sed 's/"$method" "$path" "$host_value"/"$method" "$path?$query" "$host_value"/' "$soundcheck_harness_source" \
+        > "$soundcheck_test_repo/bench/kong/conformance/run.sh" ;;
+  esac
+  printf '%s\n' \
+    "fixture-query|http|GET|/fixture-query|-|-|anonymous|-|$soundcheck_decision|fixture-route|fixture-service|$soundcheck_http|conservative|both|10.1.2.3|$soundcheck_query" \
+    > "$soundcheck_test_repo/bench/kong/conformance/$soundcheck_selection-probes.tsv"
+  PATH="$soundcheck_test_bin:$PATH" \
+    SOUNDCHECK_HARNESS_TEST_CASE="$soundcheck_case" \
+    SOUNDCHECK_HARNESS_TEST_LOG="$soundcheck_log" \
+    bash "$soundcheck_test_repo/bench/kong/conformance/run.sh" "$soundcheck_selection" \
+    >"$soundcheck_stdout" 2>"$soundcheck_stderr" || soundcheck_status=$?
+  [[ "$soundcheck_status" -eq "$soundcheck_expected_status" ]] || \
+    fail "expected exit $soundcheck_expected_status, got $soundcheck_status"
+  case "$soundcheck_case" in
+    query-present|query-empty-value|query-unrelated|query-multiple)
+      expect_contains "$soundcheck_stdout" 'Kong conformance checks passed (matrix: termination; exact=0 conservative=2 unsupported-boundary=0)'
+      expect_contains "$soundcheck_log" 'anonymous http GET /fixture-query 127.0.0.1  10.1.2.3' ;;
+    query-extra-column) expect_contains "$soundcheck_stderr" 'Invalid probe metadata' ;;
+    query-not-appended) expect_contains "$soundcheck_stderr" 'Request failed [traditional/termination/fixture-query]' ;;
+    query-in-model) expect_contains "$soundcheck_stderr" 'Model oracle failed [traditional/termination/fixture-query]' ;;
+    *) expect_contains "$soundcheck_stderr" 'Invalid probe query' ;;
+  esac
+  if [[ "$soundcheck_expected_status" -ne 0 ]]; then
+    expect_absent "$soundcheck_stdout" 'Kong conformance checks passed'
+  fi
+  printf '[ok] harness query: %s\n' "$soundcheck_case"
+done
 echo 'All harness lifecycle checks passed (mock commands; no Docker required).'

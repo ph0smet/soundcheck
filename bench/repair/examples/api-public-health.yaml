@@ -1,0 +1,9 @@
+# Review this requirement independently of any candidate configuration.
+# Prefix matching is literal: /api/health includes /api/healthcheck as well.
+schema_version: 1
+kind: protected-prefix-with-public-exceptions
+scope:
+  path_prefix: /api
+  method: GET
+  public_path_prefixes:
+    - /api/health

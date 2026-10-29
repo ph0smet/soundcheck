@@ -27,6 +27,9 @@ case "${0##*/}" in
       /fixture-source)
         [[ "$2" == anonymous && "$8" == 10.1.2.3 ]] || exit 99
         ;;
+      /fixture-query)
+        [[ "$#" -eq 8 && "$2" == anonymous && "$8" == 10.1.2.3 ]] || exit 99
+        ;;
       /fixture-routing|/fixture-anonymous|/fixture-conservative|/fixture-conservative-deny|/fixture-unsupported)
         [[ "$2" == anonymous ]] ;;
       *) echo "Unexpected mock oracle request: $*" >&2; exit 99 ;;
@@ -58,6 +61,8 @@ case "${0##*/}" in
       /fixture-conservative)
         printf 'supported\tallow\tdeny\nfixture-route\tfixture-service\nother-route\tfixture-service\n' ;;
       /fixture-conservative-deny)
+        printf 'supported\tallow\tdeny\nfixture-route\tfixture-service\n' ;;
+      /fixture-query)
         printf 'supported\tallow\tdeny\nfixture-route\tfixture-service\n' ;;
       /fixture-anonymous)
         printf 'supported\tdeny\tdeny\nfixture-route\tfixture-service\n' ;;
@@ -114,6 +119,21 @@ case "${0##*/}" in
         echo 'Fixture source IP was not injected unchanged' >&2
         exit 99
       }
+    fi
+    if [[ "$SOUNDCHECK_HARNESS_TEST_CASE" == query-* ]]; then
+      soundcheck_url="${!#}"
+      case "$SOUNDCHECK_HARNESS_TEST_CASE" in
+        query-empty-value) soundcheck_expected_query='x-stop=' ;;
+        query-unrelated) soundcheck_expected_query='unrelated=yes' ;;
+        query-multiple) soundcheck_expected_query='unrelated=yes&x-stop=yes' ;;
+        *) soundcheck_expected_query='x-stop=yes' ;;
+      esac
+      [[ "$soundcheck_url" == */fixture-query"?"$soundcheck_expected_query ]] || exit 99
+      [[ "$*" == *'--header X-Soundcheck-Client-IP: 10.1.2.3'* ]] || exit 99
+      if [[ "$SOUNDCHECK_HARNESS_TEST_CASE" != query-unrelated ]]; then
+        printf 'HTTP/1.1 418 Teapot\r\nKong-Route-Name: fixture-route\r\nKong-Service-Name: fixture-service\r\n\r\n'
+        exit 0
+      fi
     fi
     case "$SOUNDCHECK_HARNESS_TEST_CASE" in
       timeout)

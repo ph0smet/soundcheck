@@ -66,8 +66,10 @@ verified authority, and human accuracy/usefulness metrics are not inferred.
 The stale `bench/survey.ml` coverage claims were retired.
 
 Internal metadata readers reject raw NUL/backslash syntax to contain decoded-NUL
-truncation. Shared verifier parsing was unchanged; the YAML dependency's scalar
-fidelity concern requires separate assessment, with no false verdict established.
+truncation. Shared verifier parsing was unchanged in this milestone. The later
+[scalar-fidelity assessment](2026-10-yaml-scalar-fidelity.md) adds a targeted
+guard against NUL truncation; no false verdict for a valid live deployment was
+established.
 
 ### Validation workflow
 
@@ -100,13 +102,17 @@ These results describe the readiness candidate, before the separate
   Dune 3.24.0 and Z3 4.16.0 were used; independent reviews found no remaining
   implementation or target-expectation blocker.
 
-## Remaining evidence gaps
+## Evidence gaps recorded at this milestone
 
 The 18 source-only rows and feature-wide semantic mutation coverage remain open.
 Basic/JWT negatives do not test well-formed wrong credentials. Query-trigger
 termination, runtime quota/storage, broader providers/identity, commercial
 plugins and production source-IP integrity remain gaps, as do focused mixed-CIDR
 and quota/definite-allow lowering regressions. The inventory tracks details.
+The [contracts/evaluation follow-up](2026-10-contracts-and-evaluation.md) adds
+well-formed wrong credentials, query-trigger observations and the focused bound
+regressions. The [current inventory](../../bench/kong/SEMANTIC-COVERAGE.md)
+distinguishes these additions from the remaining target and runtime gaps.
 
 Real pilots require authorized deployment inputs, owner-reviewed contracts and
 independently adjudicated usefulness/accuracy measurements. Synthetic preparation

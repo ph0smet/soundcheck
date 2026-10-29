@@ -1,0 +1,26 @@
+(library
+ (name soundcheck_repair_bench)
+ (wrapped false)
+ (modules repair_bench)
+ (libraries soundcheck_pilot soundcheck_core soundcheck_kong yaml unix))
+
+(executable
+ (name main)
+ (modules main)
+ (libraries soundcheck_repair_bench soundcheck_pilot unix))
+
+(test
+ (name repair_bench_t)
+ (modules repair_bench_t)
+ (libraries soundcheck_repair_bench soundcheck_pilot soundcheck_core soundcheck_kong yaml unix))
+
+(executable
+ (name repair_cli_t)
+ (modules repair_cli_t)
+ (libraries soundcheck_core soundcheck_kong yaml unix))
+
+(rule
+ (alias runtest)
+ (deps (source_tree examples))
+ (action
+  (run %{exe:repair_cli_t.exe} %{exe:main.exe} examples)))

@@ -1,0 +1,14 @@
+format_version: 1
+attempts:
+  - task: public-health
+    id: unchanged
+    config: public-before.yaml
+  - task: public-health
+    id: deny-all
+    config: deny-all.yaml
+  - task: public-health
+    id: locked-health
+    config: public-locked-health.yaml
+  - task: public-health
+    id: repaired
+    config: public-repaired.yaml

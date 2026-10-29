@@ -1,0 +1,10 @@
+services:
+  - name: api
+    routes:
+      - name: protected-api
+        paths: [/api]
+        methods: [GET]
+        plugins: [{name: key-auth}]
+      - name: outside-status
+        paths: [/status]
+        methods: [GET]

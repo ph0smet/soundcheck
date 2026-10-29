@@ -135,12 +135,14 @@ export interface Samples {
 }
 
 export async function loadSamples(): Promise<Samples> {
-  const [contracts, workflows, cases] = await Promise.all([
+  const [contracts, workflows, publicWorkflows, cases] = await Promise.all([
     yamlFiles(path.join(KONG_BENCH, "contracts")),
     yamlFiles(path.join(KONG_BENCH, "workflows", "frozen-admin")),
+    yamlFiles(path.join(KONG_BENCH, "workflows", "public-exceptions")),
     listCases(),
   ]);
   const order = ["unsafe.yaml", "repaired.yaml", "deny-all.yaml"];
+  const publicOrder = ["unsafe.yaml", "deny-all.yaml", "locked-health.yaml", "repaired.yaml"];
   return {
     contracts: contracts.map((file) => ({
       id: `contract:${file.name}`,
@@ -163,6 +165,14 @@ export async function loadSamples(): Promise<Samples> {
         group: "Corpus cases",
         content: item.config,
       })),
+      ...publicWorkflows
+        .sort((a, b) => publicOrder.indexOf(a.name) - publicOrder.indexOf(b.name))
+        .map((file) => ({
+          id: `workflow:public-exceptions:${file.name}`,
+          label: humanize(file.name.replace(/\.yaml$/, "")),
+          group: "Public exceptions workflow",
+          content: file.content,
+        })),
     ],
   };
 }
