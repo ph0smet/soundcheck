@@ -119,3 +119,194 @@ jobs:
             soundcheck_status=$?
             test "$soundcheck_status" -eq 3
           fi
+
+  frontend:
+    # The web adapter's checks, plus a conformance run of its schema validators
+    # against the real CLI so engine/frontend drift fails here.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Z3 (4.16.0)
+        env:
+          SOUNDCHECK_Z3_ARCHIVE: z3-4.16.0-x64-glibc-2.39
+          SOUNDCHECK_Z3_SHA256: 7288c49a5bd6dbafd7b0b0d1f65956b91672da24b08f09242919af159be3418e
+        run: |
+          set -euo pipefail
+          soundcheck_z3_dir="$(mktemp -d "$RUNNER_TEMP/soundcheck-z3.XXXXXX")"
+          curl --fail --location --silent --show-error --retry 3 \
+            --connect-timeout 10 --max-time 120 \
+            "https://github.com/Z3Prover/z3/releases/download/z3-4.16.0/${SOUNDCHECK_Z3_ARCHIVE}.zip" \
+            --output "$soundcheck_z3_dir/z3.zip"
+          printf '%s  %s\n' "$SOUNDCHECK_Z3_SHA256" "$soundcheck_z3_dir/z3.zip" \
+            | sha256sum --check --strict
+          unzip -q "$soundcheck_z3_dir/z3.zip" -d "$soundcheck_z3_dir"
+          printf '%s\n' "$soundcheck_z3_dir/$SOUNDCHECK_Z3_ARCHIVE/bin" >> "$GITHUB_PATH"
+
+      - name: Set up OCaml
+        uses: ocaml/setup-ocaml@v3
+        with:
+          ocaml-compiler: "5"
+
+      - name: Build the engine
+        run: |
+          opam install --yes dune yaml
+          opam exec -- dune build ./cli/main.exe
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci --no-audit --no-fund
+
+      - name: Lint, typecheck and test (including engine conformance)
+        working-directory: frontend
+        env:
+          SOUNDCHECK_TEST_BIN: ${{ github.workspace }}/_build/default/cli/main.exe
+        run: npm run check
+
+      - name: Production build
+        working-directory: frontend
+        run: npm run build
+
+  docker:
+    # Builds the pinned image natively on x86-64 and ARM (Apple Silicon users get
+    # the arm64 build) with its own full test gate, then smoke-tests both modes
+    # and the HTTP trust boundary.
+    name: Docker (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 75
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image (runs dune test and the frontend checks against the engine)
+        run: docker build --build-arg RUN_TESTS=1 -t soundcheck:ci .
+
+      - name: Dev-mode engine capacity holds under cancellation
+        run: bash scripts/engine-slot-test.sh
+
+      - name: CLI mode preserves verdict exit codes
+        run: |
+          set -euo pipefail
+          docker run --rm -v "$PWD/bench/kong:/work:ro" soundcheck:ci \
+            verify cases/admin-key-auth/config.yaml --format json
+          if docker run --rm -v "$PWD/bench/kong:/work:ro" soundcheck:ci \
+               verify cases/admin-no-auth/config.yaml --format json; then
+            echo 'Expected a violation.' >&2
+            exit 1
+          else
+            test "$?" -eq 3
+          fi
+
+      - name: Web mode serves localhost only and validates engine output
+        run: |
+          set -euo pipefail
+          docker run -d --name soundcheck-web -p 127.0.0.1:3000:3000 soundcheck:ci
+          for _ in $(seq 1 60); do
+            curl --silent --fail http://127.0.0.1:3000/api/engine >/dev/null && break
+            sleep 1
+          done
+          curl --silent --fail http://127.0.0.1:3000/api/engine | jq -e '.available and .solver.available'
+          config="$(jq -Rs . < bench/kong/cases/admin-no-auth/config.yaml)"
+          curl --silent --fail -H 'content-type: application/json' \
+            -d "{\"config\":${config},\"spec\":{\"mode\":\"property\",\"property\":\"no-anonymous-access\",\"pathPrefix\":\"/admin\"}}" \
+            http://127.0.0.1:3000/api/verify \
+            | jq -e '.ok == true and .exitCode == 3 and .report.result == "violated" and (.provenance.engine.executableSha256 | length) == 64'
+          status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
+            -H 'host: attacker.example' http://127.0.0.1:3000/api/engine)"
+          test "$status" = 403
+          status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
+            -H 'content-type: application/json' -H 'origin: https://evil.example' \
+            -d '{}' http://127.0.0.1:3000/api/verify)"
+          test "$status" = 403
+
+      - name: Container logs
+        if: always()
+        run: docker logs soundcheck-web || true
+
+  portability:
+    # The Node adapter stops engine runs differently per OS (process groups on
+    # POSIX, taskkill on Windows), and start.sh must explain failures on every
+    # platform. Run both on Linux, macOS and Windows (Git Bash).
+    name: Portability (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Checkout uses LF line endings
+        run: |
+          set -euo pipefail
+          crlf="$(git ls-files --eol | awk '$2 == "w/crlf"' | wc -l | tr -d ' ')"
+          test "$crlf" = 0 || { git ls-files --eol | awk '$2 == "w/crlf"' | head; exit 1; }
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Frontend checks
+        working-directory: frontend
+        run: |
+          npm ci --no-audit --no-fund
+          npm run check
+
+      # On macOS, `bash` on PATH may be Homebrew's bash 5; /bin/bash is the system
+      # bash 3.2 that users actually get, so test with that one.
+      - name: Launcher scripts parse (including macOS bash 3.2)
+        run: |
+          shell_bin=bash
+          if [ "$RUNNER_OS" = macOS ]; then shell_bin=/bin/bash; fi
+          echo "SOUNDCHECK_TEST_SHELL=$shell_bin" >> "$GITHUB_ENV"
+          "$shell_bin" --version | head -1
+          "$shell_bin" -n start.sh && "$shell_bin" -n stop.sh && "$shell_bin" -n soundcheck.sh
+
+      - name: start.sh reports an unreachable Docker instead of exiting silently
+        env:
+          SOUNDCHECK_NO_PAUSE: "1"
+          # A dead endpoint: the check must fail loudly whether or not Docker is installed.
+          DOCKER_HOST: tcp://127.0.0.1:1
+        run: |
+          set -uo pipefail
+          # Actions runs bash with -e, which would abort on the expected non-zero
+          # exit before it could be checked; capture the status explicitly.
+          status=0
+          output="$("$SOUNDCHECK_TEST_SHELL" start.sh --port 3999 2>&1)" || status=$?
+          printf '%s\n' "$output"
+          test "$status" -eq 1
+          printf '%s' "$output" | grep -q 'error:'
+          printf '%s' "$output" | grep -Eq 'Docker (daemon is not running|is not installed)'
+
+      # Includes a real start/stop of the Next.js production server; Docker is
+      # stubbed throughout, so no container is touched.
+      - name: Launcher process ownership (start.sh / stop.sh)
+        env:
+          SOUNDCHECK_TEST_REAL_NEXT: "1"
+        run: '"$SOUNDCHECK_TEST_SHELL" scripts/launcher-test.sh'

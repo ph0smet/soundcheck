@@ -1,0 +1,10 @@
+.git
+.github
+.run
+.claude
+_build
+_opam
+**/node_modules
+frontend/.next
+frontend/next-env.d.ts
+**/*.log
