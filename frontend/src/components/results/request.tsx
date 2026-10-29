@@ -2,6 +2,7 @@ import { ArrowRight } from "lucide-react";
 import type { ReactNode } from "react";
 
 import type { Header } from "@/lib/contract";
+import { witnessMethod } from "@/lib/witness";
 
 export interface RequestShape {
   principal: string;
@@ -14,19 +15,8 @@ export interface RequestShape {
   source_ip: string;
 }
 
-// Every value shown is the solver's concrete witness, as the engine reported
-// it. The only generalization is the engine's own: an empty method means the
-// witness holds for any method (it prints "<any-method>"). Nothing is labelled
-// unconstrained, because the frontend cannot know which values the model's
-// constraints pinned (an IP-restricted route, say, pins the source address).
-function AnyMethod() {
-  return (
-    <span className="text-ink-3" title="The engine reports this witness for any method.">
-      {"<any-method>"}
-    </span>
-  );
-}
-
+// An empty field is still the solver's concrete value. It does not establish
+// the result for other values, even when a route has no explicit constraint.
 function Empty() {
   return (
     <span className="text-ink-3" title="This value is empty in the solver's witness.">
@@ -42,7 +32,12 @@ export function RequestLine({ request }: { request: RequestShape }) {
     <div className="overflow-hidden rounded-lg border border-line bg-surface-2">
       <div className="scrollbar-thin overflow-x-auto px-3.5 py-3 font-mono text-[12.5px] leading-6">
         <div className="whitespace-nowrap">
-          {request.action ? <span className="font-semibold text-ink">{request.action}</span> : <AnyMethod />}{" "}
+          <span
+            className={request.action ? "font-semibold text-ink" : "text-ink-3"}
+            title={request.action === "" ? "The method is empty in the solver's witness; this does not establish the result for other methods." : undefined}
+          >
+            {witnessMethod(request.action)}
+          </span>{" "}
           <span className="text-ink">{request.path || "/"}</span>{" "}
           <span className="text-ink-3">{request.scheme ? `${request.scheme.toUpperCase()}/1.1` : "HTTP/1.1"}</span>
         </div>

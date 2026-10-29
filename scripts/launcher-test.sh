@@ -56,17 +56,27 @@ wait_for_port() {
 
 check "docker resolves to the stub" '[ "$(command -v docker)" = "$SCRATCH/bin/docker" ]'
 
-# An unrelated Node application listening on $PORT, as another project would.
+# An unrelated Node application in the SAME directory as Next. Node + cwd must
+# not suffice for ownership when a process reuses the recorded PID or port.
 cat >"$SCRATCH/other-app.js" <<'EOF'
-require("http").createServer((_, res) => res.end("someone else's app")).listen(Number(process.argv[2]), "127.0.0.1");
+require("http").createServer((_, res) => res.end("someone else's app")).listen(Number(process.argv[2]), "127.0.0.1", () => {
+  require("fs").writeFileSync(process.argv[3], String(process.pid));
+});
 EOF
-node "$SCRATCH/other-app.js" "$PORT" >/dev/null 2>&1 &
-OTHER="$(os_pid $!)"
-started+=("$OTHER")
+(cd "$ROOT/frontend" && exec node "$(native_path "$SCRATCH/other-app.js")" "$PORT" "$(native_path "$SCRATCH/other.pid")") >/dev/null 2>&1 &
+started+=("$(os_pid $!)")
 wait_for_port "$PORT"
+# Under Git Bash, $! may still refer to the wrapper before exec. Use the PID
+# written by the Node server itself, after it has successfully bound the port.
+OTHER="$(cat "$SCRATCH/other.pid" 2>/dev/null || true)"
+if [ -z "$OTHER" ] || ! pid_alive "$OTHER"; then
+  printf 'Could not start the unrelated test server on port %s.\n' "$PORT" >&2
+  exit 1
+fi
+started+=("$OTHER")
 
 check "the unrelated app is running" "pid_alive $OTHER"
-check "the unrelated app is not recognised as Soundcheck" "! owned $OTHER"
+check "the unrelated app in frontend is not recognised as Soundcheck" "! owned $OTHER"
 
 # 1. stop.sh must not stop another app that took the recorded port.
 echo "$PORT" >"$SOUNDCHECK_RUN_DIR/frontend.port"
@@ -79,6 +89,39 @@ echo "$OTHER" >"$SOUNDCHECK_RUN_DIR/frontend.pid"
 bash "$ROOT/stop.sh" >"$SCRATCH/stop2.log" 2>&1
 check "stop.sh leaves a process that reused the recorded PID alone" "pid_alive $OTHER"
 check "stop.sh forgets the stale PID" "[ ! -f '$SOUNDCHECK_RUN_DIR/frontend.pid' ]"
+
+# A stale PID must not make start.sh report this unrelated Node app as the
+# existing Soundcheck instance either. The occupied port should fail explicitly.
+echo "$OTHER" >"$SOUNDCHECK_RUN_DIR/frontend.pid"
+bash "$ROOT/start.sh" --native --skip-engine --port "$PORT" >"$SCRATCH/stale-start.log" 2>&1
+status=$?
+check "start.sh rejects the occupied port instead of adopting an unrelated Node app" \
+  "[ $status -ne 0 ] && grep -q 'already in use' '$SCRATCH/stale-start.log'"
+check "start.sh leaves the unrelated Node app running" "pid_alive $OTHER"
+
+# Boundary controls for process identification. These use synthetic process
+# metadata only; no PID is signalled. Accept Next's exact title (including Linux
+# padding), but reject a substring, another checkout, and a non-Node executable.
+if [ "$WINDOWS" = 0 ]; then
+  title_control() (
+    local title="$1" cwd="$2" executable="$3" expected="$4"
+    pid_alive() { return 0; }
+    process_cmdline() { printf '%s' "$title"; }
+    process_cwd() { printf '%s' "$cwd"; }
+    process_exe() { printf '%s' "$executable"; }
+    owned 12345
+    [ "$?" -eq "$expected" ]
+  )
+  frontend_cwd="$(cd "$ROOT/frontend" && pwd -P)"
+  check "exact Next server title with Linux padding is accepted" \
+    'title_control "next-server (v16.3.6)   " "$frontend_cwd" /usr/bin/node 0'
+  check "a title merely mentioning Next is rejected" \
+    'title_control "other-app next-server (v16.3.6)" "$frontend_cwd" /usr/bin/node 1'
+  check "a Next server in another directory is rejected" \
+    'title_control "next-server (v16.3.6)" "$SCRATCH" /usr/bin/node 1'
+  check "a non-Node executable with Next title is rejected" \
+    'title_control "next-server (v16.3.6)" "$frontend_cwd" /usr/bin/python 1'
+fi
 
 # 3. A start that never becomes ready must stop what it launched before
 #    forgetting it. The mock "node" stays alive but never serves anything.
@@ -119,8 +162,9 @@ check "stop.sh stops the web app this checkout launched" "! pid_alive $OURS"
 #    both by its recorded PID and by the recorded port alone.
 cat >"$SCRATCH/renamed-next.js" <<'EOF'
 process.title = "next-server (v16.3.6)";
-require("fs").writeFileSync(process.argv[4], String(process.pid));
-require("http").createServer((_, res) => res.end("renamed")).listen(Number(process.argv[2]), "127.0.0.1");
+require("http").createServer((_, res) => res.end("renamed")).listen(Number(process.argv[2]), "127.0.0.1", () => {
+  require("fs").writeFileSync(process.argv[4], String(process.pid));
+});
 EOF
 renamed_start() {
   # Node reports its own PID: under Git Bash, $! can name a wrapper process.
@@ -129,6 +173,10 @@ renamed_start() {
   started+=("$(os_pid $!)")
   wait_for_port "$1"
   RENAMED="$(cat "$SCRATCH/renamed.pid" 2>/dev/null || true)"
+  if [ -z "$RENAMED" ] || ! pid_alive "$RENAMED"; then
+    printf 'Could not start the renamed test server on port %s.\n' "$1" >&2
+    exit 1
+  fi
   started+=("$RENAMED")
 }
 

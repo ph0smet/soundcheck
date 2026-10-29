@@ -5,6 +5,7 @@ import { useState, type ReactNode } from "react";
 
 import type { Assurance, Counterexample, FrozenSpec, VerifyReport } from "@/lib/contract";
 import { ASSURANCE, VERDICTS, humanize, propertyInfo, sentence, type OutcomeInfo } from "@/lib/domain";
+import { witnessMethod } from "@/lib/witness";
 
 import { Chip, CodeBlock, CopyButton, Eyebrow, Tabs, TONE_BG, TONE_TEXT, ToneBadge } from "../ui";
 import { RequestLine, Trace, TraceStep } from "./request";
@@ -68,7 +69,7 @@ function CounterexampleView({ report, ce }: { report: VerifyReport; ce: Countere
   const conservative = report.assurance?.status === "conservative";
 
   const steps: ReactNode[] = [
-    <TraceStep key="req" label="Request" value={`${ce.action || "<any-method>"} ${ce.path}`} />,
+    <TraceStep key="req" label="Request" value={`${witnessMethod(ce.action)} ${ce.path}`} />,
   ];
   if (ce.route) steps.push(<TraceStep key="route" label={shadowing ? "Served by route" : "Route"} value={ce.route} />);
   if (ce.service) steps.push(<TraceStep key="service" label="Service" value={ce.service} />);

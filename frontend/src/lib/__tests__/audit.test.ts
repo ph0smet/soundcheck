@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import type { VerifyResponse } from "../api";
@@ -9,9 +11,10 @@ import {
   type AuditFile,
   type AuditRun,
 } from "../audit";
-import type { Verdict } from "../contract";
+import { verifyReport, type Verdict } from "../contract";
 import { renderMarkdown } from "../report/markdown";
 import { buildReport } from "../report/model";
+import { parseJson } from "../schema";
 
 const engine = { source: "build", label: "main.exe", executableSha256: "a".repeat(64), solverVersion: "Z3 version 4.16.0 - 64 bit" };
 
@@ -173,6 +176,24 @@ describe("audit status", () => {
 });
 
 describe("audit report", () => {
+  it("keeps an empty witness method concrete in summaries and downloads", () => {
+    const report = parseJson(
+      readFileSync(path.resolve(__dirname, "../../../../bench/kong/cases/category-more-criteria-wins/expected.json"), "utf8"),
+      verifyReport,
+    );
+    const cell = response("violated");
+    if (!cell.ok) throw new Error("fixture");
+    const run = makeRun({ files: [file(0)] });
+    run.results[resultKey(0, "no-anonymous-access")] = { ...cell, report };
+    const model = buildReport(run);
+    const summary = model.sections[0].findings.find((finding) => finding.check.id === "no-anonymous-access")!.summary;
+    expect(summary).toContain("anonymous (empty method) /admin");
+    const markdown = renderMarkdown(model);
+    expect(markdown).toContain(summary);
+    expect(markdown).not.toMatch(/any[ -]method/i);
+    expect(report.counterexample?.action).toBe("");
+  });
+
   it("labels an incomplete run as incomplete and lists checks that never ran", () => {
     const run = makeRun({ contract: true, completion: "cancelled" });
     delete run.results[resultKey(1, "contract")];

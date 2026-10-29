@@ -16,6 +16,7 @@ import { useMemo, useRef, useState, type DragEvent } from "react";
 
 import type { Sample } from "@/lib/api";
 import {
+  auditChecks,
   BASIS_COPY,
   cellOutcome,
   DEFAULT_AUDIT_OPTIONS,
@@ -368,10 +369,12 @@ export function AuditWorkspace({ contracts }: { contracts: Sample[] }) {
           >
             <ul className="space-y-1.5 text-[13px]">
               <li className="text-2xs uppercase tracking-[0.06em] text-ink-3">{BASIS_COPY.exploratory.label}s</li>
-              <li><span className="font-medium">No anonymous access</span> <span className="text-ink-2">assumes everything under the prefix below must require auth</span></li>
-              <li><span className="font-medium">Rate limit on public</span> <span className="text-ink-2">assumes every anonymously reachable route should be rate limited</span></li>
-              <li><span className="font-medium">No shadowed routes</span> <span className="text-ink-2">assumes no route should be hidden by another</span></li>
-              <li><span className="font-medium">Admin API not reachable</span> <span className="text-ink-2">assumes only the trusted block below may reach it</span></li>
+              {auditChecks(options, null).map((check) => (
+                <li key={check.id}>
+                  <span className="font-medium">{check.label}</span>{" "}
+                  <span className="text-ink-2">{check.assumptions.join(" ")}</span>
+                </li>
+              ))}
               <li className="pt-1 text-2xs uppercase tracking-[0.06em] text-ink-3">{BASIS_COPY["frozen-contract"].label}</li>
               <li>
                 <span className="font-medium">Your reviewed contract</span>{" "}
