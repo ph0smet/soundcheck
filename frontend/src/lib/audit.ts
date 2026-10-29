@@ -3,6 +3,7 @@ import type { Verdict } from "./contract";
 import { formalStatement, humanize, propertyInfo } from "./domain";
 import type { GatewayId } from "./gateways";
 import { shellCommand } from "./shell";
+import { witnessMethod } from "./witness";
 
 export interface AuditOptions {
   pathPrefix: string;
@@ -290,7 +291,7 @@ export function describeResult(response: VerifyResponse): string {
       return report.reason || "No verdict.";
     case "violated": {
       if (!ce) return "Violated.";
-      const request = `${ce.principal} ${ce.action || "<any-method>"} ${ce.path}`;
+      const request = `${ce.principal} ${witnessMethod(ce.action)} ${ce.path}`;
       const candidate = report.assurance?.status === "conservative" ? " (conservative model: a candidate to confirm against Kong)" : "";
       const where = [ce.route && `route "${ce.route}"`, ce.service && `service "${ce.service}"`].filter(Boolean).join(", ");
       if (ce.shadowed_route) {

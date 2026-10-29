@@ -372,9 +372,9 @@ if [ ! -f "$STAMP" ] || [ package.json -nt "$STAMP" ] || [ package-lock.json -nt
   touch "$STAMP"
 fi
 
-# Launched by absolute path from the frontend directory: that path (Windows) and
-# that working directory (Linux, macOS, where Next renames its process) are how
-# stop.sh and a rerun of this script recognise the processes this launcher owns.
+# Launched by absolute path from the frontend directory: that path identifies
+# Next before it renames itself. The renamed server must also have Next's title,
+# the Node executable and this working directory (see launcher-common.sh).
 NEXT="$(native_path "$FRONTEND/node_modules/next/dist/bin/next")"
 if [ "$NEXT_MODE" = "prod" ]; then
   step "Building the web app for production"
