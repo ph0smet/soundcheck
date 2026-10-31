@@ -18,3 +18,18 @@ mixed-header-literal|http|GET|/header-regex-boundary|-|-|anonymous|x-mode:litera
 mixed-header-pattern|http|GET|/header-regex-boundary|-|-|anonymous|x-mode:prod-us|allow|header-pattern-fallback|mixed-upstream|200|conservative|traditional|-
 mixed-header-pattern|http|GET|/header-regex-boundary|-|-|anonymous|x-mode:prod-us|allow|header-pattern|mixed-upstream|200|conservative|traditional_compatible|-
 mixed-header-negative|http|GET|/header-regex-boundary|-|-|anonymous|x-mode:other|allow|header-pattern-fallback|mixed-upstream|200|conservative|both|-
+# Literal header values and names are case-insensitive; any repeated value may match.
+header-case-folding|http|GET|/mixed-header|-|-|anonymous|X-ReGiOn:US|allow|header-region|mixed-upstream|200|exact|both|-
+header-repeat-first|http|GET|/mixed-header|-|-|anonymous|x-region:US;x-region:eu|allow|header-region|mixed-upstream|200|exact|both|-
+header-repeat-last|http|GET|/mixed-header|-|-|anonymous|x-region:eu;x-region:US|allow|header-region|mixed-upstream|200|exact|both|-
+header-repeat-negative|http|GET|/mixed-header|-|-|anonymous|x-region:eu;x-region:ap|allow|header-fallback|mixed-upstream|200|exact|both|-
+header-absent|http|GET|/mixed-header|-|-|anonymous|-|allow|header-fallback|mixed-upstream|200|exact|both|-
+disabled-service-fallback|http|GET|/disabled-overlap/deep|-|-|anonymous|-|allow|disabled-service-fallback|mixed-upstream|-|exact|both|-
+disabled-service-parent|http|GET|/disabled-overlap|-|-|anonymous|-|allow|disabled-service-fallback|mixed-upstream|200|exact|both|-
+disabled-service-no-route|http|GET|/disabled-only|-|-|anonymous|-|deny|-|-|404|exact|both|-
+# Configured host literals retain their case. Only lowercase request hosts are
+# sampled. The uppercase alternative makes the matching lower alias incomplete
+# in the current model; do not promote that observation to exact coverage.
+uppercase-host-miss|http|GET|/mixed-uppercase|api.example|-|anonymous|-|deny|uppercase-host-fallback|mixed-upstream|418|exact|both|-
+uppercase-host-other|http|GET|/mixed-uppercase|other.example|-|anonymous|-|deny|uppercase-host-fallback|mixed-upstream|418|exact|both|-
+uppercase-host-lower-alias|http|GET|/mixed-uppercase|lower.example|-|anonymous|-|allow|uppercase-host|mixed-upstream|200|conservative|both|-

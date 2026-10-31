@@ -1,0 +1,8 @@
+# This fixes GET, but also changes anonymous access for every other method.
+services:
+  - name: example-api
+    routes:
+      - name: admin
+        paths: [/admin]
+        plugins:
+          - name: key-auth

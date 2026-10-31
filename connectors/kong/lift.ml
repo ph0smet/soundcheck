@@ -39,6 +39,9 @@ let service_of_route (cfg : Ast.config) route_name =
 let modeled_allowance =
   "the modeled guard permits this forbidden request."
 
+(* An empty SMT string is one request value, not a wildcard over methods. *)
+let method_human = function "" -> "(empty method)" | method_ -> method_
+
 let headers_note headers =
   match headers with
   | [] -> ""
@@ -71,7 +74,7 @@ let counterexample ?(reach_via = fun _ -> true) ?(missing = modeled_allowance)
     if show_source then Printf.sprintf "from %s, " (Cidr.string_of_ip m.src_ip)
     else ""
   in
-  let meth = if m.method_ = "" then "<any-method>" else m.method_ in
+  let meth = method_human m.method_ in
   let headers = headers_note m.headers in
   let transport = transport_note m in
   let candidate = offending_rule ~reach_via cfg m in
@@ -128,7 +131,7 @@ let functionality_counterexample ?(show_source = false) (cfg : Ast.config)
     if show_source then Printf.sprintf " from %s" (Cidr.string_of_ip m.src_ip)
     else ""
   in
-  let meth = if m.method_ = "" then "<any-method>" else m.method_ in
+  let meth = method_human m.method_ in
   let headers = headers_note m.headers in
   let transport = transport_note m in
   let reason =
@@ -169,7 +172,7 @@ let functionality_counterexample ?(show_source = false) (cfg : Ast.config)
 let shadowing_counterexample (cfg : Ast.config) (pair : Shadowing.pair)
     (m : Solve.model) : Report.counterexample =
   let serving = pair.shadowing.Ir.id and written = pair.shadowed.Ir.id in
-  let meth = if m.method_ = "" then "<any-method>" else m.method_ in
+  let meth = method_human m.method_ in
   (* Equal and incomparable priority keys both leave the order unresolved.
      OCaml's structural record ordering is not the modeled outranks relation. *)
   let relation =

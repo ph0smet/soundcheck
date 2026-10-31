@@ -1,0 +1,7 @@
+# Exact modeled Host scope. It does not include api.example:port requests.
+schema_version: 1
+kind: authenticated-access
+scope:
+  path_prefix: /admin
+  method: GET
+  host: api.example

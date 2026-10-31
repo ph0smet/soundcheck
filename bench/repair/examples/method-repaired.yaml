@@ -1,0 +1,11 @@
+# GET is protected; the original fallback preserves every other method.
+services:
+  - name: example-api
+    routes:
+      - name: admin-get
+        paths: [/admin]
+        methods: [GET]
+        plugins:
+          - name: key-auth
+      - name: admin
+        paths: [/admin]

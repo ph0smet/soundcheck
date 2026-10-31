@@ -1,0 +1,14 @@
+# 10.0/16 excludes required authenticated access from the rest of trusted 10/8.
+services:
+  - name: example-api
+    routes:
+      - name: internal-get
+        paths: [/internal]
+        methods: [GET]
+        plugins:
+          - name: key-auth
+          - name: ip-restriction
+            config: {allow: [10.0.0.0/16]}
+      - name: public-get
+        paths: [/public]
+        methods: [GET]

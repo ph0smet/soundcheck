@@ -241,6 +241,9 @@ the Kong verifier is ready for public promotion.
 - Prefix OCaml commands with `eval $(opam env)`.
 - Work on a focused `feat/`, `fix/`, `docs/`, or `chore/` branch; never commit
   directly to `main`.
+- For a multi-item delivery, use one feature branch and one pull request with
+  separate coherent commits. Each commit must stand on its own and pass the
+  clean-worktree checks; do not collapse the batch into one massive commit.
 - Once a bounded task's scope and semantic expectations are approved, implement,
   run local checks, and fix task-related failures without pausing between edits
   and tests. Present the tested diff for Sourav's review before committing.

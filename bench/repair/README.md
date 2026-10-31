@@ -51,6 +51,55 @@ dune exec bench/repair/main.exe -- \
 These are supplied control sequences, not observed agent trajectories. The
 public contract's `/api/health` is a literal prefix including `/api/healthcheck`.
 
+### Network requirements and endpoint boundaries
+
+A three-task suite adds a trusted-network requirement and targeted method/host
+preservation controls:
+
+```sh
+dune exec bench/repair/main.exe -- \
+  bench/repair/examples/coverage-suite.yaml \
+  bench/repair/examples/coverage-submissions.yaml
+# Expected exit status: 3. The exact-host task has no valid supplied repair.
+```
+
+The network task requires **every** GET request under `/internal` from outside
+`10.0.0.0/8` to be denied, including authenticated requests. Authenticated requests
+from inside that CIDR must remain allowed. Anonymous access from inside the CIDR
+is not specified. The frozen artifact explicitly assumes
+`source_ip_integrity: externally-enforced`; the evaluator does not verify trusted
+proxies or real-IP settings. Unrelated `/public` decisions must be preserved.
+
+| Network candidate, in submission order | Contract | Repair evaluation |
+| --- | --- | --- |
+| Unchanged exposed route | violated | contract_failed |
+| Deny everything | violated | contract_failed |
+| Authentication without IP restriction | violated | contract_failed |
+| Allow only `10.0.0.0/16`, losing required trusted access | violated | contract_failed |
+| Allow `10.0.0.0/7`, also admitting untrusted `11.0.0.0/8` | violated | contract_failed |
+| Apply auth and IP restriction service-wide, changing `/public` | proved | out_of_scope_regression |
+| Use an unmodeled plugin | unknown | unknown |
+| Restrict only `/internal` to the frozen trusted CIDR | proved | valid_repair |
+
+The method task freezes GET `/admin`; its baseline permits all methods. The
+unchanged candidate fails the contract. Adding auth for every method proves the
+GET requirement but regresses non-GET access. A GET-specific auth route with the
+original fallback preserves other methods and is accepted at attempt 3.
+
+The host task freezes GET `/admin` at the **exact modeled Host** `api.example`.
+Kong's portless route host also matches `api.example:<port>`. Adding auth to that
+route proves the frozen contract but changes those port-suffixed requests outside
+its scope. Its two supplied candidates—unchanged and route-level auth—therefore
+receive no acceptance credit. No valid host repair is supplied; this is a negative
+control, not a claim that no repair exists. The evaluator never widens the contract
+to make the candidate pass.
+
+The expected aggregate is **3 scheduled tasks, 2 with a valid repair, 13 attempts**:
+2 valid, 7 contract failures, 3 out-of-scope regressions, 1 unknown, and 0 input/tool
+errors. The network task first succeeds at attempt 8; the exact-host task retains
+`first_valid_attempt: null`. Exit 3 is intentional: the unsolved task stays in the
+denominator. These counts validate supplied controls, not agent performance.
+
 ## Keep tasks outside the repairer's control
 
 The evaluator-owned suite uses the existing
@@ -181,5 +230,7 @@ dune runtest bench/repair --force -j 1
 Unit tests cover strict metadata, frozen snapshots, failure accounting, spoofed
 reports and privacy. Process tests exercise the evaluator with the real solver,
 including valid repair, deny-all, out-of-scope regression, unsupported semantics,
-missing/malformed inputs and symlink rejection. No live agent or deployment is
-part of those checks.
+missing/malformed inputs and symlink rejection. The three-task coverage suite
+checks every candidate outcome and aggregate count; direct checks validate the
+method/host regression witness classes and distinguish lost trusted access from
+overbroad CIDR allowance. No live agent or deployment is part of those checks.

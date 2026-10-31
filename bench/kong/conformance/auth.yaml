@@ -76,3 +76,21 @@ services:
             config:
               status_code: 418
               message: conformance termination
+      # Plugin protocols select the HTTP subsystem, not the request scheme.
+      # Distinct keys also detect accidental fallback to the service instance.
+      - name: auth-http-protocol
+        paths: [/auth-http-protocol]
+        plugins:
+          - name: key-auth
+            protocols: [http]
+            config:
+              key_names: [http-plugin-key]
+              key_in_query: false
+      - name: auth-https-protocol
+        paths: [/auth-https-protocol]
+        plugins:
+          - name: key-auth
+            protocols: [https]
+            config:
+              key_names: [https-plugin-key]
+              key_in_query: false

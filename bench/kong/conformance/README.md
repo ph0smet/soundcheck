@@ -6,7 +6,7 @@ HTTP-status expectations. It runs both supported router flavors:
 `traditional` and `traditional_compatible`. Soundcheck's concrete IR evaluator
 supplies possible identities and may/must allowance bounds, not target truth.
 
-The default matrix contains **304 observations: 176 exact, 58 conservative,
+The default matrix contains **346 observations: 216 exact, 60 conservative,
 and 70 unsupported-boundary checks**. These classes are deliberately separate:
 
 - **Exact:** one modeled identity; may and must both equal the target decision.
@@ -24,9 +24,9 @@ or every feature in the assurance profile.
 | Matrix | Focus | Exact | Conservative | Unsupported |
 | --- | --- | ---: | ---: | ---: |
 | routing | Original routing/SNI expectations plus regex boundary probes | 0 | 0 | 54 |
-| auth | Credentials and effective plugin configuration | 40 | 6 | 0 |
+| auth | Credentials, effective plugin configuration and HTTP subsystem selection | 60 | 6 | 0 |
 | paths | Literal paths, accepted regexes, path priority | 14 | 10 | 0 |
-| mixed | Methods, hosts, headers, protocols, SNI, service-less routes | 26 | 6 | 0 |
+| mixed | Methods, hosts, headers, protocols, SNI, disabled services, service-less routes | 46 | 8 | 0 |
 | reducer | Request-global traditional route reduction | 0 | 4 | 0 |
 | category | Cross-flavor category precedence | 2 | 4 | 0 |
 | hosts | Effective ports and empty wildcard matches | 0 | 6 | 0 |
@@ -79,6 +79,30 @@ with mocked commands, including ownership-safe cleanup. Those tests do not run
 Docker or validate Kong semantics; the real-container comparisons remain separate.
 
 ## Independent expectations and identity boundary
+
+The additional HTTP cases use the existing `auth` and `mixed` matrices:
+
+- Disabled-service routes are omitted before selection. A more specific,
+  restrictive disabled route must not hide an enabled open fallback; a path
+  served only by a disabled service has no selected route. These catch treating
+  disabled services as live routing candidates.
+- Key Auth with plugin `protocols: [http]` or `[https]` runs on both HTTP and HTTPS
+  requests because both select the HTTP subsystem. Missing and valid credentials
+  are checked on both schemes. Distinct route/service key headers on the opposite
+  scheme detect accidental fallback to the service's plugin configuration.
+- Literal header names and values are case-insensitive. Repeated values are
+  checked with a match first, a match last, no match and an absent header. Testing
+  both orders catches implementations that examine only one repeated value.
+- A configured uppercase host literal misses the sampled lowercase request
+  host. A second, lowercase alias on the same route matches the target, while
+  Soundcheck retains incomplete matching and both possible routing identities.
+  Exact misses and a conservative positive observation are recorded separately;
+  neither makes uppercase-host handling an exact feature. Raw mixed-case request
+  Host normalization and combinations with ports/wildcards are not sampled.
+
+These expectations come from the pinned routing, plugin iterator and request
+handler sources below. They add finite observations, without changing lowering,
+the assurance profile or any public result schema.
 
 Rows are pipe-delimited despite the historical `.tsv` filename:
 
@@ -173,18 +197,22 @@ Kong is pinned to 3.9.3, source commit
   and [compatible transformation](https://github.com/Kong/kong/blob/a643428bc4d5397152164a63bcc0f8bc65fce69d/kong/router/transform.lua):
   explicit modern regex markers, literal path length versus regex priority,
   reduction/category differences, mixed regex-header arrays, and wildcard hosts.
+  Both routers fold literal header names/values and consider repeated values;
+  their configured literal host lookup preserves case.
   Traditional plain-host final lookup uses raw/no-port forms, not its earlier
   synthesized port; compatible can use the effective destination port.
 - [Compatible request fields](https://github.com/Kong/kong/blob/a643428bc4d5397152164a63bcc0f8bc65fce69d/kong/router/fields.lua)
   and [request handling](https://github.com/Kong/kong/blob/a643428bc4d5397152164a63bcc0f8bc65fce69d/kong/runloop/handler.lua):
-  explicit Host ports and advertised destination-port mapping.
+  explicit Host ports, advertised destination-port mapping, and omission of
+  routes belonging to disabled services before router construction.
 - [Key-auth](https://github.com/Kong/kong/blob/a643428bc4d5397152164a63bcc0f8bc65fce69d/kong/plugins/key-auth/handler.lua)
   and its [defaults](https://github.com/Kong/kong/blob/a643428bc4d5397152164a63bcc0f8bc65fce69d/kong/plugins/key-auth/schema.lua):
   key names, invalid/missing keys, explicit anonymous fallback and OPTIONS bypass.
 - [Plugin lookup](https://github.com/Kong/kong/blob/a643428bc4d5397152164a63bcc0f8bc65fce69d/kong/runloop/plugins_iterator.lua)
   and [request termination](https://github.com/Kong/kong/blob/a643428bc4d5397152164a63bcc0f8bc65fce69d/kong/plugins/request-termination/handler.lua):
   route/service/global precedence, disabled-plugin fallthrough and key-auth
-  before termination. Distinct header names expose configuration selection.
+  before termination. The iterator selects enabled plugin protocols by subsystem,
+  not individual request scheme. Distinct header names expose configuration selection.
 - [IP restriction](https://github.com/Kong/kong/blob/a643428bc4d5397152164a63bcc0f8bc65fce69d/kong/plugins/ip-restriction/handler.lua)
   checks deny before a nonempty allow list over `binary_remote_addr`.
   [Runtime configuration](https://github.com/Kong/kong/blob/a643428bc4d5397152164a63bcc0f8bc65fce69d/kong.conf.default)

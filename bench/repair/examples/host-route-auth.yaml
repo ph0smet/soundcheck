@@ -1,0 +1,10 @@
+# The contract proves, but auth also changes out-of-scope api.example:port.
+services:
+  - name: example-api
+    routes:
+      - name: admin-get
+        paths: [/admin]
+        methods: [GET]
+        hosts: [api.example]
+        plugins:
+          - name: key-auth

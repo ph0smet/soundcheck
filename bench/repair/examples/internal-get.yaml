@@ -1,0 +1,10 @@
+# Synthetic, evaluator-owned requirement. Source-IP integrity must be enforced
+# by the deployment; this benchmark does not inspect proxy/real-IP settings.
+schema_version: 1
+kind: network-restricted-access
+scope:
+  path_prefix: /internal
+  method: GET
+  trusted_cidr: 10.0.0.0/8
+assumptions:
+  source_ip_integrity: externally-enforced

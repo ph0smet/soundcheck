@@ -1,9 +1,11 @@
 # Choosing connector #2
 
 This is an engineering shortlist, not a shipped connector or a conclusion from
-deployment pilots. Kong remains the only implemented target. The proposed next
-feasibility study is **Kubernetes RBAC**, subject to validating user demand and
-the supported boundary with reviewed examples.
+deployment pilots. Kong remains the only implemented target. The
+[Kubernetes RBAC source study](kubernetes-rbac-exploration.md) outlines a possible
+static-grant subset, shared-core changes and an upstream-authorizer experiment.
+That experiment and validation with authorized representative inputs remain
+pending; the source study does not establish user demand or deployment readiness.
 
 | Candidate | Useful first requirement | Semantic work and independent evidence |
 | --- | --- | --- |
@@ -34,11 +36,12 @@ Before committing to an implementation:
    effort through the [pilot protocol](pilot-protocol.md).
 2. Pin a target version, its relevant source rules and an executable independent
    decision oracle. Define the initial supported subset and fail-closed cases.
-3. Produce one unsafe → deny-all → valid-repair acceptance scenario, including
-   preservation of behavior outside the approved repair scope.
+3. Execute an unsafe → deny-all → valid-repair acceptance scenario, including
+   preservation of behavior outside the approved repair scope. The RBAC study
+   supplies a source-derived example, not executable conformance evidence.
 4. Review the minimal shared-core changes. Do not encode Kubernetes identities
    as Kong's anonymous/authenticated bit or assume contracts are portable.
 
 Only after that evidence should the project announce connector #2 as selected
-for delivery. This branch supplies the selection criteria and a provisional
-feasibility recommendation; it makes no multi-target support claim.
+for delivery. These selection criteria and the source study support a provisional
+feasibility recommendation; they make no multi-target support claim.

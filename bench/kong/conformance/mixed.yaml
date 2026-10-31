@@ -32,6 +32,30 @@ services:
         paths: [/header-regex-boundary]
         headers:
           x-mode: [literal, '~*^prod-']
+      - name: disabled-service-fallback
+        paths: [/disabled-overlap]
+      - name: uppercase-host-fallback
+        paths: [/mixed-uppercase]
+        plugins:
+          - name: request-termination
+            config: {status_code: 418}
+      - name: uppercase-host
+        paths: [/mixed-uppercase]
+        hosts: [API.EXAMPLE, lower.example]
+  # Disabled routes are omitted from both routers, including a more specific
+  # restrictive route that would otherwise hide an enabled open fallback.
+  - name: disabled-upstream
+    enabled: false
+    url: http://127.0.0.1:8001/status
+    routes:
+      - name: disabled-specific
+        paths: [/disabled-overlap/deep]
+        methods: [GET]
+        plugins:
+          - name: request-termination
+            config: {status_code: 418}
+      - name: disabled-only
+        paths: [/disabled-only]
 routes:
   - name: service-less
     paths: [/mixed-service-less]

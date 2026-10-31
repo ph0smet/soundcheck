@@ -1,0 +1,14 @@
+# 10/7 also admits authenticated requests from untrusted 11/8.
+services:
+  - name: example-api
+    routes:
+      - name: internal-get
+        paths: [/internal]
+        methods: [GET]
+        plugins:
+          - name: key-auth
+          - name: ip-restriction
+            config: {allow: [10.0.0.0/7]}
+      - name: public-get
+        paths: [/public]
+        methods: [GET]

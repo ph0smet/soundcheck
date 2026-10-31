@@ -1,0 +1,14 @@
+# The frozen network contract holds, but unrelated /public access changes.
+services:
+  - name: example-api
+    plugins:
+      - name: key-auth
+      - name: ip-restriction
+        config: {allow: [10.0.0.0/8]}
+    routes:
+      - name: internal-get
+        paths: [/internal]
+        methods: [GET]
+      - name: public-get
+        paths: [/public]
+        methods: [GET]

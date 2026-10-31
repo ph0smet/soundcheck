@@ -136,8 +136,13 @@ features:
     probes:
       - {matrix: mixed, name: header-category, class: exact, flavors: [traditional, traditional_compatible]}
       - {matrix: mixed, name: header-fallback, class: exact, flavors: [traditional, traditional_compatible]}
+      - {matrix: mixed, name: header-case-folding, class: exact, flavors: [traditional, traditional_compatible]}
+      - {matrix: mixed, name: header-repeat-first, class: exact, flavors: [traditional, traditional_compatible]}
+      - {matrix: mixed, name: header-repeat-last, class: exact, flavors: [traditional, traditional_compatible]}
+      - {matrix: mixed, name: header-repeat-negative, class: exact, flavors: [traditional, traditional_compatible]}
+      - {matrix: mixed, name: header-absent, class: exact, flavors: [traditional, traditional_compatible]}
     controls: []
-    gaps: ['Case variation and repeated header values have local coverage but no dedicated live probes here. No feature-specific mutation control.']
+    gaps: ['Finite literal-name/value case and two-value repetition samples; no large-header/truncation or arbitrary cardinality claim. No feature-specific mutation control.']
   - code: http-https-protocol
     class: modeled
     rule: HTTP subsystem route selection and HTTPS-only rejection are distinct from individual plugin protocols.
@@ -296,10 +301,20 @@ features:
     lowering: [connectors/kong/plugin_support.ml, connectors/kong/lower.ml]
     approximation: exact
     regressions: [test/approximation_t.ml]
-    evidence: source-only
-    probes: []
+    evidence: modeled-samples
+    probes:
+      - {matrix: auth, name: plugin-http-on-http-missing, class: exact, flavors: [traditional, traditional_compatible]}
+      - {matrix: auth, name: plugin-http-on-http-valid, class: exact, flavors: [traditional, traditional_compatible]}
+      - {matrix: auth, name: plugin-http-on-https-missing, class: exact, flavors: [traditional, traditional_compatible]}
+      - {matrix: auth, name: plugin-http-on-https-valid, class: exact, flavors: [traditional, traditional_compatible]}
+      - {matrix: auth, name: plugin-http-on-https-no-fallback, class: exact, flavors: [traditional, traditional_compatible]}
+      - {matrix: auth, name: plugin-https-on-http-missing, class: exact, flavors: [traditional, traditional_compatible]}
+      - {matrix: auth, name: plugin-https-on-http-valid, class: exact, flavors: [traditional, traditional_compatible]}
+      - {matrix: auth, name: plugin-https-on-http-no-fallback, class: exact, flavors: [traditional, traditional_compatible]}
+      - {matrix: auth, name: plugin-https-on-https-missing, class: exact, flavors: [traditional, traditional_compatible]}
+      - {matrix: auth, name: plugin-https-on-https-valid, class: exact, flavors: [traditional, traditional_compatible]}
     controls: []
-    gaps: ['Stream-only plugin exclusion has a source-derived local negative regression; no dedicated HTTP/HTTPS plugin-protocol live matrix or feature-specific mutation control.']
+    gaps: ['Key Auth HTTP-family selection is sampled on both request schemes; stream-only exclusion remains source/local-regression evidence. No gRPC or stream listener or feature-specific mutation control.']
   - code: disabled-service
     class: modeled
     rule: Disabled services and their routes cannot suppress enabled routing alternatives.
@@ -307,10 +322,13 @@ features:
     lowering: [connectors/kong/parse.ml, connectors/kong/lower.ml]
     approximation: exact
     regressions: [test/approximation_t.ml, test/parse_t.ml]
-    evidence: source-only
-    probes: []
+    evidence: modeled-samples
+    probes:
+      - {matrix: mixed, name: disabled-service-fallback, class: exact, flavors: [traditional, traditional_compatible]}
+      - {matrix: mixed, name: disabled-service-parent, class: exact, flavors: [traditional, traditional_compatible]}
+      - {matrix: mixed, name: disabled-service-no-route, class: exact, flavors: [traditional, traditional_compatible]}
     controls: []
-    gaps: ['Source-derived disabled-service fallback regression is local only. No live disabled-service matrix or feature-specific mutation control.']
+    gaps: ['Finite disabled nested-route and enabled-fallback samples; no hot-reload/concurrent-update or all entity-layout claim. No feature-specific mutation control.']
   - code: root-route-service-plugin-scope
     class: modeled
     rule: Resolve root string route/service references and prefer combined scope over individual route, service and global scopes.
@@ -455,10 +473,13 @@ features:
     lowering: [connectors/kong/lower.ml]
     approximation: may-must
     regressions: [test/kong_assurance_t.ml, test/approximation_refinement_t.ml]
-    evidence: source-only
-    probes: []
+    evidence: modeled-samples
+    probes:
+      - {matrix: mixed, name: uppercase-host-miss, class: exact, flavors: [traditional, traditional_compatible]}
+      - {matrix: mixed, name: uppercase-host-other, class: exact, flavors: [traditional, traditional_compatible]}
+      - {matrix: mixed, name: uppercase-host-lower-alias, class: conservative, flavors: [traditional, traditional_compatible]}
     controls: [incomplete-suppression]
-    gaps: ['No dedicated uppercase-route-host target sample; lowercased exact-host observations are not interchangeable.']
+    gaps: ['Only lowercase request hosts are sampled against uppercase/lowercase configured alternatives. Exact misses do not make the feature exact; the matching lower alias retains conservative selection. No raw mixed-case Host, wildcard/case or port/case claim.']
   - code: wildcard-host
     class: conservative
     rule: Wildcard host behavior, including empty wildcard components, is a shared upper bound rather than exact selection.

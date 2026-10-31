@@ -1,0 +1,8 @@
+# A portless Kong route host also matches Host values carrying a port suffix.
+services:
+  - name: example-api
+    routes:
+      - name: admin-get
+        paths: [/admin]
+        methods: [GET]
+        hosts: [api.example]
