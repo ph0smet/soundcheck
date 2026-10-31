@@ -1,0 +1,6 @@
+# All methods are initially open. The frozen contract changes GET only.
+services:
+  - name: example-api
+    routes:
+      - name: admin
+        paths: [/admin]

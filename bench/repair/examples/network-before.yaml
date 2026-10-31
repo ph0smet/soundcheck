@@ -1,0 +1,10 @@
+# Synthetic baseline: /internal is exposed; /public must remain unchanged.
+services:
+  - name: example-api
+    routes:
+      - name: internal-get
+        paths: [/internal]
+        methods: [GET]
+      - name: public-get
+        paths: [/public]
+        methods: [GET]

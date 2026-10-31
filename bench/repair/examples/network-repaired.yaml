@@ -1,0 +1,13 @@
+services:
+  - name: example-api
+    routes:
+      - name: internal-get
+        paths: [/internal]
+        methods: [GET]
+        plugins:
+          - name: key-auth
+          - name: ip-restriction
+            config: {allow: [10.0.0.0/8]}
+      - name: public-get
+        paths: [/public]
+        methods: [GET]

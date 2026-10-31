@@ -1,0 +1,41 @@
+format_version: 1
+attempts:
+  - task: trusted-network
+    id: unchanged
+    config: network-before.yaml
+  - task: trusted-network
+    id: deny-all
+    config: deny-all.yaml
+  - task: trusted-network
+    id: authentication-only
+    config: network-auth-only.yaml
+  - task: trusted-network
+    id: cidr-too-narrow
+    config: network-narrow-cidr.yaml
+  - task: trusted-network
+    id: cidr-too-wide
+    config: network-wide-cidr.yaml
+  - task: trusted-network
+    id: service-wide-restriction
+    config: network-service-wide.yaml
+  - task: trusted-network
+    id: unsupported
+    config: network-unsupported.yaml
+  - task: trusted-network
+    id: repaired
+    config: network-repaired.yaml
+  - task: get-method-only
+    id: unchanged
+    config: method-before.yaml
+  - task: get-method-only
+    id: every-method-auth
+    config: method-all-auth.yaml
+  - task: get-method-only
+    id: repaired
+    config: method-repaired.yaml
+  - task: exact-host-boundary
+    id: unchanged
+    config: host-before.yaml
+  - task: exact-host-boundary
+    id: route-host-auth
+    config: host-route-auth.yaml

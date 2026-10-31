@@ -1,0 +1,12 @@
+# Authentication alone still allows authenticated requests from untrusted IPs.
+services:
+  - name: example-api
+    routes:
+      - name: internal-get
+        paths: [/internal]
+        methods: [GET]
+        plugins:
+          - name: key-auth
+      - name: public-get
+        paths: [/public]
+        methods: [GET]

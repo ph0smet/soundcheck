@@ -1,0 +1,14 @@
+format_version: 1
+cases:
+  - id: trusted-network
+    provenance: synthetic
+    config: network-before.yaml
+    contract: internal-get.yaml
+  - id: get-method-only
+    provenance: synthetic
+    config: method-before.yaml
+    contract: admin-get.yaml
+  - id: exact-host-boundary
+    provenance: synthetic
+    config: host-before.yaml
+    contract: admin-get-host.yaml

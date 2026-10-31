@@ -27,6 +27,106 @@ let contains text fragment =
 let entry ?(task = "frozen-admin") id config =
   Printf.sprintf "  - task: %s\n    id: %s\n    config: %s\n" task id config
 
+let check_coverage evaluator examples =
+  let file name = Filename.concat examples name in
+  let frozen name = match Contract_spec.read_file (file name) with
+    | Ok spec -> spec | Error error -> failwith error in
+  let status, output, errors = run evaluator
+    [ file "coverage-suite.yaml"; file "coverage-submissions.yaml" ] in
+  (* The exact-host task deliberately has no accepted submitted candidate. It
+     remains in the denominator even though the other two tasks are solved. *)
+  check "coverage retains the unsolved host task" (status = 3 && errors = "");
+  let summary = parse output in
+  List.iter (fun (name, expected) ->
+    check ("coverage " ^ name) (field name summary = `Float (float_of_int expected)))
+    [ "scheduled_tasks", 3; "tasks_with_valid_repair", 2;
+      "tasks_with_errors", 0; "submitted_attempts", 13 ];
+  List.iter (fun (name, expected) ->
+    check ("coverage count " ^ name)
+      (field name (field "attempt_counts" summary) = `Float (float_of_int expected)))
+    [ "valid_repair", 2; "contract_failed", 7; "out_of_scope_regression", 3;
+      "unknown", 1; "errors", 0 ];
+  let expected =
+    [ "trusted-network", "network-before.yaml", "internal-get.yaml", `Float 8.,
+      [ "unchanged", "network-before.yaml", "violated", "contract_failed";
+        "deny-all", "deny-all.yaml", "violated", "contract_failed";
+        "authentication-only", "network-auth-only.yaml", "violated", "contract_failed";
+        "cidr-too-narrow", "network-narrow-cidr.yaml", "violated", "contract_failed";
+        "cidr-too-wide", "network-wide-cidr.yaml", "violated", "contract_failed";
+        "service-wide-restriction", "network-service-wide.yaml", "proved", "out_of_scope_regression";
+        "unsupported", "network-unsupported.yaml", "unknown", "unknown";
+        "repaired", "network-repaired.yaml", "proved", "valid_repair" ];
+      "get-method-only", "method-before.yaml", "admin-get.yaml", `Float 3.,
+      [ "unchanged", "method-before.yaml", "violated", "contract_failed";
+        "every-method-auth", "method-all-auth.yaml", "proved", "out_of_scope_regression";
+        "repaired", "method-repaired.yaml", "proved", "valid_repair" ];
+      "exact-host-boundary", "host-before.yaml", "admin-get-host.yaml", `Null,
+      [ "unchanged", "host-before.yaml", "violated", "contract_failed";
+        "route-host-auth", "host-route-auth.yaml", "proved", "out_of_scope_regression" ] ] in
+  let tasks = list (field "tasks" summary) in
+  check "coverage schedule not filtered" (List.length tasks = List.length expected);
+  List.iter2 (fun (id, baseline, contract, first_valid, candidates) task ->
+    check (id ^ " task identity/order") (field "id" task = `String id);
+    check (id ^ " provenance") (field "provenance" task = `String "synthetic");
+    check (id ^ " first valid attempt") (field "first_valid_attempt" task = first_valid);
+    check (id ^ " no input error") (field "failure" task = `Null);
+    check (id ^ " original baseline digest") (field "baseline_sha256" task =
+      `String (Sha256.string (read_file (file baseline))));
+    check (id ^ " frozen contract digest") (field "contract_sha256" task =
+      `String (Sha256.string (Contract_spec.canonical_json (frozen contract))));
+    let attempts = list (field "attempts" task) in
+    check (id ^ " all submitted attempts retained") (List.length attempts = List.length candidates);
+    List.iteri (fun index ((attempt_id, candidate, result, repair), attempt) ->
+      let label = id ^ "/" ^ attempt_id in
+      check (label ^ " attempt identity/order") (field "id" attempt = `String attempt_id
+        && field "ordinal" attempt = `Float (float_of_int (index + 1)));
+      check (label ^ " contract outcome") (field "contract_result" attempt = `String result);
+      check (label ^ " repair outcome") (field "repair_result" attempt = `String repair);
+      check (label ^ " exact candidate digest") (field "candidate_sha256" attempt =
+        `String (Sha256.string (read_file (file candidate))));
+      check (label ^ " no input error") (field "failure" attempt = `Null))
+      (List.combine candidates attempts)) expected tasks;
+
+  (* Check semantic witness classes, never one solver-chosen request value. *)
+  let compare contract baseline candidate =
+    match Compare.run_repair ~contract:(frozen contract)
+      (read_file (file baseline)) (read_file (file candidate)) with
+    | Ok report -> report | Error error -> failwith error in
+  let regression contract baseline candidate =
+    let report = compare contract baseline candidate in
+    match report.result with
+    | Compare.Out_of_scope_regression witness ->
+      check (candidate ^ " changes anonymous Allow to Deny")
+        (witness.request.is_anon
+         && witness.before.decision = Ir.Allow && witness.after.decision = Ir.Deny);
+      witness
+    | _ -> failwith (candidate ^ ": " ^ Compare.repair_to_human report) in
+  let method_witness = regression "admin-get.yaml" "method-before.yaml" "method-all-auth.yaml" in
+  check "method regression is inside /admin but outside GET"
+    (String.starts_with ~prefix:"/admin" method_witness.request.path
+     && method_witness.request.method_ <> "GET");
+  let host_witness = regression "admin-get-host.yaml" "host-before.yaml" "host-route-auth.yaml" in
+  check "host regression is GET /admin with a port-suffixed modeled Host"
+    (String.starts_with ~prefix:"/admin" host_witness.request.path
+     && host_witness.request.method_ = "GET"
+     && host_witness.request.host <> "api.example"
+     && String.starts_with ~prefix:"api.example:" host_witness.request.host);
+  List.iter (fun (candidate, clause_name, source_matches) ->
+    let report = compare "internal-get.yaml" "network-before.yaml" candidate in
+    match report.contract_report.result, report.contract_report.clause with
+    | Report.Violated witness, Some clause ->
+      check (candidate ^ " fails the independently specified clause") (clause.name = clause_name);
+      check (candidate ^ " witness has the required source/principal class")
+        (witness.principal = "authenticated" && witness.action = "GET"
+         && String.starts_with ~prefix:"/internal" witness.path
+         && source_matches witness.source_ip)
+    | _ -> failwith (candidate ^ ": " ^ Compare.repair_to_human report))
+    [ "network-narrow-cidr.yaml", "trusted-authenticated-access-allowed",
+      (fun source -> Int32.shift_right_logical source 24 = 10l
+        && Int32.shift_right_logical source 16 <> 0x0a00l);
+      "network-wide-cidr.yaml", "untrusted-network-access-denied",
+      (fun source -> Int32.shift_right_logical source 24 = 11l) ]
+
 let () =
   if Array.length Sys.argv <> 3 then failwith "expected evaluator and examples";
   let evaluator = Sys.argv.(1) and examples = Sys.argv.(2) in
@@ -73,6 +173,8 @@ let () =
     (list (field "attempts" task) |> List.map (field "repair_result") =
      List.map (fun value -> `String value)
        [ "contract_failed"; "contract_failed"; "contract_failed"; "valid_repair" ]);
+
+  check_coverage evaluator examples;
 
   let root = Filename.temp_file "soundcheck-repair-cli-" "" in
   Unix.unlink root; Unix.mkdir root 0o700;
