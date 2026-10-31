@@ -22,6 +22,7 @@ let usage () =
     \  --method       optional exact method for paired contracts (default all)\n\
     \  --host         optional exact host for paired contracts (default all)\n\
     \  --contract     frozen, human-confirmed contract artifact; excludes property/scope flags\n\
+    \                 also supports protected-prefix-with-public-exceptions\n\
     \  --format       human (default) | json\n\
     \  --emit-smt     write a single-property SMT-LIB2 query to PATH (not contracts)\n\
     \  --evidence-dir write a complete audit bundle to a new directory; requires --contract\n\

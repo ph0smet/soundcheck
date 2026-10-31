@@ -1,0 +1,10 @@
+# Synthetic baseline: /admin is accidentally anonymous; /public must stay unchanged.
+services:
+  - name: example-api
+    routes:
+      - name: admin-get
+        paths: [/admin]
+        methods: [GET]
+      - name: public-get
+        paths: [/public]
+        methods: [GET]

@@ -1,0 +1,12 @@
+# The contract holds, but service-wide auth also closes anonymous /public access.
+services:
+  - name: example-api
+    plugins:
+      - name: key-auth
+    routes:
+      - name: admin-get
+        paths: [/admin]
+        methods: [GET]
+      - name: public-get
+        paths: [/public]
+        methods: [GET]

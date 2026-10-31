@@ -33,8 +33,8 @@ URLs; absent or noncanonical local file references; missing control anchors;
 nonexistent or duplicate probe identities; and false model-class/router/evidence
 declarations. A probe name may occur in separate rows for disjoint router
 flavors, but never twice for the same flavor. Unsupported rows cannot be credited
-as modeled agreement. Probe references use the harness's strict fifteen-column
-format, including its source-IP column.
+as modeled agreement. Probe references use the harness's fifteen required columns
+(including source IP) and optional validated transport-query column.
 
 The internal YAML subset rejects literal NUL and **every backslash character
 anywhere in the file, including comments**. Escapes such as `\0`, `\x00`,
@@ -75,6 +75,14 @@ unconditional default-Allow fallthrough, incomplete-match suppression and mixed
 priority shapes. They validate the independent finite refinement oracle's
 sensitivity, **not** every feature's parsing or lowering into that abstraction.
 
+Three focused controls in `test/plugin_bounds_t.ml` reject a narrowed mixed-CIDR
+allow list, manufactured completeness for an unknown deny entry, and manufactured
+definite allowance through a runtime rate-limit dependency. Their independent
+expectations enumerate possible unknown-membership/quota states; they do not
+claim live IPv6, quota, datastore or commercial-plugin execution. They mutate the
+lowered abstraction to check the regression's sensitivity, not every production
+source branch.
+
 Harness controls test observation/class/bound checking and lifecycle failures.
 They are not credited as feature-specific semantic mutation coverage. Most
 individual feature rows still lack dedicated semantic mutations; their gaps say
@@ -85,16 +93,18 @@ so rather than turning validator corruption checks into semantic evidence.
 - Authentication samples cover Key Auth, Basic Auth and JWT with public synthetic
   credentials, not all ten recognized plugins, production credential stores,
   expiration, provider availability, Consumer policy or multi-plugin identity.
-  Basic/JWT negative samples are malformed credentials, not well-formed wrong
-  passwords or signatures.
+  Basic/JWT negatives now include malformed credentials and well-formed wrong
+  passwords/signatures; those samples do not model credential-store contents.
 - IP samples use an explicit fixture-only trusted client-IP setup. They do not
   prove a deployment's source-integrity assumption, IPv6, or every CIDR mixture.
-- Conditional termination samples cover headers, not query triggers.
+- Conditional termination samples cover headers and simple literal query triggers.
+  Query state remains outside the symbolic request; these are conservative bounds,
+  not complete query parsing or trigger semantics.
 - Rate-limit presence is not quota/runtime functionality. No exhaustion, datastore
-  failure or commercial rate-limit execution is claimed. The current referenced
-  tests do not include a dedicated quota/definite-allow lowering regression.
-- Mixed known/unknown CIDR lowering still needs a focused independent regression;
-  CIDR parsing, assurance labels and valid IPv4 target samples are different evidence.
+  failure or commercial rate-limit execution is claimed. Focused local lowering
+  tests preserve possible access while refusing to infer definite access.
+- Mixed known/unknown CIDR lowering has focused local bound and mutation checks;
+  the live matrix still does not exercise IPv6 or mixed unknown entries.
 - Raw-path normalization, disabled services, plugin subsystem selection, wildcard
   SNI, uppercase route hosts and stream criteria retain source-only target evidence.
   Header case/repetition has local checks but no dedicated live probes here.

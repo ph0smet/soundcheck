@@ -1,0 +1,7 @@
+# Evaluator-owned synthetic task; never delegate this file or its contract to a repairer.
+format_version: 1
+cases:
+  - id: frozen-admin
+    provenance: synthetic
+    config: before.yaml
+    contract: admin-get.yaml

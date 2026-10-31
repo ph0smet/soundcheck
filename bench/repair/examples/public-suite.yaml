@@ -1,0 +1,6 @@
+format_version: 1
+cases:
+  - id: public-health
+    provenance: synthetic
+    config: public-before.yaml
+    contract: api-public-health.yaml

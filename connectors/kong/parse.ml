@@ -5,15 +5,105 @@
 
 let ( let* ) = Result.bind
 
+(* libyaml marks count Unicode characters, not bytes, and exclude the initial
+   encoding BOM. Keep ASCII syntax at those indices without implementing YAML
+   decoding ourselves. This also handles the UTF-16 inputs accepted by libyaml.
+   Unicode line breaks count once and matter when skipping an anchor/comment. *)
+let yaml_source_characters source =
+  let decode, start =
+    if String.starts_with ~prefix:"\xff\xfe" source then
+      (String.get_utf_16le_uchar, 2)
+    else if String.starts_with ~prefix:"\xfe\xff" source then
+      (String.get_utf_16be_uchar, 2)
+    else
+      (String.get_utf_8_uchar,
+       if String.starts_with ~prefix:"\xef\xbb\xbf" source then 3 else 0)
+  in
+  let characters = Buffer.create (String.length source) in
+  let rec consume index =
+    if index = String.length source then Ok (Buffer.contents characters)
+    else
+      let decoded = decode source index in
+      if not (Uchar.utf_decode_is_valid decoded) then
+        Error (`Msg "invalid Unicode encoding")
+      else
+        let character = Uchar.to_int (Uchar.utf_decode_uchar decoded) in
+        if character = 0 then Error (`Msg "NUL characters are unsupported")
+        else begin
+          Buffer.add_char characters
+            (if character < 0x80 then Char.chr character
+             else if List.mem character [ 0x85; 0x2028; 0x2029 ] then '\n'
+             else if character = 0xfeff then '\xfe'
+             else '\xff');
+          consume (index + Uchar.utf_decode_length decoded)
+        end
+  in
+  consume start
+
+(* ocaml-yaml 3.2.0 reads libyaml's scalar [value] as a C string, ignoring its
+   explicit length. A decoded NUL therefore silently loses the suffix. Reject
+   just NUL-producing escapes in double-quoted scalar spans before conversion.
+   Ordinary escapes, escaped backslashes, and literal text in other styles stay
+   valid. No raw or decoded scalar is replaced or repaired. *)
+let check_quoted_scalar characters (position : Yaml.Stream.Event.pos) =
+  let start = position.start_mark.index and stop = position.end_mark.index in
+  let invalid () = Error (`Msg "cannot validate double-quoted scalar source span") in
+  if start < 0 || stop > String.length characters || start >= stop then invalid ()
+  else
+    let blank = function ' ' | '\t' | '\r' | '\n' -> true | _ -> false in
+    let rec skip_comment index =
+      if index < stop && characters.[index] <> '\n' && characters.[index] <> '\r'
+      then skip_comment (index + 1)
+      else skip_prefix index
+    and skip_prefix index =
+      if index >= stop then index
+      (* libyaml also permits an encoding marker at the start of a later
+         line, including between an anchor and its scalar. *)
+      else if blank characters.[index] || characters.[index] = '\xfe' then skip_prefix (index + 1)
+      else if characters.[index] = '#' then skip_comment (index + 1)
+      else index
+    in
+    let rec skip_anchor index =
+      if index < stop && not (blank characters.[index]) then skip_anchor (index + 1)
+      else skip_prefix index
+    in
+    let first =
+      if characters.[start] = '&' then skip_anchor (start + 1) else start
+    in
+    if first >= stop || characters.[first] <> '"' || characters.[stop - 1] <> '"'
+    then invalid ()
+    else
+      let all_zero index count =
+        index + count <= stop - 1
+        && String.for_all (( = ) '0') (String.sub characters index count)
+      in
+      let rec check index =
+        if index >= stop - 1 then Ok ()
+        else if characters.[index] <> '\\' then check (index + 1)
+        else if index + 1 >= stop - 1 then invalid ()
+        else
+          let nul = match characters.[index + 1] with
+            | '0' -> true
+            | 'x' -> all_zero (index + 2) 2
+            | 'u' -> all_zero (index + 2) 4
+            | 'U' -> all_zero (index + 2) 8
+            | _ -> false
+          in
+          if nul then Error (`Msg "NUL escapes are unsupported in double-quoted scalars")
+          else check (index + 2)
+      in
+      check (first + 1)
+
 (* [Yaml.of_string] returns after the first node: it neither consumes trailing
    documents/syntax nor interprets explicit tags. Check the complete stream
    before conversion so neither can silently change the policy being checked.
    Aliases are rejected during conversion; merge keys are rejected below rather
    than being mistaken for an irrelevant extension field. *)
 let check_yaml_stream source =
+  let* characters = yaml_source_characters source in
   let* parser = Yaml.Stream.parser source in
   let rec consume documents =
-    let* event, _ = Yaml.Stream.do_parse parser in
+    let* event, position = Yaml.Stream.do_parse parser in
     let open Yaml.Stream.Event in
     match event with
     | Stream_end -> Ok ()
@@ -24,6 +114,9 @@ let check_yaml_stream source =
     | Mapping_start { tag = Some _; _ }
     | Sequence_start { tag = Some _; _ } ->
       Error (`Msg "explicit tags are unsupported")
+    | Scalar { style = `Double_quoted; _ } ->
+      let* () = check_quoted_scalar characters position in
+      consume documents
     | _ -> consume documents
   in
   consume 0

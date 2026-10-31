@@ -45,6 +45,18 @@ controls:
     file: test/approximation_refinement_t.ml
     anchor: 'mixed priority shapes'
     kind: refinement-mutation
+  mixed-allow-narrowing:
+    file: test/plugin_bounds_t.ml
+    anchor: 'mixed-allow-narrowing mutation'
+    kind: refinement-mutation
+  unknown-cidr-completeness:
+    file: test/plugin_bounds_t.ml
+    anchor: 'unknown-cidr-completeness mutation'
+    kind: refinement-mutation
+  quota-definite-allow:
+    file: test/plugin_bounds_t.ml
+    anchor: 'quota-definite-allow mutation'
+    kind: refinement-mutation
 features:
   - code: literal-path-prefix
     class: modeled
@@ -58,6 +70,8 @@ features:
       - {matrix: paths, name: literal-long, class: exact, flavors: [traditional, traditional_compatible]}
       - {matrix: paths, name: literal-plus-present, class: exact, flavors: [traditional, traditional_compatible]}
       - {matrix: paths, name: literal-plus-not-quantifier, class: exact, flavors: [traditional, traditional_compatible]}
+      - {matrix: oss-auth, name: exceptions-public-adjacent-prefix, class: exact, flavors: [traditional, traditional_compatible]}
+      - {matrix: oss-auth, name: exceptions-public-descendant, class: exact, flavors: [traditional, traditional_compatible]}
     controls: []
     gaps: ['Finite literal samples; legacy migration has source-derived local regressions, not live matrix coverage. No feature-specific mutation control.']
   - code: normalized-request-path
@@ -179,10 +193,16 @@ features:
       - {matrix: auth, name: global-valid-key, class: exact, flavors: [traditional, traditional_compatible]}
       - {matrix: oss-auth, name: basic-missing, class: exact, flavors: [traditional, traditional_compatible]}
       - {matrix: oss-auth, name: basic-invalid, class: exact, flavors: [traditional, traditional_compatible]}
+      - {matrix: oss-auth, name: basic-wrong-password, class: exact, flavors: [traditional, traditional_compatible]}
       - {matrix: oss-auth, name: basic-valid, class: exact, flavors: [traditional, traditional_compatible]}
       - {matrix: oss-auth, name: jwt-missing, class: exact, flavors: [traditional, traditional_compatible]}
       - {matrix: oss-auth, name: jwt-invalid, class: exact, flavors: [traditional, traditional_compatible]}
+      - {matrix: oss-auth, name: jwt-wrong-signature, class: exact, flavors: [traditional, traditional_compatible]}
       - {matrix: oss-auth, name: jwt-valid, class: exact, flavors: [traditional, traditional_compatible]}
+      - {matrix: oss-auth, name: exceptions-other-path-protected, class: exact, flavors: [traditional, traditional_compatible]}
+      - {matrix: oss-auth, name: exceptions-public-anonymous, class: exact, flavors: [traditional, traditional_compatible]}
+      - {matrix: oss-auth, name: exceptions-protected-valid, class: exact, flavors: [traditional, traditional_compatible]}
+      - {matrix: oss-auth, name: exceptions-protected-anonymous, class: exact, flavors: [traditional, traditional_compatible]}
     controls: []
     gaps: ['Only singleton Key Auth, Basic Auth, and JWT credentials are sampled. The ten-plugin recognized list also contains untested OSS and commercial plugins; proprietary semantics are not independently sourced here.', 'No credential-store, expiry, provider availability, Consumer policy, multi-plugin identity, or feature-specific mutation coverage is claimed.']
   - code: auth-preflight-bypass
@@ -208,11 +228,11 @@ features:
     sources: [rate-limiting, plugin-selection]
     lowering: [connectors/kong/plugin_support.ml, connectors/kong/lower.ml]
     approximation: may-must
-    regressions: [test/rate_limit_coverage_t.ml, test/global_plugin_t.ml]
+    regressions: [test/rate_limit_coverage_t.ml, test/global_plugin_t.ml, test/plugin_bounds_t.ml]
     evidence: source-only
     probes: []
-    controls: []
-    gaps: ['No live quota/exhaustion, datastore-failure or rate-limiting-advanced commercial execution coverage. OSS handler is a source basis, not evidence for every commercial behavior. No feature-specific mutation control.']
+    controls: [quota-definite-allow]
+    gaps: ['No live quota/exhaustion, datastore-failure or rate-limiting-advanced commercial execution coverage. OSS handler is a source basis, not evidence for every commercial behavior. A quota-definite-allow refinement mutant covers the functionality boundary, not numeric enforcement.']
   - code: ipv4-ip-restriction
     class: modeled
     rule: Check deny before nonempty allow lists over the client IP derived by Kong; a failing selected guard does not reroute.
@@ -387,11 +407,11 @@ features:
     sources: [rate-limiting]
     lowering: [connectors/kong/lower.ml]
     approximation: may-must
-    regressions: [test/kong_assurance_t.ml, test/rate_limit_coverage_t.ml]
+    regressions: [test/kong_assurance_t.ml, test/rate_limit_coverage_t.ml, test/plugin_bounds_t.ml]
     evidence: source-only
     probes: []
-    controls: []
-    gaps: ['Runtime quotas, clocks, shared stores and failure behavior are intentionally not exercised by this deterministic matrix. Listed tests cover the profile declaration and coverage metadata, not a dedicated quota/definite-allow lowering regression. No commercial runtime or feature-specific mutation coverage.']
+    controls: [quota-definite-allow]
+    gaps: ['Runtime quotas, clocks, shared stores and failure behavior are intentionally not exercised by this deterministic matrix. Focused local bounds include exhausted/available quota completions and reject a manufactured definite-allow mutation. No commercial runtime coverage.']
   - code: route-header-regex
     class: conservative
     rule: Mixed/singleton regex header semantics differ by router; omit uncertain matching constraints and retain competing routes.
@@ -470,11 +490,11 @@ features:
     sources: [ip-restriction]
     lowering: [connectors/kong/lower.ml, core/cidr.ml]
     approximation: may-must
-    regressions: [test/network_restricted_t.ml, test/kong_assurance_t.ml, test/cidr_t.ml]
+    regressions: [test/network_restricted_t.ml, test/kong_assurance_t.ml, test/cidr_t.ml, test/plugin_bounds_t.ml]
     evidence: source-only
     probes: []
-    controls: []
-    gaps: ['Unknown includes IPv6 entries and target-invalid forms; no live mixed-known/unknown CIDR matrix or feature-specific mutation coverage. Listed local tests cover parsing, assurance and known-IP contracts, not a dedicated mixed-unknown lowering regression. IPv4 samples do not cover this boundary.']
+    controls: [mixed-allow-narrowing, unknown-cidr-completeness]
+    gaps: ['Unknown includes IPv6 entries and target-invalid forms; no live mixed-known/unknown CIDR matrix. Local membership-completion bounds and two refinement mutants cover mixed allow/deny lowering, not IPv6 target execution.']
   - code: conditional-request-termination
     class: conservative
     rule: A configured trigger may be present in headers or query; unresolved presence keeps possible allowance but cannot prove required access.
@@ -486,6 +506,9 @@ features:
     probes:
       - {matrix: termination, name: route-trigger-absent, class: conservative, flavors: [traditional, traditional_compatible]}
       - {matrix: termination, name: route-trigger-present, class: conservative, flavors: [traditional, traditional_compatible]}
+      - {matrix: termination, name: route-query-trigger-present, class: conservative, flavors: [traditional, traditional_compatible]}
+      - {matrix: termination, name: route-query-trigger-empty-value, class: conservative, flavors: [traditional, traditional_compatible]}
+      - {matrix: termination, name: route-query-unrelated, class: conservative, flavors: [traditional, traditional_compatible]}
       - {matrix: termination, name: service-trigger-absent, class: conservative, flavors: [traditional, traditional_compatible]}
       - {matrix: termination, name: service-trigger-present, class: conservative, flavors: [traditional, traditional_compatible]}
       - {matrix: termination, name: auth-rejects-before-trigger, class: exact, flavors: [traditional, traditional_compatible]}
@@ -493,7 +516,7 @@ features:
       - {matrix: termination, name: ip-rejects-before-trigger, class: exact, flavors: [traditional, traditional_compatible]}
       - {matrix: termination, name: ip-allowed-triggered, class: conservative, flavors: [traditional, traditional_compatible]}
     controls: []
-    gaps: ['Header absence/presence and earlier definite denials are sampled; query triggers remain an explicit gap. No feature-specific mutation control.']
+    gaps: ['Header/query absence and presence plus earlier definite denials are sampled. Query values are transport-only and do not widen the symbolic model. No feature-specific semantic mutation control.']
   - code: auth-anonymous-fallback
     class: conservative
     rule: An anonymous Consumer fallback may forward invalid or missing credentials without making that request authenticated in the abstraction.

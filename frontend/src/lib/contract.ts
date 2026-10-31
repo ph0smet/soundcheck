@@ -151,7 +151,10 @@ const canonicalContract = object(
   {
     schema_version: integer,
     kind: string,
-    scope: object({ path_prefix: string, method: nullable(string), host: nullable(string) }, { trusted_cidr: string }),
+    scope: object(
+      { path_prefix: string, method: nullable(string), host: nullable(string) },
+      { trusted_cidr: string, public_path_prefixes: array(string) },
+    ),
   },
   { assumptions: object({ source_ip_integrity: string }) },
 );

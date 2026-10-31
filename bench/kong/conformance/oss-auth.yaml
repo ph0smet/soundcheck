@@ -2,6 +2,9 @@ _format_version: "3.0"
 _transform: true
 # Public synthetic credentials. No expiry/provider/store-availability claim.
 consumers:
+  - username: exceptions-fixture
+    keyauth_credentials:
+      - key: soundcheck-exceptions-key
   - username: basic-fixture
     basicauth_credentials:
       - username: fixture-user
@@ -34,3 +37,10 @@ services:
               uri_param_names: []
               claims_to_verify: []
               run_on_preflight: false
+      - name: exceptions-protected
+        paths: [/api]
+        plugins:
+          - name: key-auth
+            config: {key_in_query: false}
+      - name: exceptions-public
+        paths: [/api/health]

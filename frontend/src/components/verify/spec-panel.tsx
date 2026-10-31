@@ -189,6 +189,7 @@ function ContractEditor({
   const yaml = contractYaml(draft);
   const problems = contractProblems(draft);
   const network = draft.kind === "network-restricted-access";
+  const publicExceptions = draft.kind === "protected-prefix-with-public-exceptions";
 
   return (
     <div className="divide-y divide-line">
@@ -212,15 +213,18 @@ function ContractEditor({
       {state.contractSource === "builder" ? (
         <>
           <div className="space-y-3 p-4">
-            <Segmented
-              label="Contract kind"
-              value={draft.kind}
-              onChange={(kind) => setDraft({ kind })}
-              options={[
-                { value: "authenticated-access", label: "Authenticated access" },
-                { value: "network-restricted-access", label: "Network restricted" },
-              ]}
-            />
+            <label className="block space-y-1 text-xs font-medium text-ink-2">
+              <span>Contract kind</span>
+              <select
+                value={draft.kind}
+                onChange={(event) => setDraft({ kind: event.target.value as ContractDraft["kind"] })}
+                className="block w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink"
+              >
+                <option value="authenticated-access">Authenticated access</option>
+                <option value="network-restricted-access">Network restricted</option>
+                <option value="protected-prefix-with-public-exceptions">Protected paths with public exceptions</option>
+              </select>
+            </label>
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="Path prefix" value={draft.pathPrefix} onChange={(e) => setDraft({ pathPrefix: e.target.value })} placeholder="/admin" />
               <Field label="Method" optional value={draft.method} onChange={(e) => setDraft({ method: e.target.value })} placeholder="every method" />
@@ -229,6 +233,24 @@ function ContractEditor({
                 <Field label="Trusted CIDR" value={draft.trustedCidr} onChange={(e) => setDraft({ trustedCidr: e.target.value })} placeholder="10.0.0.0/8" />
               )}
             </div>
+            {publicExceptions && (
+              <label className="block space-y-2 text-xs text-ink-2">
+                <span className="font-medium text-ink">Public path prefixes (one per line)</span>
+                <textarea
+                  value={draft.publicPathPrefixes}
+                  onChange={(e) => setDraft({ publicPathPrefixes: e.target.value })}
+                  rows={3}
+                  className="block w-full rounded-lg border border-line bg-surface px-3 py-2 font-mono text-xs text-ink"
+                  placeholder="/admin/health"
+                />
+                <span className="block leading-relaxed">
+                  Anonymous requests must remain able to reach these prefixes; authenticated access must remain available throughout the
+                  protected scope. Each exception uses the same method and host. Prefixes include all suffixes:
+                  /admin/health also includes /admin/healthcheck.
+                  The verifier validates normalized paths before running.
+                </span>
+              </label>
+            )}
             {network && (
               <label className="flex cursor-pointer gap-2.5 rounded-lg border border-line bg-surface-2 px-3 py-2.5 text-xs leading-relaxed text-ink-2">
                 <input

@@ -1,0 +1,18 @@
+# Hand-authored acceptance controls, not an observed AI-generated repair sequence.
+format_version: 1
+attempts:
+  - task: frozen-admin
+    id: unchanged
+    config: before.yaml
+  - task: frozen-admin
+    id: deny-all
+    config: deny-all.yaml
+  - task: frozen-admin
+    id: overbroad
+    config: out-of-scope.yaml
+  - task: frozen-admin
+    id: unsupported
+    config: unsupported.yaml
+  - task: frozen-admin
+    id: repaired
+    config: repaired.yaml

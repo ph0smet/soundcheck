@@ -11,3 +11,12 @@ jwt-valid|http|GET|/jwt-auth|-|-|authenticated|Authorization:Bearer eyJhbGciOiJI
 jwt-default-preflight-auth|http|OPTIONS|/jwt-auth|-|-|anonymous|-|deny|jwt-auth|oss-auth-service|401|exact|both|-
 jwt-preflight-bypass|http|OPTIONS|/jwt-preflight|-|-|anonymous|-|allow|jwt-preflight|oss-auth-service|-|exact|both|-
 jwt-bypass-get-still-authenticates|http|GET|/jwt-preflight|-|-|anonymous|-|deny|jwt-preflight|oss-auth-service|401|exact|both|-
+basic-wrong-password|http|GET|/basic-auth|-|-|anonymous|Authorization:Basic Zml4dHVyZS11c2VyOndyb25nLXBhc3N3b3Jk|deny|basic-auth|oss-auth-service|401|exact|both|-
+jwt-wrong-signature|http|GET|/jwt-auth|-|-|anonymous|Authorization:Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzb3VuZGNoZWNrLWZpeHR1cmUifQ.8RyM5mqwac06Xf0xV1736211iiU-JNz2D8yiHuO44xU|deny|jwt-auth|oss-auth-service|401|exact|both|-
+# Protected /api with the longer literal-prefix public exception /api/health.
+exceptions-protected-anonymous|http|GET|/api|-|-|anonymous|-|deny|exceptions-protected|oss-auth-service|401|exact|both|-
+exceptions-protected-valid|http|GET|/api|-|-|authenticated|apikey:soundcheck-exceptions-key|allow|exceptions-protected|oss-auth-service|200|exact|both|-
+exceptions-public-anonymous|http|GET|/api/health|-|-|anonymous|-|allow|exceptions-public|oss-auth-service|200|exact|both|-
+exceptions-public-descendant|http|GET|/api/health/ready|-|-|anonymous|-|allow|exceptions-public|oss-auth-service|-|exact|both|-
+exceptions-public-adjacent-prefix|http|GET|/api/healthy|-|-|anonymous|-|allow|exceptions-public|oss-auth-service|-|exact|both|-
+exceptions-other-path-protected|http|GET|/api/private|-|-|anonymous|-|deny|exceptions-protected|oss-auth-service|401|exact|both|-

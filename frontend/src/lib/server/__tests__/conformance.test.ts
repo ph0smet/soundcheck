@@ -26,6 +26,7 @@ const fixture = (...parts: string[]) => path.join(KONG, ...parts);
 const UNSAFE = fixture("workflows", "frozen-admin", "unsafe.yaml");
 const REPAIRED = fixture("workflows", "frozen-admin", "repaired.yaml");
 const CONTRACT = fixture("contracts", "admin-get.yaml");
+const PUBLIC_CONTRACT = fixture("contracts", "api-public-health.yaml");
 
 function engine(args: string[]) {
   return capture(BIN, args, { timeoutMs: 120_000, cwd: REPO });
@@ -115,4 +116,27 @@ describe.skipIf(!available)("engine conformance", () => {
       expect(acceptCompare(result, args.join(" "), mode, true), result.stdout + result.stderr).toMatchObject({ ok: true });
     });
   }
+
+  it("accepts the new frozen public-exceptions contract, evidence and repair schemas", async () => {
+    const config = fixture("workflows", "public-exceptions", "repaired.yaml");
+    const evidence = path.join(scratch, "public-exceptions-evidence");
+    const args = ["verify", config, "--contract", PUBLIC_CONTRACT, "--evidence-dir", evidence, "--format", "json"];
+    const verified = acceptVerify(await engine(args), args.join(" "), { mode: "contract" });
+    expect(verified).toMatchObject({ ok: true, report: { result: "proved", property: "protected-prefix-with-public-exceptions" } });
+    const manifest = parseJson(await readFile(path.join(evidence, "manifest.json"), "utf8"), evidenceManifest);
+    expect(manifest.result).toBe("proved");
+    const compareArgs = ["compare", fixture("workflows", "public-exceptions", "unsafe.yaml"), config, "--contract", PUBLIC_CONTRACT, "--format", "json"];
+    const compared = acceptCompare(await engine(compareArgs), compareArgs.join(" "), "decision", true);
+    expect(compared).toMatchObject({ ok: true, report: { result: "valid_repair", frozen_spec: { scope: { public_path_prefixes: ["/api/health"] } } } });
+  });
+
+  it.each([
+    ["unsafe", "protected-anonymous-access-denied"],
+    ["deny-all", "authenticated-access-allowed"],
+    ["locked-health", "public-access-allowed-1"],
+  ])("rejects the %s public-exception candidate with its failed clause", async (candidate, clause) => {
+    const args = ["verify", fixture("workflows", "public-exceptions", `${candidate}.yaml`), "--contract", PUBLIC_CONTRACT, "--format", "json"];
+    const result = acceptVerify(await engine(args), args.join(" "), { mode: "contract" });
+    expect(result).toMatchObject({ ok: true, report: { result: "violated", clause: { name: clause } } });
+  });
 });

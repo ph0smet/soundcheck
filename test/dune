@@ -98,6 +98,18 @@
  (libraries soundcheck_core soundcheck_kong))
 
 (test
+ (name public_exceptions_t)
+ (libraries soundcheck_core soundcheck_kong))
+
+(test
+ (name scalar_fidelity_t)
+ (libraries soundcheck_core soundcheck_kong))
+
+(test
+ (name plugin_bounds_t)
+ (libraries soundcheck_core soundcheck_kong))
+
+(test
  (name parse_t)
  (libraries soundcheck_core soundcheck_kong))
 
@@ -225,6 +237,21 @@
    %{dep:../bench/kong/workflows/frozen-admin/repaired.yaml}
    %{dep:../bench/kong/workflows/frozen-admin/deny-all.yaml})))
 
+(rule
+ (alias runtest)
+ (deps
+  ../bench/kong/contracts/api-public-health.yaml
+  (source_tree ../bench/kong/workflows/public-exceptions))
+ (action
+  (run
+   %{exe:mcp_frozen_acceptance.exe}
+   %{exe:../cli/main.exe}
+   %{dep:../bench/kong/contracts/api-public-health.yaml}
+   ../bench/kong/workflows/public-exceptions/unsafe.yaml
+   ../bench/kong/workflows/public-exceptions/repaired.yaml
+   ../bench/kong/workflows/public-exceptions/deny-all.yaml
+   protected-api)))
+
 ; Harness lifecycle checks use mocked commands; real Docker remains a separate
 ; conformance job and is never invoked by this runtest rule.
 (rule
@@ -304,6 +331,7 @@
   approximation_refinement_t.ml functionality_t.ml equivalence_t.ml approximation_t.ml
   header_routing_t.ml sni_routing_t.ml semantic_hardening_t.ml auth_plugin_bypass_t.ml
   global_plugin_t.ml rate_limit_coverage_t.ml cidr_t.ml network_restricted_t.ml
-  request_termination_t.ml parse_t.ml kong_assurance_t.ml top_level_route_t.ml)
+  request_termination_t.ml parse_t.ml kong_assurance_t.ml top_level_route_t.ml
+  plugin_bounds_t.ml)
  (action
   (run %{exe:semantic_acceptance_t.exe} .. %{dep:../bench/kong/semantic-coverage.yaml})))
