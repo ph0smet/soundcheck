@@ -24,3 +24,13 @@ anonymous-fallback-invalid-key|http|GET|/auth-anonymous|-|-|anonymous|route-key:
 anonymous-fallback-valid-key|http|GET|/auth-anonymous|-|-|authenticated|route-key:soundcheck-conformance-key|allow|auth-anonymous-fallback|auth-service|200|conservative|both|-
 auth-before-termination|http|GET|/auth-terminated|-|-|anonymous|-|deny|auth-terminated|auth-service|401|exact|both|-
 termination-after-auth|http|GET|/auth-terminated|-|-|authenticated|service-key:soundcheck-conformance-key|deny|auth-terminated|auth-service|418|exact|both|-
+plugin-http-on-http-missing|http|GET|/auth-http-protocol|-|-|anonymous|-|deny|auth-http-protocol|auth-service|401|exact|both|-
+plugin-http-on-http-valid|http|GET|/auth-http-protocol|-|-|authenticated|http-plugin-key:soundcheck-conformance-key|allow|auth-http-protocol|auth-service|200|exact|both|-
+plugin-http-on-https-missing|https|GET|/auth-http-protocol|-|-|anonymous|-|deny|auth-http-protocol|auth-service|401|exact|both|-
+plugin-http-on-https-valid|https|GET|/auth-http-protocol|-|-|authenticated|http-plugin-key:soundcheck-conformance-key|allow|auth-http-protocol|auth-service|200|exact|both|-
+plugin-http-on-https-no-fallback|https|GET|/auth-http-protocol|-|-|anonymous|service-key:soundcheck-conformance-key|deny|auth-http-protocol|auth-service|401|exact|both|-
+plugin-https-on-http-missing|http|GET|/auth-https-protocol|-|-|anonymous|-|deny|auth-https-protocol|auth-service|401|exact|both|-
+plugin-https-on-http-valid|http|GET|/auth-https-protocol|-|-|authenticated|https-plugin-key:soundcheck-conformance-key|allow|auth-https-protocol|auth-service|200|exact|both|-
+plugin-https-on-http-no-fallback|http|GET|/auth-https-protocol|-|-|anonymous|service-key:soundcheck-conformance-key|deny|auth-https-protocol|auth-service|401|exact|both|-
+plugin-https-on-https-missing|https|GET|/auth-https-protocol|-|-|anonymous|-|deny|auth-https-protocol|auth-service|401|exact|both|-
+plugin-https-on-https-valid|https|GET|/auth-https-protocol|-|-|authenticated|https-plugin-key:soundcheck-conformance-key|allow|auth-https-protocol|auth-service|200|exact|both|-

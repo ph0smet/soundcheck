@@ -6,7 +6,7 @@ compiled `kong-traditional-http-v11` profile to a semantic rule, immutable Kong
 regressions, available target samples and remaining gaps. It is internal,
 experimental test infrastructure, not a public verifier result schema.
 
-The current inventory has **42 entries: 18 source-only, 23 modeled-sample and
+The current inventory has **42 entries: 15 source-only, 26 modeled-sample and
 one boundary-sample**. These are evidence categories, not a coverage percentage
 or 42 independently established semantic guarantees. One probe can inform
 several feature rows; reference counts are not distinct target observations.
@@ -105,9 +105,14 @@ so rather than turning validator corruption checks into semantic evidence.
   tests preserve possible access while refusing to infer definite access.
 - Mixed known/unknown CIDR lowering has focused local bound and mutation checks;
   the live matrix still does not exercise IPv6 or mixed unknown entries.
-- Raw-path normalization, disabled services, plugin subsystem selection, wildcard
-  SNI, uppercase route hosts and stream criteria retain source-only target evidence.
-  Header case/repetition has local checks but no dedicated live probes here.
+- Disabled services, Key Auth HTTP-family subsystem selection, uppercase route
+  hosts and literal header case/repetition now have dedicated target samples.
+  Uppercase-host handling remains conservative; exact misses do not establish
+  exactness for the feature. These samples do not cover raw mixed-case request
+  Host normalization, large/truncated header sets, service hot reload or stream
+  plugin execution.
+- Raw-path normalization, wildcard SNI and stream criteria retain source-only
+  target evidence.
 - Admin-port recognition is limited to the declared default-port heuristic, not
   discovery of arbitrary deployed Admin APIs. Several unresolved relationship
   forms have local fail-closed checks without a live boundary matrix.
