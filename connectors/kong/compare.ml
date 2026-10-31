@@ -640,7 +640,7 @@ let to_human report =
     Printf.sprintf
       "DIFFERENT  model-level witness: %s request %s %s makes the configs disagree\n           %s\n           %s\n           Not a guaranteed target replay. Assurance: %s"
       (if request.is_anon then "anonymous" else "authenticated")
-      (if request.method_ = "" then "<any-method>" else request.method_)
+      (Lift.method_human request.method_)
       request.path (observation_human "before" witness.before)
       (observation_human "after" witness.after) report.profile
 
@@ -749,7 +749,7 @@ let repair_to_human report =
     Printf.sprintf
       "OUT-OF-SCOPE REGRESSION  model-level witness: %s request %s %s changed outside the frozen repair scope\n                         %s\n                         %s\n                         Not a guaranteed target replay. Frozen spec: %s"
       (if request.is_anon then "anonymous" else "authenticated")
-      (if request.method_ = "" then "<any-method>" else request.method_)
+      (Lift.method_human request.method_)
       request.path (observation_human "before" witness.before)
       (observation_human "after" witness.after)
       (Contract_spec.canonical_json report.frozen_spec)

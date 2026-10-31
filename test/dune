@@ -34,6 +34,10 @@
  (libraries soundcheck_core soundcheck_kong soundcheck_mcp unix))
 
 (test
+ (name witness_presentation_t)
+ (libraries soundcheck_core soundcheck_kong))
+
+(test
  (name sha256_t)
  (libraries soundcheck_core unix))
 

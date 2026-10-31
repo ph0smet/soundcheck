@@ -7,7 +7,8 @@
 
 type counterexample = {
   principal        : string;  (** e.g. ["anonymous"] / ["authenticated"] *)
-  action           : string;  (** the request method, or [""] if unconstrained *)
+  action           : string;
+      (** Exact modeled request method. [""] is an empty value, not a wildcard. *)
   path             : string;
   route            : string option;  (** connector location that SERVES the request *)
   service          : string option;
