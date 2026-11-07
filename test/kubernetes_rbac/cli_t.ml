@@ -7,6 +7,11 @@ let read path =
   Fun.protect ~finally:(fun () -> close_in_noerr ch) (fun () -> really_input_string ch (in_channel_length ch))
 let write path text = let ch = open_out_bin path in output_string ch text; close_out ch
 let assoc key = function `O fields -> List.assoc key fields | _ -> failwith ("not object: " ^ key)
+let contains text fragment =
+  let rec search index =
+    index + String.length fragment <= String.length text &&
+    (String.sub text index (String.length fragment) = fragment || search (index+1)) in
+  search 0
 
 let run binary args =
   let output = Filename.temp_file "rbac-cli-" ".out" in
@@ -59,6 +64,31 @@ let () =
       check "unsupported is unknown" (assoc "result" result = `String "unknown");
       check "unsupported assurance" (assoc "status" (assoc "assurance" result) = `String "unsupported"))
     ["17-missing-reference";"18-aggregation-boundary";"26-trailing-json-document"];
+  let github command expected fragments =
+    let code,output,error = run binary ("rbac" :: command @ ["--contract";contract;"--format";"github"]) in
+    check ("GitHub exit: " ^ String.concat " " command ^ error) (code=expected);
+    check "GitHub report has no stderr" (error="");
+    check "one GitHub annotation" (List.length (String.split_on_char '\n' (String.trim output))=1);
+    List.iter (fun fragment -> check ("GitHub annotation contains " ^ fragment) (contains output fragment)) fragments;
+    output in
+  ignore (github ["verify";fixture "01-unsafe"] 3
+            ["::error file=";" get secrets/";"in namespace payments";"granting rules [";"must_not_grant"]);
+  ignore (github ["verify";fixture "02-delete-workload-grants"] 3
+            ["::error file=";"NoOpinion";"granting rules []";"must_allow"]);
+  ignore (github ["verify";fixture "03-valid-repair"] 0
+            ["::notice file=";"proved";"frozen spec ";Assurance.profile_id]);
+  ignore (github ["verify";fixture "18-aggregation-boundary"] 4
+            ["::error file=";"unknown";"unsupported"]);
+  ignore (github ["compare";fixture "01-unsafe";fixture "03-valid-repair"] 0
+            ["::notice file=" ^ fixture "03-valid-repair";"rbac-repair-preservation proved"]);
+  ignore (github ["compare";fixture "01-unsafe";fixture "16-operator-regression"] 3
+            ["::error file=" ^ fixture "16-operator-regression";"ops-auditor get configmaps/";"Allow to NoOpinion";"must_preserve"]);
+  let missing = root ^ "/missing\n::notice::injected.json" in
+  let code,output,error = run binary ["rbac";"verify";missing;"--contract";contract;"--format";"github"] in
+  check "GitHub I/O errors retain exit 1" (code=1 && error="");
+  check "GitHub I/O errors are escaped annotations"
+    (String.starts_with ~prefix:"::error file=" output && contains output "%0A::notice::injected.json" &&
+     List.length (String.split_on_char '\n' (String.trim output))=1);
   List.iter (fun args ->
       let code,_,_ = run binary args in check "invalid flags cannot replace frozen scope" (code=2))
     [["rbac";"verify";fixture "03-valid-repair"];
@@ -69,7 +99,14 @@ let () =
   Fun.protect ~finally:(fun () -> Sys.remove temporary) (fun () ->
     write temporary (original_contract ^ "{}");
     let code,output,_ = run binary ["rbac";"verify";fixture "03-valid-repair";"--contract";temporary;"--format";"json"] in
-    check "malformed contract blocks proof" (code=4 && assoc "result" (Input.parse output)=`String "unknown"));
+    check "malformed contract blocks proof" (code=4 && assoc "result" (Input.parse output)=`String "unknown");
+    let code,output,error = run binary ["rbac";"verify";fixture "03-valid-repair";"--contract";temporary;"--format";"github"] in
+    check "GitHub malformed contract blocks proof" (code=4 && error="" && String.starts_with ~prefix:"::error file=" output);
+    let code,output,error = run binary ["rbac";"verify";fixture "03-valid-repair";"--contract";contract;
+                                     "--format";"github";"--evidence-dir";temporary] in
+    check "GitHub evidence error cannot publish a proof verdict"
+      (code=1 && error="" && String.starts_with ~prefix:"::error file=" output &&
+       contains output "evidence error" && not (contains output "::notice")));
   let code,output,_ = run binary ["profile";"kubernetes-rbac";"--format";"json"] in
   check "profile command" (code=0 && assoc "id" (Input.parse output)=`String Assurance.profile_id);
   check "contract file not changed" (read contract = original_contract);

@@ -115,8 +115,14 @@ Preservation uses a `must_preserve` clause with before/after RBAC decisions in
 its description. Only `proved` exits `0`; violation/unknown/vacuous/inconsistent
 exit `3`/`4`/`5`/`6`. I/O and usage failures exit `1` and `2`.
 
-RBAC exposes CLI, library and frozen MCP workflows. The reusable Action and
-web UI remain Kong-specific.
+Use `--format human`, `json` or `github`. GitHub annotations identify the exact
+typed object request, groups and granting rules; a preservation failure names
+the before/after decision change. An annotation retains the same exit code as
+the JSON result. Non-proof results and I/O failures are error annotations;
+only a proof is a notice.
+
+RBAC exposes CLI, library, frozen MCP and reusable Action workflows. The web UI
+remains Kong-specific.
 
 ## Frozen MCP workflow
 
@@ -163,6 +169,38 @@ Keep the server executable, startup arguments, contract and baseline under
 operator control. Freezing tool arguments is not a sandbox for an agent that
 can replace or restart the verifier. `verify` alone establishes no preservation
 result; repair acceptance requires `compare` or the equivalent CLI check.
+
+## GitHub Action
+
+Select RBAC explicitly in the trusted caller workflow:
+
+```yaml
+steps:
+  - uses: actions/checkout@v4
+  - uses: ph0smet/soundcheck@<reviewed-full-commit-sha>
+    with:
+      connector: kubernetes-rbac
+      config: rbac-snapshot.json
+      contract: contracts/rbac-access.json
+```
+
+`config` is the candidate's complete desired snapshot, in the strict JSON
+format above. `contract` is a fixed repository-relative path resolved from the
+immutable PR base commit or protected-default-branch push commit. A candidate's
+edited contract cannot replace that approved blob. The selector defaults to
+`kong`; unknown or empty selectors fail before verification.
+
+The Action calls `rbac verify --format github`. It checks required and forbidden
+grants, but does **not** compare with a baseline or establish preservation outside
+the change scope. Use `rbac compare` separately with an operator-controlled
+baseline when accepting repairs; a candidate can satisfy its contract while
+changing unrelated permissions.
+
+Use a fresh trusted Ubuntu job and a reviewed full Action commit SHA. Protect
+the workflow, connector choice and contract path, and approve requirements
+separately. Required checks, branch protection and fresh-base reruns remain
+repository responsibilities. See the [Action trust boundary](../README.md#github-action)
+for supported events, runner requirements and dependency assumptions.
 
 ## Verification evidence
 

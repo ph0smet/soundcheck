@@ -138,13 +138,17 @@ let () =
   (match inputs with
    | `O fields ->
      let names = List.map fst fields |> List.sort String.compare in
-     if names <> [ "config"; "contract" ] then
-       fail "Action inputs changed: expected only config and contract";
+     if names <> [ "config"; "connector"; "contract" ] then
+       fail "Action inputs changed: expected config, connector and contract";
      List.iter
        (fun name ->
          require_true ("input " ^ name) "required"
            (require_field "inputs" name inputs))
-       names
+       [ "config"; "contract" ];
+     let connector = require_field "inputs" "connector" inputs in
+     require_false "input connector" "required" connector;
+     if require_string "input connector" "default" connector <> "kong" then
+       fail "the default connector must preserve existing Kong workflows"
    | _ -> fail "Action inputs were not an object");
   let runs = require_field "action" "runs" action in
   if require_string "runs" "using" runs <> "composite" then
@@ -211,5 +215,6 @@ let () =
         if require_string "verification environment" name env <> expected then
           fail "verification input %s was not safely passed through the environment" name)
       [ ("SOUNDCHECK_CONFIG_INPUT", "${{ inputs.config }}");
+        ("SOUNDCHECK_CONNECTOR_INPUT", "${{ inputs.connector }}");
         ("SOUNDCHECK_CONTRACT_INPUT", "${{ inputs.contract }}") ];
     print_endline "Action metadata checks passed"

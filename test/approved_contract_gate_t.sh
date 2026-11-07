@@ -3,9 +3,15 @@ set -euo pipefail
 
 # The same file is copied into a synthetic trusted Action as a mock verifier.
 # Real-verifier cases at the end replace that copy with the actual CLI.
-if [[ "${1:-}" == verify ]]; then
+if [[ "${1:-}" == verify || "${1:-}" == rbac ]]; then
+  soundcheck_mock_connector=kong
+  if [[ "$1" == rbac ]]; then
+    soundcheck_mock_connector=kubernetes-rbac
+    shift
+  fi
+  [[ "$soundcheck_mock_connector" == "${SOUNDCHECK_CONNECTOR_INPUT-kong}" ]] || exit 90
   [[ $# -eq 6 && "$3" == --contract && "$5" == --format && "$6" == github ]] || exit 91
-  [[ "$2" == "$GITHUB_WORKSPACE/config.yaml" ]] || exit 92
+  [[ "$2" == "$GITHUB_WORKSPACE/$SOUNDCHECK_CONFIG_INPUT" ]] || exit 92
   [[ "$4" == "$RUNNER_TEMP/"*/contract.yaml && "$4" != "$GITHUB_WORKSPACE/"* ]] || exit 93
   cmp -s "$4" "$SOUNDCHECK_EXPECTED_CONTRACT" || exit 94
   [[ "$(LC_ALL=C ls -ld "$4")" == '-r--------'* ]] || exit 95
@@ -100,6 +106,40 @@ services:
         plugins:
           - name: key-auth
 YAML
+cat > "$soundcheck_test_dir/approved-rbac.json" <<'JSON'
+{
+  "schema_version":1,"kind":"kubernetes-rbac-access",
+  "context":{"schema_version":1,"snapshot_complete":true,
+    "identities":[{"username":"alice","groups":["system:authenticated"]}]},
+  "clauses":[
+    {"name":"config-required","kind":"must_allow","subject":"alice",
+     "namespace":"frontend","resource":"configmaps","names":null},
+    {"name":"secrets-not-granted","kind":"must_not_grant","subject":"alice",
+     "namespace":"payments","resource":"secrets","names":null}],
+  "change_scope":[{"subject":"alice","namespace":"payments","resource":"secrets","names":null}]
+}
+JSON
+jq '.clauses[1].namespace = "audit"' "$soundcheck_test_dir/approved-rbac.json" \
+  > "$soundcheck_test_dir/candidate-rbac.json"
+cat > "$soundcheck_test_dir/unsafe-rbac.json" <<'JSON'
+{"apiVersion":"v1","kind":"List","items":[
+  {"apiVersion":"rbac.authorization.k8s.io/v1","kind":"Role",
+   "metadata":{"namespace":"frontend","name":"config-reader"},
+   "rules":[{"apiGroups":[""],"verbs":["get"],"resources":["configmaps"]}]},
+  {"apiVersion":"rbac.authorization.k8s.io/v1","kind":"RoleBinding",
+   "metadata":{"namespace":"frontend","name":"config-grant"},
+   "roleRef":{"apiGroup":"rbac.authorization.k8s.io","kind":"Role","name":"config-reader"},
+   "subjects":[{"kind":"User","apiGroup":"rbac.authorization.k8s.io","name":"alice"}]},
+  {"apiVersion":"rbac.authorization.k8s.io/v1","kind":"Role",
+   "metadata":{"namespace":"payments","name":"secret-reader"},
+   "rules":[{"apiGroups":[""],"verbs":["get"],"resources":["secrets"]}]},
+  {"apiVersion":"rbac.authorization.k8s.io/v1","kind":"RoleBinding",
+   "metadata":{"namespace":"payments","name":"secret-grant"},
+   "roleRef":{"apiGroup":"rbac.authorization.k8s.io","kind":"Role","name":"secret-reader"},
+   "subjects":[{"kind":"User","apiGroup":"rbac.authorization.k8s.io","name":"alice"}]}]}
+JSON
+cp "$soundcheck_test_dir/unsafe-rbac.json" "$soundcheck_workspace/rbac.json"
+cp "$soundcheck_test_dir/approved-rbac.json" "$soundcheck_workspace/contracts/rbac.json"
 cp "$soundcheck_test_dir/approved.yaml" "$soundcheck_workspace/contracts/security.yaml"
 cp "$soundcheck_test_dir/approved.yaml" "$soundcheck_workspace/contracts/contract with space.yaml"
 cp "$soundcheck_test_dir/approved.yaml" "$soundcheck_workspace/contracts/literal[1].yaml"
@@ -116,6 +156,7 @@ soundcheck_tag="$(git_fixture rev-parse approved-tag)"
 
 # Candidate content and a moving branch ref must not replace the event SHA.
 cp "$soundcheck_test_dir/candidate.yaml" "$soundcheck_workspace/contracts/security.yaml"
+cp "$soundcheck_test_dir/candidate-rbac.json" "$soundcheck_workspace/contracts/rbac.json"
 mkdir -p "$soundcheck_workspace/scripts" "$soundcheck_workspace/_build/default/cli"
 printf '#!/usr/bin/env bash\nexit 90\n' > "$soundcheck_workspace/scripts/verify-approved-contract.sh"
 cp "$soundcheck_workspace/scripts/verify-approved-contract.sh" \
@@ -146,7 +187,8 @@ run_gate() {
   shift 3
   local output="$soundcheck_test_dir/$soundcheck_case.output"
   local invocation="$soundcheck_test_dir/$soundcheck_case.invocation"
-  SOUNDCHECK_CONFIG_INPUT=config.yaml \
+  SOUNDCHECK_CONNECTOR_INPUT=kong \
+    SOUNDCHECK_CONFIG_INPUT=config.yaml \
     SOUNDCHECK_CONTRACT_INPUT=contracts/security.yaml \
     SOUNDCHECK_EXPECTED_CONTRACT="$soundcheck_test_dir/approved.yaml" \
     SOUNDCHECK_GATE_TEST_LOG="$invocation" \
@@ -177,6 +219,22 @@ run_gate() {
 
 write_pr_event
 run_gate pr-base-not-candidate 0 "$soundcheck_base:contracts/security.yaml"
+run_gate implicit-kong-backward-compatible 0 "$soundcheck_base:contracts/security.yaml" -u SOUNDCHECK_CONNECTOR_INPUT
+run_gate explicit-rbac-dispatch 0 "$soundcheck_base:contracts/rbac.json" \
+  SOUNDCHECK_CONNECTOR_INPUT=kubernetes-rbac SOUNDCHECK_CONFIG_INPUT=rbac.json \
+  SOUNDCHECK_CONTRACT_INPUT=contracts/rbac.json \
+  "SOUNDCHECK_EXPECTED_CONTRACT=$soundcheck_test_dir/approved-rbac.json"
+soundcheck_selector_count=0
+for soundcheck_bad_connector in '' k8s RBAC 'kong verify' 'kubernetes-rbac --contract candidate.json' \
+  $'kong\n::notice::injected' "\$(touch $soundcheck_test_dir/connector-injected)" \
+  "\`touch $soundcheck_test_dir/connector-injected\`"; do
+  soundcheck_selector_count=$((soundcheck_selector_count + 1))
+  run_gate "invalid-connector-$soundcheck_selector_count" 1 'connector must be kong or kubernetes-rbac' \
+    "SOUNDCHECK_CONNECTOR_INPUT=$soundcheck_bad_connector"
+  [[ ! -e "$soundcheck_test_dir/invalid-connector-$soundcheck_selector_count.invocation" ]] || \
+    fail 'invalid connector reached the verifier'
+done
+[[ ! -e "$soundcheck_test_dir/connector-injected" ]] || fail 'connector input executed shell code'
 for soundcheck_verifier_status in 1 2 3 4 5 6; do
   run_gate "verifier-exit-$soundcheck_verifier_status" "$soundcheck_verifier_status" '' \
     "SOUNDCHECK_MOCK_STATUS=$soundcheck_verifier_status"
@@ -347,4 +405,34 @@ services:
           - name: key-auth
 YAML
 run_gate real-cli-accepts-config-repair 0 'proved'
+soundcheck_rbac_env=(SOUNDCHECK_CONNECTOR_INPUT=kubernetes-rbac SOUNDCHECK_CONFIG_INPUT=rbac.json \
+  SOUNDCHECK_CONTRACT_INPUT=contracts/rbac.json)
+# The exact same unsafe snapshot proves against the candidate's weakened
+# requirements, but must fail against the immutable approved base contract.
+"$soundcheck_action/_build/default/cli/main.exe" rbac verify "$soundcheck_workspace/rbac.json" \
+  --contract "$soundcheck_workspace/contracts/rbac.json" --format json \
+  > "$soundcheck_test_dir/rbac-candidate-contract-direct.json"
+expect_contains "$soundcheck_test_dir/rbac-candidate-contract-direct.json" '"result":"proved"'
+run_gate real-rbac-rejects-contract-weakening 3 'must_not_grant' "${soundcheck_rbac_env[@]}"
+expect_contains "$soundcheck_test_dir/real-rbac-rejects-contract-weakening.output" '::error file='
+expect_contains "$soundcheck_test_dir/real-rbac-rejects-contract-weakening.output" 'in namespace payments'
+expect_contains "$soundcheck_test_dir/real-rbac-rejects-contract-weakening.output" 'granting rules ['
+# Removing every grant blocks intended functionality; NoOpinion is not Deny.
+jq '.items |= map(select(.kind != "RoleBinding"))' "$soundcheck_test_dir/unsafe-rbac.json" \
+  > "$soundcheck_workspace/rbac.json"
+run_gate real-rbac-rejects-deny-all 3 'must_allow' "${soundcheck_rbac_env[@]}"
+expect_contains "$soundcheck_test_dir/real-rbac-rejects-deny-all.output" 'NoOpinion'
+expect_contains "$soundcheck_test_dir/real-rbac-rejects-deny-all.output" 'granting rules []'
+# Only remove the unwanted grant. The required frontend grant remains.
+jq '.items |= map(select(.metadata.name != "secret-grant"))' "$soundcheck_test_dir/unsafe-rbac.json" \
+  > "$soundcheck_workspace/rbac.json"
+run_gate real-rbac-accepts-repair 0 '::notice file=' "${soundcheck_rbac_env[@]}"
+expect_contains "$soundcheck_test_dir/real-rbac-accepts-repair.output" 'proved'
+# A dangling reference cannot be treated as absence of a grant.
+jq '.items |= map(select(.metadata.name != "secret-reader"))' "$soundcheck_test_dir/unsafe-rbac.json" \
+  > "$soundcheck_workspace/rbac.json"
+run_gate real-rbac-rejects-unsupported 4 'unsupported' "${soundcheck_rbac_env[@]}"
+expect_contains "$soundcheck_test_dir/real-rbac-rejects-unsupported.output" '::error file='
+# The selector cannot turn an unsupported RBAC snapshot into a Kong proof.
+run_gate real-rbac-wrong-connector-fails-closed 2 'contract error' "${soundcheck_rbac_env[@]}" SOUNDCHECK_CONNECTOR_INPUT=kong
 printf 'All %s approved-contract gate checks passed (local Git, no network).\n' "$soundcheck_count"

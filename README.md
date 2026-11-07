@@ -100,9 +100,9 @@ selected modeled behavior outside the repair's scope is preserved. Ordinary
 
 ## From agent feedback to CI
 
-The MCP and reusable Action workflows below currently target Kong. RBAC uses
-the CLI/library and the same shared verification core; see its
-[contract and integration boundary](docs/kubernetes-rbac.md).
+Kong and the bounded RBAC profile share the CLI/library, frozen MCP and reusable
+Action workflows. RBAC also supports MCP repair comparison with a startup
+baseline; see its [contract and integration boundary](docs/kubernetes-rbac.md).
 
 1. **Review the requirement.** A policy owner selects a supported contract kind,
    reviews its scope and assumptions, and approves it separately from the
@@ -155,7 +155,7 @@ or CI job.
 | Verification | Six Kong property templates, three Kong frozen contract kinds, and paired RBAC access contracts |
 | Verdicts | `proved`, `violated`, `vacuous`, `inconsistent`, or `unknown` |
 | Comparisons | Kong decision/routing equivalence; RBAC decision preservation outside a frozen change scope |
-| Interfaces | CLI/library, schema-v10 JSON and frozen MCP for both targets; Kong also has GitHub annotations, the Action, and web UI |
+| Interfaces | CLI/library, schema-v10 JSON, frozen MCP, GitHub annotations and the Action for both targets; web UI for Kong |
 | Audit output | Kong/RBAC verification bundles, RBAC repair-comparison bundles, SMT-LIB2 queries and reference conformance replays |
 
 Additional gateways, OPA/Rego, IAM, and app-level authorization
@@ -332,8 +332,14 @@ steps:
       contract: soundcheck-contract.yaml
 ```
 
+The connector defaults to `kong`. For the bounded RBAC profile, set
+`connector: kubernetes-rbac` and select a complete strict JSON snapshot and an
+approved RBAC contract. The [RBAC Action example](docs/kubernetes-rbac.md#github-action)
+shows this setup. The Action checks the frozen access contract; repair
+preservation requires a separate `rbac compare` check against a trusted baseline.
+
 Use a reviewed full commit SHA in a fresh, trusted job before candidate code
-runs. The caller workflow, fixed contract path, and Action SHA must not be
+runs. The caller workflow, connector, fixed contract path, and Action SHA must not be
 candidate-controlled; `uses: ./` is only suitable for testing the Action. The
 adapter accepts `pull_request` and non-forced, non-deleted protected-default-branch
 push events and fails closed elsewhere.

@@ -35,8 +35,8 @@ let usage () =
     \  With --contract, verify the replacement and preserve decisions outside\n\
     \  the frozen contract scope.\n\
      \n\
-     usage: soundcheck rbac verify SNAPSHOT.json --contract CONTRACT.json [--format human|json] [--evidence-dir NEW_DIRECTORY]\n\
-     usage: soundcheck rbac compare BEFORE.json AFTER.json --contract CONTRACT.json [--format human|json] [--evidence-dir NEW_DIRECTORY]\n\
+     usage: soundcheck rbac verify SNAPSHOT.json --contract CONTRACT.json [--format human|json|github] [--evidence-dir NEW_DIRECTORY]\n\
+     usage: soundcheck rbac compare BEFORE.json AFTER.json --contract CONTRACT.json [--format human|json|github] [--evidence-dir NEW_DIRECTORY]\n\
     \  Verify static named-get RBAC requirements, or verify a repair and preserve other decisions.\n\
      usage: soundcheck profile kong|kubernetes-rbac [--format human|json]\n\
     \  Print the versioned connector assurance profile and exit.\n\
