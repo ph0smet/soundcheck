@@ -35,9 +35,10 @@ non-proof result. Agents can use that feedback to revise a candidate while the
 frozen verification interface keeps the requirement fixed.
 
 Today, Soundcheck verifies **decK-style Kong OSS 3.9.3 configurations** under the
-`traditional` and `traditional_compatible` HTTP routers. Kong is the first
-connector in a broader effort to verify declarative security policy across
-multiple systems. The verifier is AI-model agnostic.
+`traditional` and `traditional_compatible` HTTP routers, and **static Kubernetes
+RBAC snapshots** in a bounded named-`get` profile. Kong is the first connector;
+RBAC adds individual identities, resource permissions, and repair preservation
+to the shared verification core. The verifier is AI-model agnostic.
 
 > [!IMPORTANT]
 > A `PROVED` result applies to the stated property or frozen contract within
@@ -99,6 +100,10 @@ selected modeled behavior outside the repair's scope is preserved. Ordinary
 
 ## From agent feedback to CI
 
+The MCP and reusable Action workflows below currently target Kong. RBAC uses
+the CLI/library and the same shared verification core; see its
+[contract and integration boundary](docs/kubernetes-rbac.md).
+
 1. **Review the requirement.** A policy owner selects a supported contract kind,
    reviews its scope and assumptions, and approves it separately from the
    generated configuration.
@@ -146,15 +151,41 @@ or CI job.
 
 | Capability | Current support |
 | --- | --- |
-| Target | Kong OSS 3.9.3 decK YAML; `traditional` and `traditional_compatible` HTTP routing |
-| Verification | Six manual property templates and three parameterized frozen contract kinds |
+| Targets | Kong OSS 3.9.3 decK YAML; static Kubernetes RBAC JSON Lists, pinned to v1.34.0 named-`get` semantics |
+| Verification | Six Kong property templates, three Kong frozen contract kinds, and paired RBAC access contracts |
 | Verdicts | `proved`, `violated`, `vacuous`, `inconsistent`, or `unknown` |
-| Comparisons | Decision, route/service, service target, and literal-path upstream URI equivalence, within their supported boundaries |
-| Interfaces | CLI, schema-v10 JSON, GitHub annotations, frozen/manual MCP, and a reusable GitHub Action |
-| Audit output | SMT-LIB2 emission for single queries and complete evidence bundles for frozen contracts |
+| Comparisons | Kong decision/routing equivalence; RBAC decision preservation outside a frozen change scope |
+| Interfaces | CLI/library and schema-v10 JSON for both targets; Kong also has GitHub annotations, MCP, the Action, and web UI |
+| Audit output | Kong SMT-LIB2 emission and frozen-contract evidence bundles; RBAC conformance queries and reference replays |
 
-Additional gateways, Kubernetes RBAC, OPA/Rego, IAM, and app-level authorization
+Additional gateways, OPA/Rego, IAM, and app-level authorization
 are [future targets](#roadmap), not shipped connectors.
+
+### Kubernetes RBAC example
+
+Keep a workload's required ConfigMap access while removing unwanted Secret
+access. Then check that the repair preserves other identities' permissions:
+
+```sh
+eval "$(opam env)"
+dune exec soundcheck -- rbac verify \
+  bench/kubernetes-rbac/fixtures/01-unsafe.json \
+  --contract bench/kubernetes-rbac/contracts/frontend-access.json
+# violated: frontend-sa has an unwanted payments/Secret get grant
+
+dune exec soundcheck -- rbac compare \
+  bench/kubernetes-rbac/fixtures/01-unsafe.json \
+  bench/kubernetes-rbac/fixtures/03-valid-repair.json \
+  --contract bench/kubernetes-rbac/contracts/frontend-access.json
+# proved: the candidate meets the contract and preserves other modeled decisions
+```
+
+The first profile requires a complete static desired RBAC snapshot and trusted,
+fixed usernames/groups. It checks named `get` requests for core ConfigMaps and
+Secrets. `NoOpinion` means RBAC supplies no grant; other authorizers, admission,
+list/watch, indirect access and runtime deployment behavior are outside this
+claim. See the [RBAC guide](docs/kubernetes-rbac.md) for the supported input,
+deny-all and operator-regression examples, and exact assumptions.
 
 ## What Soundcheck establishes
 
@@ -311,11 +342,12 @@ for the full boundary.
 
 ### Stable JSON
 
-On `verify`, `--format json` emits the schema-v10 verification result used by
+On `verify`, `rbac verify` and `rbac compare`, `--format json` emits the schema-v10 result used by
 machine consumers. Its core result, property, assurance, frozen-spec, clause,
 and counterexample keys are always present and use `null` when not applicable;
-`reason` appears for `unknown` and `inconsistent`. `compare` and `profile` have
-separately versioned JSON schemas.
+`reason` appears for `unknown` and `inconsistent`. RBAC witnesses include exact
+object coordinates, frozen groups and granting-rule identifiers. Kong `compare`
+and connector `profile` commands have separately versioned JSON schemas.
 
 ```sh
 eval "$(opam env)"
@@ -372,7 +404,7 @@ identifiers. Review them before retention or sharing.
 
 ## Supported model
 
-The current assurance profile is `kong-traditional-http-v11`: Kong OSS 3.9.3
+The Kong assurance profile is `kong-traditional-http-v11`: Kong OSS 3.9.3
 `traditional` and `traditional_compatible` HTTP routing. Inspect the complete
 modeled, conservative, and unsupported feature lists directly:
 
@@ -412,6 +444,11 @@ profile feature to pinned Kong source, lowering ownership, regressions, availabl
 target samples, and explicit gaps. It is evidence bookkeeping, not a public
 result schema, a coverage percentage, or a completeness certificate.
 
+The RBAC profile is `kubernetes-rbac-v1.34-get-v1`. Inspect it with
+`soundcheck profile kubernetes-rbac`, and review the
+[RBAC boundaries](docs/kubernetes-rbac.md#supported-profile) before interpreting
+a proof. It does not inherit Kong's HTTP or authentication assumptions.
+
 ## Testing
 
 The repository keeps several kinds of evidence separate:
@@ -425,6 +462,9 @@ The repository keeps several kinds of evidence separate:
 - [Pinned real-Kong conformance](bench/kong/conformance/README.md) across both
   supported router flavors, distinguishing exact, conservative, and unsupported
   observations.
+- [Pinned Kubernetes RBAC conformance](bench/kubernetes-rbac/conformance/README.md)
+  comparing concrete and SMT decisions with Kubernetes' production authorizer
+  on original snapshot bytes, including replay of CLI counterexamples.
 
 These are finite checks of the implementation and abstraction rules, not a
 universal proof that the target model matches every deployment.
@@ -450,10 +490,12 @@ evidence to the shared verification core.
 - **Deepen Kong assurance and usability.** Expand semantic coverage and target
   conformance, improve contract authoring and diagnostics, and evaluate useful
   coverage through small authorized deployment pilots.
-- **Extend to more policy systems.** Additional gateways, Kubernetes RBAC,
-  OPA/Rego, IAM, and application authorization remain future targets. Connector
-  expansion follows Kong readiness and deployment feedback; each target needs
-  precise properties and independently justified semantics.
+- **Expand RBAC carefully.** The first static named-`get` profile is available.
+  Broader verbs/resources, input formats and integrations need separate semantic
+  boundaries and reference evidence.
+- **Extend to more policy systems.** Additional gateways, OPA/Rego, IAM, and
+  application authorization remain future targets. Each target needs precise
+  properties and independently justified semantics.
 - **Evaluate external agent repairs.** Use the experimental benchmark to collect
   reproducible results from external agents after inputs and requirements are
   reviewed. Model runtimes and repair orchestration remain outside the core.

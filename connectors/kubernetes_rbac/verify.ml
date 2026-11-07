@@ -1,0 +1,90 @@
+open Soundcheck_core
+
+let report_clause clause : Report.clause =
+  {name=Contract.name clause;description=Contract.description clause;
+   kind=(match clause with Contract.Must_allow _ -> Report.Must_allow
+       | Contract.Must_deny _ -> Report.Must_not_grant)}
+
+let description =
+  "The frozen access requirements hold for named get requests within the static RBAC profile; absence of a grant is NoOpinion, not final API-server denial."
+
+let report ?clause ?unsupported spec result : Report.t =
+  {result;property_name=Contract_spec.kind;property_description=description;
+   assurance=Some (Assurance.assessment ?reason:unsupported ());clause;
+   frozen_spec=Some (Contract_spec.frozen_spec spec)}
+
+let invalid_contract reason : Report.t =
+  {result=Report.Unknown ("invalid RBAC contract: " ^ reason);
+   property_name=Contract_spec.kind;property_description=description;
+   assurance=Some (Assurance.assessment ~reason ());clause=None;frozen_spec=None}
+
+let counterexample spec policy ~note model : Report.counterexample =
+  let request = Witness.request_of_model model in
+  let username = match request.principal with
+    | Ir.Authenticated name -> name
+    | _ -> invalid_arg "RBAC witness lacks a named identity" in
+  let identity = List.find (fun (identity : Identity.identity) -> identity.username=username)
+      (Contract_spec.identities spec) in
+  {principal=username;action=model.method_;path="";
+   route=None;service=None;shadowed_route=None;shadowed_service=None;
+   host="";scheme="";sni="";source_ip=0l;headers=[];note;
+   object_request=model.object_request;identity_groups=Some identity.groups;
+   granting_rules=Lower.granting_rules policy request}
+
+let request_description model =
+  let coordinates = Option.get model.Solve.object_request in
+  Printf.sprintf "%S get core %s %S in namespace %S"
+    (Option.get model.principal_name) coordinates.resource_kind coordinates.name coordinates.namespace
+
+let contract_report ?z3 spec policy =
+  match Contract_verify.run ?z3 policy (Contract_spec.to_contract spec) with
+  | Contract_verify.Proved -> report spec Report.Proved
+  | Vacuous clause -> report ~clause:(report_clause clause) spec Report.Vacuous
+  | Inconsistent (left,right) ->
+    report ~clause:(report_clause right) spec
+      (Report.Inconsistent (Printf.sprintf "clauses %S and %S require both a grant and no grant for the same request"
+        (Contract.name left) (Contract.name right)))
+  | Unknown reason -> report spec (Report.Unknown reason)
+  | Violated (clause,model) ->
+    let decision = match clause with Contract.Must_allow _ -> "NoOpinion (required RBAC grant is absent)"
+      | Contract.Must_deny _ -> "Allow (forbidden RBAC grant exists)" in
+    let note = request_description model ^ " => " ^ decision in
+    report ~clause:(report_clause clause) spec
+      (Report.Violated (counterexample spec policy ~note model))
+
+let run ?z3 spec source =
+  match Snapshot.of_string source with
+  | Error reason -> report ~unsupported:reason spec (Report.Unknown reason)
+  | Ok snapshot -> contract_report ?z3 spec (Lower.policy spec snapshot)
+
+let compare ?z3 spec ~before ~after =
+  let ( let* ) = Result.bind in
+  let prepared =
+    let* before = Snapshot.of_string before |> Result.map_error (fun e -> "baseline: " ^ e) in
+    let* after = Snapshot.of_string after |> Result.map_error (fun e -> "candidate: " ^ e) in
+    Ok (Lower.policy spec before,Lower.policy spec after) in
+  match prepared with
+  | Error reason -> report ~unsupported:reason spec (Report.Unknown reason)
+  | Ok (before,after) ->
+    let candidate = contract_report ?z3 spec after in
+    match candidate.result with
+    | Report.Proved ->
+      let when_ = Ir.Not (Contract_spec.approved_changes spec) in
+      let query = Smt_encode.decision_equivalence_query ~when_ before after in
+      let answer = Solve.check ?z3 query
+        |> Witness.validate ~obligation:"preservation-outside-change-scope"
+             (Witness.decision_difference ~when_ before after) in
+      let result,clause = match answer with
+        | Solve.Proved -> Report.Proved,None
+        | Solve.Unknown reason -> Report.Unknown reason,None
+        | Solve.Violated model ->
+          let request = Witness.request_of_model model in
+          let decision policy = if Ir.possibly_allows policy request then "Allow" else "NoOpinion" in
+          let note = Printf.sprintf "%s changed from %s to %s outside the approved change scope"
+            (request_description model) (decision before) (decision after) in
+          Report.Violated (counterexample spec after ~note model),
+          Some {Report.name="preservation-outside-change-scope";
+                description=note;kind=Report.Must_preserve} in
+      {candidate with result;clause;property_name="rbac-repair-preservation";
+       property_description="The candidate satisfies the frozen access requirements and preserves every RBAC decision outside the approved change scope, within the fixed identity and named-get domain."}
+    | _ -> candidate

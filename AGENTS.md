@@ -189,7 +189,7 @@ the public near-term direction is summarized in `README.md`.
 
 ## Repository structure
 
-Current ownership; connector #2 and later targets remain planned.
+Current ownership; Kong and the bounded static RBAC connector share core.
 
 ```
 core/                 shared decision/verification engine
@@ -203,7 +203,9 @@ core/                 shared decision/verification engine
   report.ml           stable result serialization
   evidence.ml         audit artifacts, digests, provenance (not certificates)
 connectors/kong/       parse, target boundary/lowering, comparisons, lifting
-cli/                  verify / compare / profile / mcp subcommands
+connectors/kubernetes_rbac/ strict snapshots, frozen identity/access contracts,
+                          exact grant lowering and repair preservation
+cli/                  verify / compare / rbac / profile / mcp subcommands
 mcp/                  config-only frozen verification adapter
 ci/                   GitHub annotation formatting
 action.yml            approved-base-contract CI adapter
@@ -218,8 +220,10 @@ docs/plans/           substantial technical scope, decisions, and acceptance evi
 P0 Kong verification and the P1 verified-agent interface are shipped. Current
 work deepens Kong coverage: an end-to-end frozen workflow, a versioned assurance
 profile, more paired contracts, semantic conformance, configuration equivalence,
-CI productization, and reproducible evidence. Connector #2 follows only after
-the Kong verifier is ready for public promotion.
+CI productization, and reproducible evidence. The bounded static Kubernetes RBAC
+connector follows the approved local feasibility benchmark. Its named-get
+profile is documented in `docs/kubernetes-rbac.md`; broader RBAC semantics and
+integrations need separate scope and reference evidence.
 
 ---
 

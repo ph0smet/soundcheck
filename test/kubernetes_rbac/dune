@@ -22,3 +22,16 @@
   ../../bench/kubernetes-rbac/cases.json
   ../../bench/kubernetes-rbac/requests.json)
  (action (run %{exe:contract_t.exe} ../../bench/kubernetes-rbac)))
+
+(executable
+ (name cli_t)
+ (modules cli_t)
+ (libraries soundcheck_kubernetes_rbac unix))
+
+(rule
+ (alias runtest)
+ (deps
+  (source_tree ../../bench/kubernetes-rbac/fixtures)
+  ../../bench/kubernetes-rbac/contracts/frontend-access.json)
+ (action
+  (run %{exe:cli_t.exe} %{exe:../../cli/main.exe} ../../bench/kubernetes-rbac)))

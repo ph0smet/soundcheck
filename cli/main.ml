@@ -35,8 +35,11 @@ let usage () =
     \  With --contract, verify the replacement and preserve decisions outside\n\
     \  the frozen contract scope.\n\
      \n\
-     usage: soundcheck profile kong [--format human|json]\n\
-    \  Print the versioned Kong assurance profile and exit.\n\
+     usage: soundcheck rbac verify SNAPSHOT.json --contract CONTRACT.json [--format human|json]\n\
+     usage: soundcheck rbac compare BEFORE.json AFTER.json --contract CONTRACT.json [--format human|json]\n\
+    \  Verify static named-get RBAC requirements, or verify a repair and preserve other decisions.\n\
+     usage: soundcheck profile kong|kubernetes-rbac [--format human|json]\n\
+    \  Print the versioned connector assurance profile and exit.\n\
      \n\
      usage: soundcheck mcp [--contract CONTRACT.yaml]\n\
     \  With --contract, the MCP verify tool accepts config only and keeps the\n\
@@ -386,19 +389,22 @@ let run_profile connector rest =
       exit 2
     | _ -> usage ()
   in
-  if connector <> "kong" then begin
-    Printf.eprintf "unknown connector %S (expected kong)\n" connector;
+  if connector <> "kong" && connector <> "kubernetes-rbac" then begin
+    Printf.eprintf "unknown connector %S (expected kong|kubernetes-rbac)\n" connector;
     exit 2
   end;
   let rendered =
-    match format with
-    | Human -> Assurance.profile_human ()
-    | Json -> Assurance.profile_json ()
+    match connector,format with
+    | "kubernetes-rbac",Human -> Soundcheck_kubernetes_rbac.Assurance.profile_human ()
+    | "kubernetes-rbac",Json -> Soundcheck_kubernetes_rbac.Assurance.profile_json ()
+    | _,Human -> Assurance.profile_human ()
+    | _,Json -> Assurance.profile_json ()
   in
   print_endline rendered
 
 let () =
   match Array.to_list Sys.argv with
+  | _ :: "rbac" :: rest -> Rbac.run rest
   | _ :: "verify" :: file :: rest -> run_verify file rest
   | _ :: "compare" :: before_file :: after_file :: rest ->
     run_compare before_file after_file rest

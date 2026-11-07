@@ -59,6 +59,10 @@ let () =
      "wrong change scope",replace "change_scope" (`String "all") value];
   let clauses = Input.arr "clauses" (Input.field "contract" "clauses" (match value with `O fields -> fields | _ -> assert false)) in
   let required = List.hd clauses in
+  check "functionality-only contract rejected"
+    (Result.is_error (Contract_spec.of_string (Input.json (replace "clauses" (`A [required]) value))));
+  check "safety-only contract rejected"
+    (Result.is_error (Contract_spec.of_string (Input.json (replace "clauses" (`A [List.nth clauses 1]) value))));
   let conflicting = required |> replace "name" (`String "conflict") |> replace "kind" (`String "must_not_grant") in
   let conflict = get (Contract_spec.of_string (Input.json (replace "clauses" (`A [required;conflicting]) value))) in
   check "inconsistent paired intent" (outcome (Contract_verify.run baseline (Contract_spec.to_contract conflict)) = "inconsistent");

@@ -62,6 +62,9 @@ let parse_value value =
           | _ -> reject path "kind must be must_allow or must_not_grant" in
         {name;kind;scope=parse_scope identities path fields}) in
   if clauses = [] then reject path "clauses must be nonempty";
+  if not (List.exists (fun clause -> clause.kind = Must_allow) clauses
+          && List.exists (fun clause -> clause.kind = Must_not_grant) clauses) then
+    reject path "this paired-access contract requires both must_allow and must_not_grant clauses";
   let change_scope = arr (path ^ ".change_scope") (field path "change_scope" fields)
     |> List.mapi (fun index value ->
         let path = Printf.sprintf "contract.change_scope[%d]" index in

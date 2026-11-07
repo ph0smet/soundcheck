@@ -1,4 +1,4 @@
 (executable
  (name main)
  (public_name soundcheck)
- (libraries soundcheck_core soundcheck_kong soundcheck_mcp soundcheck_ci))
+ (libraries soundcheck_core soundcheck_kong soundcheck_kubernetes_rbac soundcheck_mcp soundcheck_ci))
