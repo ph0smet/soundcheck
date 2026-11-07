@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "kind": "kubernetes-rbac-access",
+  "context": {
+    "identities": [
+      {
+        "groups": [
+          "system:serviceaccounts",
+          "system:serviceaccounts:frontend",
+          "system:authenticated"
+        ],
+        "username": "system:serviceaccount:frontend:frontend-sa"
+      },
+      {
+        "groups": [
+          "system:authenticated",
+          "ops"
+        ],
+        "username": "ops-auditor"
+      },
+      {
+        "groups": [
+          "system:authenticated"
+        ],
+        "username": "alice"
+      },
+      {
+        "groups": [
+          "system:serviceaccounts",
+          "system:serviceaccounts:frontend",
+          "system:authenticated"
+        ],
+        "username": "system:serviceaccount:frontend:other-sa"
+      },
+      {
+        "groups": [
+          "system:serviceaccounts",
+          "system:serviceaccounts:backend",
+          "system:authenticated"
+        ],
+        "username": "system:serviceaccount:backend:frontend-sa"
+      }
+    ],
+    "schema_version": 1,
+    "snapshot_complete": true
+  },
+  "clauses": [
+    {
+      "name": "frontend-configmaps-required",
+      "kind": "must_allow",
+      "subject": "system:serviceaccount:frontend:frontend-sa",
+      "namespace": "frontend",
+      "resource": "configmaps",
+      "names": null
+    },
+    {
+      "name": "payments-secrets-not-granted",
+      "kind": "must_not_grant",
+      "subject": "system:serviceaccount:frontend:frontend-sa",
+      "namespace": "payments",
+      "resource": "secrets",
+      "names": null
+    }
+  ],
+  "change_scope": [
+    {
+      "subject": "system:serviceaccount:frontend:frontend-sa",
+      "namespace": "payments",
+      "resource": "secrets",
+      "names": null
+    }
+  ]
+}

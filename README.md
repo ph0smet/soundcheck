@@ -248,12 +248,14 @@ for both kinds of obligation.
 | `violated` | A validated modeled witness defeats a property or contract obligation | 3 |
 | `unknown` | Unsupported semantics, solver failure/timeout, or an invalid decoded witness prevents a proof | 4 |
 | `vacuous` | The required request class is empty, so no useful policy proof was established | 5 |
-| `inconsistent` | Frozen must-allow and must-deny intent overlap | 6 |
+| `inconsistent` | Required and forbidden access overlap in the frozen requirements | 6 |
 
 Input, output, and verification errors exit `1`; invalid command usage exits
 `2`. Only `proved` exits zero at the verification gate.
 
 ## Properties and frozen contracts
+
+Kong supports these property templates and frozen requirements:
 
 | Property | Kind | Question |
 | --- | --- | --- |
@@ -265,13 +267,17 @@ Input, output, and verification errors exit `1`; invalid command usage exits
 | `network-restricted-access` | Paired safety + functionality | Are untrusted sources denied while authenticated requests inside a trusted IPv4 block remain definitely allowed? |
 | `protected-prefix-with-public-exceptions` | Frozen safety + functionality | Is anonymous access denied outside explicit public prefixes while authenticated access and each public exception remain available? |
 
-Manual property flags are useful for exploration. For a gate, choose one of the
+Manual property flags are useful for exploration. For a Kong gate, choose one of the
 three supported frozen contract kinds:
 [`authenticated-access`](bench/kong/contracts/admin-get.yaml),
 [`network-restricted-access`](bench/kong/contracts/internal-get.yaml), or
 [`protected-prefix-with-public-exceptions`](bench/kong/contracts/api-public-health.yaml). Each pairs
 denial with required access in an explicit scope; the public artifact format is
 not a general-purpose specification language.
+
+RBAC uses the separate [`kubernetes-rbac-access` contract](docs/kubernetes-rbac.md#frozen-contract),
+with fixed identities/groups, paired required and forbidden grants, and an
+approved change scope for repair preservation.
 
 Have the policy owner review the scope and assumptions, then load the strict,
 versioned artifact outside the repair loop. `--contract` rejects property and
@@ -491,10 +497,10 @@ See [Contributing: Run the checks](CONTRIBUTING.md#run-the-checks) for local tes
 commands, prerequisites, and serialization rules. The experimental
 [advisory evaluation workflow](bench/pilot/README.md) includes synthetic examples
 only; it does not establish production accuracy or autonomous repair success.
-The [external-agent repair benchmark](bench/repair/README.md) evaluates submitted
-candidate files against evaluator-owned frozen requirements and out-of-scope
-preservation. Its synthetic controls test the evaluator; they are not live-agent
-results. See the [pilot protocol](docs/evaluation/pilot-protocol.md) for the
+The experimental submitted-repair evaluators for [Kong](bench/repair/README.md)
+and [RBAC](bench/repair/RBAC.md) check candidate files against evaluator-owned
+frozen requirements and out-of-scope preservation. Their synthetic controls test
+the evaluators; they are not live-agent results. See the [pilot protocol](docs/evaluation/pilot-protocol.md) for the
 separate authorization and review needed for deployment evaluation.
 
 ## Roadmap
@@ -508,9 +514,9 @@ evidence to the shared verification core.
 - **Deepen Kong assurance and usability.** Expand semantic coverage and target
   conformance, improve contract authoring and diagnostics, and evaluate useful
   coverage through small authorized deployment pilots.
-- **Expand RBAC carefully.** The first static named-`get` profile is available.
-  Broader verbs/resources, input formats and integrations need separate semantic
-  boundaries and reference evidence.
+- **Expand RBAC carefully.** The static named-`get` profile has CLI, frozen MCP,
+  CI and submitted-repair workflows. Broader verbs/resources, input formats and
+  integrations need separate semantic boundaries and reference evidence.
 - **Extend to more policy systems.** Additional gateways, OPA/Rego, IAM, and
   application authorization remain future targets. Each target needs precise
   properties and independently justified semantics.

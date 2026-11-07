@@ -276,10 +276,35 @@ The same exclusive-write, manifest-last, exit-code and sensitivity rules apply.
 Schema-2 consumers must reject comparison bundles unless explicitly updated to
 understand both stages. No Kong comparison or web UI evidence support is implied.
 
+## Submitted-repair evaluation
+
+The experimental [RBAC repair evaluator](../bench/repair/RBAC.md) evaluates an
+ordered set of candidate files against an evaluator-owned suite:
+
+```sh
+eval "$(opam env)"
+dune exec bench/repair/rbac_main.exe -- \
+  bench/repair/rbac-examples/suite.yaml \
+  bench/repair/rbac-examples/submissions.yaml
+```
+
+Contracts, identity contexts, approved change scopes and exact baseline bytes
+are frozen before submission metadata is read. Each attempt invokes the same
+contract-plus-preservation comparison once. The summary binds input digests and
+records both stages, including an unavailable candidate stage when an unsupported
+snapshot prevents comparison planning. Unknowns and input/tool failures receive
+no acceptance credit, and missing tasks remain in the schedule.
+
+The seven included candidates are hand-authored synthetic controls: four fail
+the contract, one breaks an unrelated operator's permission, one is unsupported,
+and one is a valid repair. They validate evaluator behavior, not AI performance.
+The command emits a minimized experimental summary without raw configurations,
+witnesses, formulas or diagnostics. No agent or cluster is contacted.
+
 ## Validation
 
-Ordinary `dune test` runs parser, core, contract, preservation and CLI regressions
-without Go or network access. The [reference harness](../bench/kubernetes-rbac/conformance/README.md)
+Ordinary `dune test` runs parser, core, contract, preservation, CLI, MCP, Action
+gate and submitted-repair regressions without Go or network access. The [reference harness](../bench/kubernetes-rbac/conformance/README.md)
 compares concrete and production SMT decisions with Kubernetes' actual pinned
 authorizer, on original input bytes, and replays CLI witnesses. Finite agreement
 is implementation evidence, not proof of parser/encoder correctness or a live

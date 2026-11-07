@@ -1,5 +1,10 @@
 # Experimental submitted-repair benchmark
 
+The Kong evaluator below retains its existing command and summary format.
+For the bounded static Kubernetes RBAC connector, use the separate
+[RBAC submitted-repair evaluator](RBAC.md). It evaluates candidate access and
+preservation together with fixed identities and an approved change scope.
+
 Evaluate externally supplied candidate configurations against fixed requirements
 and an original baseline. The evaluator calls Soundcheck's existing
 `Compare.run_repair`: the candidate must satisfy its frozen contract **and**

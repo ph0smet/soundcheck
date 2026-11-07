@@ -1,0 +1,7 @@
+# Evaluator-owned synthetic task. Keep this file, the baseline, and contract trusted.
+format_version: 1
+cases:
+  - id: frontend-access
+    provenance: synthetic
+    config: 01-unsafe.json
+    contract: frontend-access.json

@@ -1,0 +1,24 @@
+# Hand-authored synthetic controls, not an observed AI repair sequence.
+format_version: 1
+attempts:
+  - task: frontend-access
+    id: unchanged
+    config: 01-unsafe.json
+  - task: frontend-access
+    id: delete-workload-grants
+    config: 02-delete-workload-grants.json
+  - task: frontend-access
+    id: leftover-cluster-grant
+    config: 04-leftover-cluster-grant.json
+  - task: frontend-access
+    id: group-grant
+    config: 05-group-grant.json
+  - task: frontend-access
+    id: operator-regression
+    config: 16-operator-regression.json
+  - task: frontend-access
+    id: unsupported
+    config: 17-missing-reference.json
+  - task: frontend-access
+    id: repaired
+    config: 03-valid-repair.json
