@@ -501,9 +501,9 @@ evidence to the shared verification core.
   reviewed. Model runtimes and repair orchestration remain outside the core.
 
 The [connector shortlist](docs/evaluation/connector-selection.md) records the
-selection criteria. A [source-only Kubernetes RBAC study](docs/evaluation/kubernetes-rbac-exploration.md)
-outlines a possible static-grant subset and the validation still needed. A second
-connector is not implemented or committed for delivery yet.
+selection criteria. The historical [Kubernetes RBAC study](docs/evaluation/kubernetes-rbac-exploration.md)
+informed the bounded connector; the [implemented profile](docs/kubernetes-rbac.md)
+and its reference harness define the current support and evidence.
 
 Connectors depend on the core, and adapters share its verification semantics.
 New targets may require extending the decision model. A common interface does

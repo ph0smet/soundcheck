@@ -86,8 +86,19 @@ bash scripts/check.sh full
 ```
 
 The full command serializes the regression suite and real-Kong conformance.
-Run only one conformance harness at a time on a host because its containers and
+Run only one Kong conformance harness at a time on a host because its containers and
 ports are shared.
+
+For RBAC semantics or shared identity/object-model changes, also run the
+[pinned Kubernetes authorizer comparison](bench/kubernetes-rbac/conformance/README.md):
+
+```sh
+bash bench/kubernetes-rbac/conformance/run.sh
+```
+
+This separate command requires Go and Python 3.11 or newer, verifies pinned
+module downloads, and records reference comparisons under `_build`. Ordinary
+`dune test` does not require Go, network access, or a Kubernetes cluster.
 
 After committing, maintainers can validate the exact revision in a clean
 throwaway worktree:

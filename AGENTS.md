@@ -85,6 +85,11 @@ to each frontend's vocabulary.
 5. **Lift** the checked model into the connector's vocabulary. Conservative
    approximations may produce candidates that need target investigation.
 
+RBAC uses the core's Allow/non-Allow projection. Its connector lifts non-Allow
+as `NoOpinion`, never as a final API-server denial. Exact additive grants put
+the entire subject/resource predicate in the match, with an unconditional
+guard, equal priority and no denying rules.
+
 Safety uses possible allowance; functionality uses definite allowance. Preserve
 `must_allow ⊆ actual_allow ⊆ may_allow`: incomplete matches cannot suppress
 possible winners, and incomplete guards cannot prove required access. Evidence

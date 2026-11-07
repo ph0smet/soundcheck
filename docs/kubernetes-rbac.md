@@ -110,7 +110,7 @@ identities, verbs, resources and control planes outside the profile.
 ## Output and integrations
 
 Both RBAC commands emit report schema 10. Violations include `object_request`,
-`identity_groups` and `granting_rules`; legacy HTTP fields are empty/null.
+`identity_groups` and `granting_rules`; legacy HTTP fields are unused placeholders.
 Preservation uses a `must_preserve` clause with before/after RBAC decisions in
 its description. Only `proved` exits `0`; violation/unknown/vacuous/inconsistent
 exit `3`/`4`/`5`/`6`. I/O and usage failures exit `1` and `2`.

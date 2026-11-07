@@ -1,13 +1,14 @@
 # Kubernetes RBAC feasibility
 
-**Status: source-only exploration, 2026-11-01. No Kubernetes connector is
-implemented.** Kong remains Soundcheck's only supported target. This advances
-the [connector shortlist](connector-selection.md) with a proposed boundary and
-acceptance example; it does not establish user demand or deployment readiness.
+**Historical source-only exploration, 2026-11-01.** This records the reasoning
+before the local feasibility benchmark and connector implementation. See the
+[implemented RBAC profile](../kubernetes-rbac.md) for current support and
+reference validation. At the time of this study Kong was the only implemented
+target; this record did not establish user demand or deployment readiness.
 
 The research target is **Kubernetes v1.34.0**, an available fixed release chosen
 for source inspection, not a claim about the latest release. Links below pin
-the implementation to that tag. No Kubernetes process, upstream authorizer,
+the implementation to that tag. During this source-only study no Kubernetes process, upstream authorizer,
 cluster, or new SMT model was executed. `go` was unavailable in the local
 environment; no toolchain was installed. All example decisions below are
 source-derived expectations, not conformance results.
