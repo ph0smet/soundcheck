@@ -33,6 +33,47 @@ val create :
     [None] is accepted only for an unsupported [Unknown] report, and records
     that no plan could be generated. The config itself is not copied. *)
 
+type preservation_trace = {
+  id : string;
+  smtlib : string;
+  execution : Contract_verify.execution;
+}
+
+type comparison_trace = {
+  candidate : Contract_verify.trace_entry list;
+  preservation : preservation_trace;
+}
+(** One candidate-contract execution followed by the planned preservation
+    obligation. An unsuccessful candidate leaves preservation [Not_executed],
+    retaining its query. SAT executions must already have passed witness
+    validation before being supplied here. *)
+
+val comparison_schema_version : int
+(** Schema 3 identifies repair comparisons explicitly; verification bundles
+    retain schema 2 and their existing serialization. *)
+
+val create_comparison :
+  before:string -> after:string -> profile:profile -> provenance:provenance ->
+  report:Report.t -> candidate_report:Report.t option ->
+  trace:comparison_trace option -> (t, string) result
+(** Bind the exact before/after bytes to the frozen contract, candidate report,
+    final comparison report, and complete candidate/preservation plan. Input
+    contents are hashed, not copied. The candidate report is written separately
+    as [candidate-report.json]. The final report remains [report.json].
+
+    Complete plans require a candidate report with the same frozen specification
+    and profile. Execution order and outcomes must agree with both reports:
+    only a proved candidate can execute preservation; a proved comparison also
+    requires an executed UNSAT preservation result. Query IDs must be safe and
+    unique across both stages. For unsupported input, both optional arguments
+    are [None] and the final report must be unsupported/unknown; its unavailable
+    plan and absent candidate report remain explicit.
+
+    This checks structural consistency, not the semantics of supplied SMT text
+    or the completeness of a connector's plan. It never invokes a solver or
+    revalidates a witness. The caller must retain the exact queries, validated
+    executions, and reports from the single comparison run. *)
+
 val files : t -> (string * string) list
 (** Relative paths and exact contents, in deterministic write order. The
     manifest is last and serves as the completion marker. *)

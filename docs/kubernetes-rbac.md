@@ -115,9 +115,82 @@ Preservation uses a `must_preserve` clause with before/after RBAC decisions in
 its description. Only `proved` exits `0`; violation/unknown/vacuous/inconsistent
 exit `3`/`4`/`5`/`6`. I/O and usage failures exit `1` and `2`.
 
-RBAC exposes CLI and library workflows. MCP, the reusable Action, the web UI
-and `--evidence-dir` remain Kong-specific. The conformance harness retains its
-synthetic SMT queries and target replays; this is not a user-facing RBAC bundle.
+RBAC exposes CLI and library workflows. MCP, the reusable Action and the web UI
+remain Kong-specific.
+
+## Verification evidence
+
+Add `--evidence-dir NEW_DIRECTORY` to `rbac verify` to retain an audit bundle:
+
+```sh
+eval "$(opam env)"
+dune exec soundcheck -- rbac verify \
+  bench/kubernetes-rbac/fixtures/03-valid-repair.json \
+  --contract bench/kubernetes-rbac/contracts/frontend-access.json \
+  --format json --evidence-dir /tmp/soundcheck-rbac-verify-evidence
+```
+
+The destination must not exist; its parent must exist. Evidence schema 2 contains
+the normalized frozen contract (including identities, groups, completeness and
+change scope), complete assurance profile, report, exact input digest and byte
+count, verifier/solver provenance, and every planned SMT obligation. The raw
+snapshot is not copied. Executed SAT models retain exact named identities and
+object coordinates and have passed obligation validation. Obligations skipped
+after a decisive result remain present as `not_executed`.
+
+Unsupported snapshots produce an `unknown` report and an explicitly unavailable
+plan. Invalid contracts and input I/O errors produce no bundle. Requesting
+evidence preserves normal report output and verdict exit codes on success;
+an evidence write error exits `1` without printing a successful report.
+The private directory and files are created exclusively. `manifest.json` is
+published last; a failed write may leave an incomplete directory without it.
+
+Queries permit formula replay, not independent checking of an UNSAT certificate,
+the parser or the target model. A saved query's trailing `get-value` can produce
+a model-unavailable error after `unsat` during direct batch Z3 replay; Soundcheck's
+solver executes the observation only after SAT. Retained formulas, contracts,
+reports and models can contain sensitive identifiers even though raw snapshots
+are omitted. Review bundles before sharing. The web UI does not accept RBAC
+bundles.
+
+## Repair-comparison evidence
+
+```sh
+eval "$(opam env)"
+dune exec soundcheck -- rbac compare \
+  bench/kubernetes-rbac/fixtures/01-unsafe.json \
+  bench/kubernetes-rbac/fixtures/03-valid-repair.json \
+  --contract bench/kubernetes-rbac/contracts/frontend-access.json \
+  --format json --evidence-dir /tmp/soundcheck-rbac-compare-evidence
+```
+
+Comparison uses evidence schema **3**, with `operation: "repair_comparison"`.
+Single-snapshot verification, including Kong, continues to use schema **2**.
+Both commands still emit report schema 10. Comparison bundles bind the exact
+baseline and candidate bytes separately as `inputs.before` and `inputs.after`
+(SHA-256 and byte count); neither raw snapshot is copied. They retain the same
+frozen contract, complete profile, provenance and hashed payloads as verification.
+
+`candidate-report.json` records the candidate's access-contract result;
+`report.json` records the final comparison result. All candidate queries and the
+`preservation-outside-change-scope` query are planned before solving. The latter
+has phase `preservation`, and searches for any changed RBAC decision outside the
+approved change scope for the frozen identities within the supported profile.
+
+- A proved candidate followed by UNSAT preservation produces a proved comparison.
+- A candidate contract failure keeps its verdict; the preservation query remains
+  present as `not_executed`, with no solver result or model. Its existence is not
+  evidence that preservation was checked.
+- A preservation counterexample or solver failure leaves the successful candidate
+  report intact and records `violated` or `unknown` in the final report.
+- An unsupported baseline or candidate prevents the comparison plan. The manifest
+  has `obligation_plan.status: "unavailable"`, a reason, no queries and a null
+  `candidate_report`; the candidate contract was not executed. Both byte digests
+  are still recorded. Invalid contracts and unreadable inputs produce no bundle.
+
+The same exclusive-write, manifest-last, exit-code and sensitivity rules apply.
+Schema-2 consumers must reject comparison bundles unless explicitly updated to
+understand both stages. No Kong comparison or web UI evidence support is implied.
 
 ## Validation
 

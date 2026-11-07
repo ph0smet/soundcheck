@@ -168,6 +168,164 @@ let create ~config ~(profile : profile) ~(provenance : provenance)
         ([ contract; profile_file; report_file ] @ List.map query_file entries
          @ [ ("manifest.json", manifest) ])
 
+type preservation_trace = {
+  id : string;
+  smtlib : string;
+  execution : Contract_verify.execution;
+}
+
+type comparison_trace = {
+  candidate : Contract_verify.trace_entry list;
+  preservation : preservation_trace;
+}
+
+let comparison_schema_version = 3
+
+let preservation_file (entry : preservation_trace) =
+  ("queries/" ^ entry.id ^ ".smt2", entry.smtlib)
+
+let preservation_json (entry : preservation_trace) =
+  let execution, result, model, reason =
+    match entry.execution with
+    | Contract_verify.Not_executed -> ("not_executed", None, "null", None)
+    | Contract_verify.Executed Solve.Proved ->
+      ("executed", Some "unsat", "null", None)
+    | Contract_verify.Executed (Solve.Violated model) ->
+      ("executed", Some "sat", model_json model, None)
+    | Contract_verify.Executed (Solve.Unknown reason) ->
+      ("executed", Some "unknown", "null", Some reason)
+  in
+  Printf.sprintf
+    "{\"id\":%s,\"phase\":\"preservation\",\"clauses\":[],\"query\":%s,\"execution\":%s,\"solver_result\":%s,\"model\":%s,\"reason\":%s}"
+    (json_string entry.id) (artifact_json (preservation_file entry))
+    (json_string execution) (json_option result) model (json_option reason)
+
+(* Check the execution protocol recorded by Contract_verify without attempting
+   to interpret its formulas or attest to a connector's semantic completeness. *)
+let candidate_trace_outcome entries =
+  let open Contract_verify in
+  let phase_rank = function Inhabitance -> 0 | Consistency -> 1 | Clause -> 2 in
+  let rec scan previous decisive = function
+    | [] -> Ok (Option.value ~default:"proved" decisive)
+    | (entry : trace_entry) :: rest ->
+      let rank = phase_rank entry.obligation.phase in
+      if rank < previous then Error "candidate obligation phases are out of order"
+      else
+        match decisive, entry.execution with
+        | None, Not_executed -> Error "candidate trace stops without a decisive result"
+        | Some _, Executed _ -> Error "candidate trace executes after a decisive result"
+        | Some _, Not_executed -> scan rank decisive rest
+        | None, Executed answer ->
+          let next = match entry.obligation.phase, answer with
+            | _, Solve.Unknown _ -> Some "unknown"
+            | Inhabitance, Solve.Proved -> Some "vacuous"
+            | Consistency, Solve.Violated _ -> Some "inconsistent"
+            | Clause, Solve.Violated _ -> Some "violated"
+            | Inhabitance, Solve.Violated _
+            | (Consistency | Clause), Solve.Proved -> None
+          in
+          scan rank next rest
+  in
+  match entries with
+  | [] -> Error "comparison evidence requires a nonempty candidate obligation plan"
+  | _ -> scan 0 None entries
+
+let comparison_stages (report : Report.t) (candidate_report : Report.t)
+    (trace : comparison_trace) =
+  let open Contract_verify in
+  let ( let* ) = Result.bind in
+  let* candidate_outcome = candidate_trace_outcome trace.candidate in
+  if candidate_outcome <> outcome_name candidate_report.result then
+    Error "candidate report disagrees with its recorded execution"
+  else if (match candidate_report.result with
+      | Report.Unknown reported ->
+        List.find_map (fun (entry : trace_entry) -> match entry.execution with
+            | Executed (Solve.Unknown reason) -> Some reason
+            | _ -> None) trace.candidate <> Some reported
+      | _ -> false) then
+    Error "candidate unknown reason disagrees with its recorded execution"
+  else
+    match candidate_report.result, trace.preservation.execution, report.result with
+    | Report.Proved, Executed Solve.Proved, Report.Proved
+    | Report.Proved, Executed (Solve.Violated _), Report.Violated _ -> Ok ()
+    | Report.Proved, Executed (Solve.Unknown recorded), Report.Unknown reported
+      when recorded = reported -> Ok ()
+    | Report.Proved, _, _ ->
+      Error "comparison report disagrees with preservation execution"
+    | _, Not_executed, _ when report.result = candidate_report.result -> Ok ()
+    | _, Not_executed, _ ->
+      Error "comparison must retain the unsuccessful candidate result"
+    | _, Executed _, _ ->
+      Error "preservation cannot execute after an unsuccessful candidate"
+
+let create_comparison ~before ~after ~(profile : profile) ~(provenance : provenance)
+    ~(report : Report.t) ~candidate_report ~trace =
+  let ( let* ) = Result.bind in
+  let* frozen = match report.frozen_spec with
+    | Some frozen -> Ok frozen
+    | None -> Error "comparison evidence requires a frozen contract"
+  in
+  let* assurance = match report.assurance with
+    | None -> Error "comparison evidence requires an assurance profile"
+    | Some assurance when assurance.profile = profile.id -> Ok assurance
+    | Some _ -> Error "evidence profile does not match the comparison report"
+  in
+  let* plan_status, plan_reason, candidate_file, queries, obligations =
+    match trace, candidate_report with
+    | None, None ->
+      (match report.result, assurance.status with
+       | Report.Unknown reason, Report.Unsupported ->
+         Ok ("unavailable", Some reason, None, [], [])
+       | _ -> Error "missing comparison plan requires an unsupported unknown report")
+    | Some trace, Some candidate_report ->
+      if assurance.status = Report.Unsupported then
+        Error "unsupported comparison cannot have a complete obligation plan"
+      else if candidate_report.Report.frozen_spec <> Some frozen then
+        Error "candidate and comparison reports use different frozen contracts"
+      else
+        let* () = match candidate_report.assurance with
+          | Some candidate_assurance when candidate_assurance.profile = profile.id
+                                         && candidate_assurance.status <> Report.Unsupported -> Ok ()
+          | _ -> Error "candidate report has a missing, different or unsupported profile"
+        in
+        let* () = comparison_stages report candidate_report trace in
+        let ids = trace.preservation.id
+          :: List.map (fun (entry : Contract_verify.trace_entry) -> entry.obligation.id) trace.candidate in
+        if not (List.for_all safe_id ids) then
+          Error "evidence obligation identities must be filesystem-safe"
+        else if List.length (List.sort_uniq String.compare ids) <> List.length ids then
+          Error "evidence obligation identities must be unique across comparison stages"
+        else
+          Ok ("complete", None,
+              Some ("candidate-report.json", Report.to_json candidate_report ^ "\n"),
+              List.map query_file trace.candidate @ [preservation_file trace.preservation],
+              List.map obligation_json trace.candidate @ [preservation_json trace.preservation])
+    | _ -> Error "comparison trace and candidate report must be supplied together"
+  in
+  let contract = ("contract.json", frozen.canonical ^ "\n") in
+  let profile_file = ("assurance-profile.json", profile.json ^ "\n") in
+  let report_file = ("report.json", Report.to_json report ^ "\n") in
+  let z3_version, version_error = match provenance.z3_version with
+    | Ok version -> Some version, None
+    | Error reason -> None, Some reason
+  in
+  let input_json source =
+    Printf.sprintf "{\"sha256\":%s,\"size_bytes\":%d}"
+      (json_string (Sha256.string source)) (String.length source)
+  in
+  let manifest = Printf.sprintf
+    "{\"schema_version\":%d,\"operation\":\"repair_comparison\",\"inputs\":{\"before\":%s,\"after\":%s},\"contract\":%s,\"assurance_profile\":{\"id\":%s,\"artifact\":%s},\"soundcheck\":{\"executable_sha256\":%s,\"ocaml_version\":%s,\"report_schema_version\":%d},\"solver\":{\"name\":\"z3\",\"version\":%s,\"version_error\":%s},\"obligation_plan\":{\"status\":%s,\"reason\":%s},\"obligations\":[%s],\"candidate_report\":%s,\"report\":%s,\"result\":%s}\n"
+    comparison_schema_version (input_json before) (input_json after)
+    (artifact_json contract) (json_string profile.id) (artifact_json profile_file)
+    (json_string provenance.executable_sha256) (json_string provenance.ocaml_version)
+    Report.schema_version (json_option z3_version) (json_option version_error)
+    (json_string plan_status) (json_option plan_reason) (String.concat "," obligations)
+    (Option.fold ~none:"null" ~some:artifact_json candidate_file)
+    (artifact_json report_file) (json_string (outcome_name report.result))
+  in
+  Ok ([contract; profile_file] @ Option.to_list candidate_file @ [report_file]
+      @ queries @ ["manifest.json", manifest])
+
 let files bundle = bundle
 
 let write ~directory bundle =

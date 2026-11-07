@@ -156,7 +156,7 @@ or CI job.
 | Verdicts | `proved`, `violated`, `vacuous`, `inconsistent`, or `unknown` |
 | Comparisons | Kong decision/routing equivalence; RBAC decision preservation outside a frozen change scope |
 | Interfaces | CLI/library and schema-v10 JSON for both targets; Kong also has GitHub annotations, MCP, the Action, and web UI |
-| Audit output | Kong SMT-LIB2 emission and frozen-contract evidence bundles; RBAC conformance queries and reference replays |
+| Audit output | Kong/RBAC verification bundles, RBAC repair-comparison bundles, SMT-LIB2 queries and reference conformance replays |
 
 Additional gateways, OPA/Rego, IAM, and app-level authorization
 are [future targets](#roadmap), not shipped connectors.
@@ -391,6 +391,13 @@ file is not a complete trace. Frozen contracts reject `--emit-smt` and use
 multiple ordered obligations; `--evidence-dir` writes their complete schema-v2
 bundle with the normalized contract, assurance profile, report, every planned
 query, execution status, digests, and provenance.
+
+The same schema-v2 bundle is available for [RBAC verification](docs/kubernetes-rbac.md#verification-evidence)
+with `soundcheck rbac verify ... --evidence-dir NEW_DIRECTORY`.
+[RBAC repair comparison](docs/kubernetes-rbac.md#repair-comparison-evidence) uses
+schema v3 to bind both snapshots and retain the candidate-contract and
+preservation stages, including any skipped checks. Existing verification
+bundles remain schema v2.
 
 Follow the [evidence walkthrough](docs/getting-started.md#8-retain-an-evidence-bundle)
 to create a bundle in a new destination. Evidence permits formula replay; it is
