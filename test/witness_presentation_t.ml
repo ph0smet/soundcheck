@@ -11,7 +11,7 @@ let contains text fragment =
   in at 0
 
 let model : Solve.model =
-  { method_ = ""; path = "/admin"; is_anon = true; src_ip = 0l;
+  { principal_name = None; object_request = None; method_ = ""; path = "/admin"; is_anon = true; src_ip = 0l;
     host = "example.test"; scheme = "http"; sni = ""; headers = [] }
 
 (* The same method-category scenario as the regression corpus: GET requires

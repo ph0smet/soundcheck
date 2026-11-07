@@ -2,6 +2,8 @@ type model = {
   path    : string;
   method_ : string;
   is_anon : bool;
+  principal_name : string option;
+  object_request : Ir.object_request option;
   src_ip  : int32;
   host    : string;
   scheme  : string;
@@ -98,6 +100,24 @@ let model bindings =
        with Failure _ -> malformed "src_ip")
     | _ -> malformed "src_ip"
   in
+  let principal_name =
+    if List.mem_assoc "principal_name" bindings then Some (string "principal_name") else None
+  in
+  let object_request =
+    let fields = [ "has_object_request"; "object_namespace"; "object_kind"; "object_name" ] in
+    if not (List.exists (fun field -> List.mem_assoc field bindings) fields) then None
+    else begin
+      (* Object observations form one typed unit: no partial coordinates and no
+         silently fabricated empty string, even when presence is false. *)
+      let present = boolean "has_object_request" in
+      let coordinates : Ir.object_request =
+        { namespace = string "object_namespace";
+          resource_kind = string "object_kind";
+          name = string "object_name" }
+      in
+      if present then Some coordinates else None
+    end
+  in
   let headers =
     List.filter_map
       (fun (name, _) ->
@@ -124,6 +144,7 @@ let model bindings =
   (* Validation of the lifted request against its obligation remains separate
      from faithful model-value decoding. *)
   { path = string "path"; method_ = string "method"; is_anon = boolean "is_anon";
+    principal_name; object_request;
     src_ip; host = string "host"; scheme = string "scheme"; sni = string "sni";
     headers }
 

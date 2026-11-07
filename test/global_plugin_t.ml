@@ -26,7 +26,7 @@ let expect_result expected property source =
   | Error error -> failwith error
 
 let request : Ir.request =
-  { principal = Anonymous;
+  { object_request = None; principal = Anonymous;
     action = "GET";
     resource = "/admin";
     context = [];

@@ -100,7 +100,7 @@ let () =
         parse_header Sys.argv.(index + 9))
   in
   let request : Ir.request =
-    { principal;
+    { object_request = None; principal;
       action = String.uppercase_ascii Sys.argv.(4);
       resource = Sys.argv.(5);
       context = headers;

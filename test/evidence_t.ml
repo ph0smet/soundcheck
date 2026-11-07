@@ -46,7 +46,7 @@ let report : Report.t =
       Some { schema_version = 1; kind = "authenticated-access"; canonical } }
 
 let model : Solve.model =
-  { path = "/admin"; method_ = "GET"; is_anon = true; src_ip = 0x0a000001l;
+  { principal_name = None; object_request = None; path = "/admin"; method_ = "GET"; is_anon = true; src_ip = 0x0a000001l;
     host = "admin.example"; scheme = "https"; sni = "admin.example";
     headers = [ ("x-z", "last"); ("x-a", "first") ] }
 

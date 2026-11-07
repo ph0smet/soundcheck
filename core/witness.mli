@@ -3,6 +3,9 @@
     system and not an independent proof of the encoder's soundness. *)
 
 val request_of_model : Solve.model -> Ir.request
+(** Preserve observed identity and object coordinates. A non-anonymous model
+    without a name observation becomes [Ir.Authenticated_unknown], never a
+    fabricated named principal. *)
 
 val validate :
   obligation:string -> (Ir.request -> bool) -> Solve.result -> Solve.result

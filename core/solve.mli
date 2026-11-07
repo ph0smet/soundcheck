@@ -4,6 +4,12 @@ type model = {
   path    : string;
   method_ : string;
   is_anon : bool;
+  principal_name : string option;
+      (** Exact name only when requested by the obligation. [None] is not an
+          arbitrary or default subject name. Anonymous status remains separate. *)
+  object_request : Ir.object_request option;
+      (** Typed coordinates when the observed request has an object; absent for
+          legacy HTTP observations or when object presence is false. *)
   src_ip  : int32;   (** IPv4 source address of the violating request *)
   host    : string;  (** request Host of the violating request *)
   scheme  : string;  (** normalized request scheme *)
@@ -26,6 +32,9 @@ val check : ?z3:string -> ?timeout:float -> ?emit_smt:string -> string -> result
     After SAT, a second invocation replays the full script and must again
     return SAT with values. Unexpected responses,
     nonzero exit, stderr diagnostics, or malformed/missing values fail closed.
+    Named-principal observations are optional only when absent from the query;
+    object presence and all three coordinates must be observed together. No
+    missing requested field is replaced with a default identity or coordinate.
     SMT string escapes are decoded once using the current byte-oriented request
     representation: codepoints 0..255 map to bytes, with valid UTF-8 required
     for the existing JSON surfaces. Non-byte codepoints and invalid UTF-8

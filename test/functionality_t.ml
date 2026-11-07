@@ -74,7 +74,7 @@ let () =
    | Violated ce ->
      expect_clause denied Must_allow "authenticated-access-allowed";
      let request : Ir.request =
-       { principal = Authenticated "user";
+       { object_request = None; principal = Authenticated "user";
          action = ce.action;
          resource = ce.path;
          context = [];

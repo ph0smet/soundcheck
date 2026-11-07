@@ -21,7 +21,7 @@ let config plugins =
 let policy source = get (Parse.parse_string source) |> Lower.to_policy
 
 let request address : Ir.request =
-  { principal = Authenticated "fixture"; action = "GET"; resource = "/admin";
+  { object_request = None; principal = Authenticated "fixture"; action = "GET"; resource = "/admin";
     context = []; source = (get (Cidr.parse address)).base; host = "example.test";
     scheme = "http"; sni = "" }
 

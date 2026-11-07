@@ -22,7 +22,7 @@ let only_rule config =
   | _ -> failwith "expected exactly one lowered route"
 
 let request context : Ir.request =
-  { principal = Anonymous;
+  { object_request = None; principal = Anonymous;
     action = "GET";
     resource = "/admin";
     context;

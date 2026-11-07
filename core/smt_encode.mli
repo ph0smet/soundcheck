@@ -11,7 +11,12 @@
     - [is_anon] : whether the principal is anonymous, as a [Bool]
     - [scheme]  : the normalized request protocol
     - [sni]     : TLS Server Name Indication, or the empty string
-    - one [Bool] for every exact header-name/value membership used by a policy *)
+    - one [Bool] for every exact header-name/value membership used by a policy
+
+    Exact named-principal and typed object coordinates are declared and observed
+    only when the obligation uses their predicates. Existing HTTP queries retain
+    their original observation fields. Object predicates require an explicit
+    [has_object_request] Boolean, so absent coordinates cannot match a literal. *)
 
 val cond : Ir.condition -> string
 (** One condition as an SMT-LIB2 boolean over the symbolic request constants.
