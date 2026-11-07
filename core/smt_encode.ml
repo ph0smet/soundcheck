@@ -103,6 +103,8 @@ let allowed_formula ~reach_via (p : Ir.policy) : string =
   in
   Printf.sprintf "(or %s %s)" matched default
 
+let possibly_allowed_formula policy = allowed_formula ~reach_via:(fun _ -> true) policy
+
 let rec header_atoms = function
   | Ir.Header_has (name, value) -> [ (name, value) ]
   | Ir.Not condition -> header_atoms condition

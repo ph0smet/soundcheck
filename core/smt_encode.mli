@@ -42,6 +42,12 @@ val definitely_allowed_formula : Ir.policy -> string
     possible winner to allow. Uncertainty can therefore cause a false violation,
     never a false functionality proof. *)
 
+val possibly_allowed_formula : Ir.policy -> string
+(** The same possible-allowance expression used by the production safety
+    encoder, without a structural rule filter. Callers must separately assert
+    [policy.request_domain]. Exposed for independent target conformance of
+    concrete request decisions, without reconstructing the policy encoding. *)
+
 val contract_clause_query : Ir.policy -> Contract.clause -> string
 (** Ask for a counterexample to one contract clause. For [Must_deny], this is an
     allowed forbidden request. For [Must_allow], it is a required request that is

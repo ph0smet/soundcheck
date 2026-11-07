@@ -155,3 +155,23 @@ let parse source =
   try Strict_json.parse source with Strict_json.Error reason -> reject "input" reason
 
 let protect f = try Ok (f ()) with Unsupported reason -> Error reason
+
+let json_string value =
+  let buffer = Buffer.create (String.length value + 2) in
+  Buffer.add_char buffer '"';
+  String.iter (function
+      | '"' -> Buffer.add_string buffer "\\\""
+      | '\\' -> Buffer.add_string buffer "\\\\"
+      | c when Char.code c < 0x20 ->
+        Buffer.add_string buffer (Printf.sprintf "\\u%04x" (Char.code c))
+      | c -> Buffer.add_char buffer c) value;
+  Buffer.add_char buffer '"'; Buffer.contents buffer
+
+let rec json : Strict_json.value -> string = function
+  | `Null -> "null"
+  | `Bool true -> "true" | `Bool false -> "false"
+  | `Number n -> n
+  | `String s -> json_string s
+  | `A values -> "[" ^ String.concat "," (List.map json values) ^ "]"
+  | `O fields ->
+    "{" ^ String.concat "," (List.map (fun (key,value) -> json_string key ^ ":" ^ json value) fields) ^ "}"

@@ -26,4 +26,3 @@ let parse_context value =
          if Hashtbl.mem seen username then reject p "duplicate username";
          Hashtbl.add seen username ();
          { username; groups = List.sort String.compare groups })
-
