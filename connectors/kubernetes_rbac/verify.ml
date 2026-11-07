@@ -55,8 +55,6 @@ let contract_report_with_trace ?z3 spec policy =
   let result,trace = Contract_verify.run_with_trace ?z3 policy (Contract_spec.to_contract spec) in
   contract_report_of_result spec policy result,trace
 
-let contract_report ?z3 spec policy = fst (contract_report_with_trace ?z3 spec policy)
-
 let run_with_trace ?z3 spec source =
   match Snapshot.of_string source with
   | Error reason -> report ~unsupported:reason spec (Report.Unknown reason),None
@@ -66,34 +64,48 @@ let run_with_trace ?z3 spec source =
 
 let run ?z3 spec source = fst (run_with_trace ?z3 spec source)
 
-let compare ?z3 spec ~before ~after =
+type comparison = {
+  report : Report.t;
+  candidate_report : Report.t option;
+  trace : Evidence.comparison_trace option;
+}
+
+let compare_with_trace ?z3 spec ~before ~after =
   let ( let* ) = Result.bind in
   let prepared =
     let* before = Snapshot.of_string before |> Result.map_error (fun e -> "baseline: " ^ e) in
     let* after = Snapshot.of_string after |> Result.map_error (fun e -> "candidate: " ^ e) in
     Ok (Lower.policy spec before,Lower.policy spec after) in
   match prepared with
-  | Error reason -> report ~unsupported:reason spec (Report.Unknown reason)
+  | Error reason ->
+    {report=report ~unsupported:reason spec (Report.Unknown reason);
+     candidate_report=None;trace=None}
   | Ok (before,after) ->
-    let candidate = contract_report ?z3 spec after in
-    match candidate.result with
-    | Report.Proved ->
-      let when_ = Ir.Not (Contract_spec.approved_changes spec) in
-      let query = Smt_encode.decision_equivalence_query ~when_ before after in
-      let answer = Solve.check ?z3 query
-        |> Witness.validate ~obligation:"preservation-outside-change-scope"
-             (Witness.decision_difference ~when_ before after) in
-      let result,clause = match answer with
-        | Solve.Proved -> Report.Proved,None
-        | Solve.Unknown reason -> Report.Unknown reason,None
-        | Solve.Violated model ->
-          let request = Witness.request_of_model model in
-          let decision policy = if Ir.possibly_allows policy request then "Allow" else "NoOpinion" in
-          let note = Printf.sprintf "%s changed from %s to %s outside the approved change scope"
-            (request_description model) (decision before) (decision after) in
-          Report.Violated (counterexample spec after ~note model),
-          Some {Report.name="preservation-outside-change-scope";
-                description=note;kind=Report.Must_preserve} in
-      {candidate with result;clause;property_name="rbac-repair-preservation";
-       property_description="The candidate satisfies the frozen access requirements and preserves every RBAC decision outside the approved change scope, within the fixed identity and named-get domain."}
-    | _ -> candidate
+    let when_ = Ir.Not (Contract_spec.approved_changes spec) in
+    let id = "preservation-outside-change-scope" in
+    let query = Smt_encode.decision_equivalence_query ~when_ before after in
+    let candidate,candidate_trace = contract_report_with_trace ?z3 spec after in
+    let final_report,execution = match candidate.result with
+      | Report.Proved ->
+        let answer = Solve.check ?z3 query
+          |> Witness.validate ~obligation:id
+               (Witness.decision_difference ~when_ before after) in
+        let result,clause = match answer with
+          | Solve.Proved -> Report.Proved,None
+          | Solve.Unknown reason -> Report.Unknown reason,None
+          | Solve.Violated model ->
+            let request = Witness.request_of_model model in
+            let decision policy = if Ir.possibly_allows policy request then "Allow" else "NoOpinion" in
+            let note = Printf.sprintf "%s changed from %s to %s outside the approved change scope"
+              (request_description model) (decision before) (decision after) in
+            Report.Violated (counterexample spec after ~note model),
+            Some {Report.name=id;description=note;kind=Report.Must_preserve} in
+        {candidate with result;clause;property_name="rbac-repair-preservation";
+         property_description="The candidate satisfies the frozen access requirements and preserves every RBAC decision outside the approved change scope, within the fixed identity and named-get domain."},
+        Contract_verify.Executed answer
+      | _ -> candidate,Contract_verify.Not_executed in
+    {report=final_report;candidate_report=Some candidate;
+     trace=Some {Evidence.candidate=candidate_trace;
+                 preservation={id;smtlib=query;execution}}}
+
+let compare ?z3 spec ~before ~after = (compare_with_trace ?z3 spec ~before ~after).report

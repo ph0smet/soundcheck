@@ -267,8 +267,7 @@ let () =
        base @ ["--evidence-dir";"--format";"json"];
        base @ ["--evidence-dir";unused;"--evidence-dir";unused];
        base @ ["--evidence-dir";unused;"--subject";"alice"];
-       ["rbac";"verify";padded;"--evidence-dir";unused];
-       ["rbac";"compare";fixture "01-unsafe";padded;"--contract";contract_path;"--evidence-dir";unused]];
+       ["rbac";"verify";padded;"--evidence-dir";unused]];
     let invalid_contract = Filename.concat directory "invalid-contract.json" in
     write invalid_contract (contract_source ^ "{}");
     let stdout = invoke ~source_path:padded ~contract:invalid_contract ~format:"json" ["--evidence-dir";unused] 4 in

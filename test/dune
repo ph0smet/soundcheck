@@ -57,6 +57,10 @@
  (name evidence_t)
  (libraries soundcheck_core unix))
 
+(test
+ (name comparison_evidence_t)
+ (libraries soundcheck_core yaml unix))
+
 (rule
  (alias runtest)
  (deps (source_tree fixtures/evidence))
