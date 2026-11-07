@@ -1,0 +1,9 @@
+(executable
+ (name snapshot_t)
+ (libraries soundcheck_kubernetes_rbac))
+
+(rule
+ (alias runtest)
+ (deps (source_tree ../../bench/kubernetes-rbac/fixtures))
+ (action
+  (run %{exe:snapshot_t.exe} ../../bench/kubernetes-rbac/fixtures)))

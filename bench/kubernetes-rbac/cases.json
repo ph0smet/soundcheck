@@ -1,0 +1,176 @@
+{
+  "01-unsafe": {
+    "description": "Frontend can get payments Secrets.",
+    "expected_contract": "violated",
+    "expected_preservation": "preserved",
+    "sha256": "eb5a8c698be2ed84775889f9f121d10fa5a83ed37db962184bd3e85a3f63535a"
+  },
+  "02-delete-workload-grants": {
+    "description": "Removing workload access removes the leak and required ConfigMap grants.",
+    "expected_contract": "violated",
+    "expected_preservation": "changed",
+    "sha256": "7eee11bc761552c5ae78b81c7122596ef9e68804041f558eec2feb54cc0b0f72"
+  },
+  "03-valid-repair": {
+    "description": "Remove only the foreign Secret binding; keep required and operator grants.",
+    "expected_contract": "proved",
+    "expected_preservation": "preserved",
+    "sha256": "306651cdda06436bdab740e04d704a09c7cc9c0ebffa03f9bd6f393a5b820e94"
+  },
+  "04-leftover-cluster-grant": {
+    "description": "A remaining ClusterRoleBinding still grants the forbidden access.",
+    "expected_contract": "violated",
+    "expected_preservation": null,
+    "sha256": "7a87e20d63b56c8375750defeae5f7f66b7eaa1325cfaea0c3245fb530316ff2"
+  },
+  "05-group-grant": {
+    "description": "The fixed service-account group grants access without naming the workload.",
+    "expected_contract": "violated",
+    "expected_preservation": null,
+    "sha256": "92d4a85276c2a6b349b26f32bfd0de1eaf272d1612e0a1155b6f8bfaafc3a965"
+  },
+  "06-legitimate-other-subject-secret": {
+    "description": "Secret access for another identity does not violate the frontend contract.",
+    "expected_contract": "proved",
+    "expected_preservation": null,
+    "sha256": "d113e5daefe65d4e82ba5e563d270de234b40d074802d04968a3da84ab6f7c77"
+  },
+  "07-required-name-restriction": {
+    "description": "One permitted ConfigMap name cannot satisfy required access for every name.",
+    "expected_contract": "violated",
+    "expected_preservation": null,
+    "sha256": "1b7d940bcdfe433cc600aeba74714d5e817c8a5390b4360c31880e9dc4126470"
+  },
+  "08-literal-star-name": {
+    "description": "resourceNames star is a literal, not an object-name wildcard.",
+    "expected_contract": "violated",
+    "expected_preservation": null,
+    "sha256": "6d9ce07fccf14c3b91696852062ec1970c7557cb83db3b0150026d1707fa9ef0"
+  },
+  "09-wildcard-resource": {
+    "description": "A resource wildcard includes core Secrets.",
+    "expected_contract": "violated",
+    "expected_preservation": null,
+    "sha256": "2c6fca7fbc2da5422a40f3beae0b31f20baff1f82dc39b4999d308f067269a1e"
+  },
+  "10-wildcard-api-group": {
+    "description": "An API-group wildcard includes the core API group.",
+    "expected_contract": "violated",
+    "expected_preservation": null,
+    "sha256": "7286281103eef0e51c07d3a35367f11e3889a9cdc1d6f9aec89d612b47c4df6f"
+  },
+  "11-wildcard-verb": {
+    "description": "A verb wildcard includes get.",
+    "expected_contract": "violated",
+    "expected_preservation": null,
+    "sha256": "7680f9379f68a5272c17c6d6ad7917887193585024b843b3061e294e50636c3a"
+  },
+  "12-disjoint-api-group": {
+    "description": "An apps-group resource called secrets does not grant core Secret access.",
+    "expected_contract": "proved",
+    "expected_preservation": null,
+    "sha256": "f5be92474193d87edfa03766fd306eddf308a12c6a02de5c6f94c088122bad77"
+  },
+  "13-wrong-subject-namespace": {
+    "description": "A service account in another namespace is a different identity.",
+    "expected_contract": "proved",
+    "expected_preservation": null,
+    "sha256": "09f93b2f534b62f0a27f3cbec4a9c5a625a7ba50035d9118dae2e9b6ea599774"
+  },
+  "14-default-subject-namespace": {
+    "description": "An omitted service-account namespace on RoleBinding defaults to binding namespace.",
+    "expected_contract": "proved",
+    "expected_preservation": null,
+    "sha256": "5472e181d50d7b1fb84bcd3d610ad200effddb6245a6663351cdfe1fb5acf4d7"
+  },
+  "15-local-role-reference": {
+    "description": "Namespaced Role resolution grants within the binding namespace.",
+    "expected_contract": "violated",
+    "expected_preservation": null,
+    "sha256": "5c385ec6a1d4e8070d46028d876e8917d5d792fb473651b3bd33cddf59c73876"
+  },
+  "16-operator-regression": {
+    "description": "Frontend contract passes, but deleting an unrelated operator grant violates preservation.",
+    "expected_contract": "proved",
+    "expected_preservation": "changed",
+    "sha256": "339b7a2f7a8b1fa73ad27a88478734f6554ca3e12bcffb84d0db415575b08d09"
+  },
+  "17-missing-reference": {
+    "description": "Incomplete input is not accepted as a no-grant proof.",
+    "expected_contract": "unknown",
+    "expected_preservation": null,
+    "sha256": "fb37eeff636bb987e379724ac4dfe6b2a7d668dff562f25cb3be3d7f5c9b66cd"
+  },
+  "18-aggregation-boundary": {
+    "description": "Aggregation-controller semantics are outside this prototype.",
+    "expected_contract": "unknown",
+    "expected_preservation": null,
+    "sha256": "4a9c086a2e2c2ae9536752c37e6a34dbfcfc4f253dc83239516009b793034377"
+  },
+  "19-unknown-field": {
+    "description": "Unknown fields must not produce a proof.",
+    "expected_contract": "unknown",
+    "expected_preservation": null,
+    "sha256": "04e532cdf33d7f0c1b0de8411e07f62b59eafe39b92c9fb3bc51d0491b1ef06b"
+  },
+  "20-duplicate-object": {
+    "description": "Duplicate object identities make the snapshot ambiguous.",
+    "expected_contract": "unknown",
+    "expected_preservation": null,
+    "sha256": "1afb84deaaa005603072d7fbc2e4c736538da300abf3991bc5c0617444051516"
+  },
+  "21-named-secret-leak": {
+    "description": "A narrow but forbidden Secret grant must yield that exact name as witness.",
+    "expected_contract": "violated",
+    "expected_preservation": null,
+    "sha256": "d8570b743d9cb79c25fe66de394347f4b93ba5d48f1c001d147a71e771462907"
+  },
+  "22-disjoint-verb": {
+    "description": "This named-get contract says nothing about list access; it is explicitly outside scope.",
+    "expected_contract": "proved",
+    "expected_preservation": null,
+    "sha256": "6c0da0a7eb7273244a54591a3b1861e01191f0305fbf254335ddeee86fe7c79b"
+  },
+  "23-nul-verb-literal": {
+    "description": "A NUL-containing verb is not the literal get; decoding must preserve that distinction.",
+    "expected_contract": "violated",
+    "expected_preservation": null,
+    "sha256": "3268c4b8434d7d9ee7c75d943f2979f052c593f053fa5afc12ec7e1b5c4779a8"
+  },
+  "24-nul-api-group-literal": {
+    "description": "A NUL-containing API group is not the empty core API group.",
+    "expected_contract": "violated",
+    "expected_preservation": null,
+    "sha256": "3b40f062c2b68555abb504342459a7b8840d7006e5a4b5de89ac8b393f88974d"
+  },
+  "25-nul-resource-literal": {
+    "description": "A NUL-containing resource is not configmaps.",
+    "expected_contract": "violated",
+    "expected_preservation": null,
+    "sha256": "160644c1535817e5515ff7ffd2d3973084aeb440a99ca02b3a1706c6b2bc2a99"
+  },
+  "26-trailing-json-document": {
+    "description": "The complete original input must be consumed; trailing documents are outside this JSON-only experiment.",
+    "expected_contract": "unknown",
+    "expected_preservation": null,
+    "sha256": "629ae8a8833357173c33d1e9372ff6b01b6c3d0cb472ccbf3d1b6f954b5372d5"
+  },
+  "27-trailing-yaml-document": {
+    "description": "The complete original input must be consumed; trailing documents are outside this JSON-only experiment.",
+    "expected_contract": "unknown",
+    "expected_preservation": null,
+    "sha256": "037b49d30f9bae25283e60e846d251da5d0984236ef41054c0e14f1e48b93844"
+  },
+  "28-unsafe-local-role-control": {
+    "description": "Equivalent forbidden grant through a local Role, controlling for KubeLinter binding-shape coverage.",
+    "expected_contract": "violated",
+    "expected_preservation": null,
+    "sha256": "7f26c8f87ad7a35ffd38bbffb81edcae7326d2fff3347af79a27b96b8d8021ca"
+  },
+  "29-legitimate-ops-local-secret": {
+    "description": "Another identity legitimately reads Secrets through a local Role; the fixed frontend contract still holds.",
+    "expected_contract": "proved",
+    "expected_preservation": null,
+    "sha256": "c5e9fe5f4836ea0e85d9dce6786359656f56fa162e5247f76d065e1518eb28ab"
+  }
+}
