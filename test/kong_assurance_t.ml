@@ -142,7 +142,7 @@ Unsupported:
           && assurance.status = Soundcheck_core.Report.Conservative -> ()
    | _ -> failwith "verification report omitted assurance assessment");
   let report_json = Soundcheck_core.Report.to_json report in
-  if not (contains report_json "\"schema_version\":9")
+  if not (contains report_json "\"schema_version\":10")
      || not (contains report_json "\"code\":\"route-header-regex\"")
   then failwith "report JSON omitted assurance identity or finding";
   let human = Soundcheck_core.Report.to_human report in

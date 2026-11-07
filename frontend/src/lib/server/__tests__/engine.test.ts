@@ -7,7 +7,7 @@ import { capture, EngineAbortedError, EngineBusyError, RunQueue } from "../engin
 const node = process.execPath;
 const PROVED = JSON.stringify({
   result: "proved",
-  schema_version: 9,
+  schema_version: 10,
   property: "no-anonymous-access",
   assurance: null,
   frozen_spec: null,

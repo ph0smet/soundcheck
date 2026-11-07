@@ -301,7 +301,7 @@ let () =
       frozen_spec = None }
   in
   let expected =
-    {|{"result":"inconsistent","schema_version":9,"property":"admin-access","assurance":null,"frozen_spec":null,"clause":{"name":"authenticated-admin-allowed","description":"Authenticated admin traffic is allowed","kind":"must_allow"},"counterexample":null,"reason":"clauses overlap"}|}
+    {|{"result":"inconsistent","schema_version":10,"property":"admin-access","assurance":null,"frozen_spec":null,"clause":{"name":"authenticated-admin-allowed","description":"Authenticated admin traffic is allowed","kind":"must_allow"},"counterexample":null,"reason":"clauses overlap"}|}
   in
   let got = Report.to_json report in
   if got <> expected then

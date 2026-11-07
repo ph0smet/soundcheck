@@ -53,7 +53,7 @@ describe("golden corpus reports", () => {
   for (const name of cases) {
     it(`${name}/expected.json matches the verify schema`, async () => {
       const report = parseJson(await readFile(fixture("cases", name, "expected.json"), "utf8"), verifyReport);
-      expect(report.schema_version).toBe(9);
+      expect(report.schema_version).toBe(10);
     });
   }
 });

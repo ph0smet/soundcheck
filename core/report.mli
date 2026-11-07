@@ -6,7 +6,9 @@
     MCP tool and PR-bot reuse the exact same output. *)
 
 type counterexample = {
-  principal        : string;  (** e.g. ["anonymous"] / ["authenticated"] *)
+  principal        : string;
+      (** ["anonymous"] / ["authenticated"] for HTTP, or the exact named
+          identity for an object-resource connector. *)
   action           : string;
       (** Exact modeled request method. [""] is an empty value, not a wildcard. *)
   path             : string;
@@ -28,13 +30,23 @@ type counterexample = {
           solver was free to pick any value. *)
   headers          : (string * string) list;
       (** Header memberships required by the symbolic counterexample. *)
+  object_request   : Ir.object_request option;
+      (** Exact typed resource coordinates; absent for HTTP requests. *)
+  identity_groups  : string list option;
+      (** Fixed connector identity context, when supplied; [None] means no group
+          context is represented, not an assertion of an empty group set. *)
+  granting_rules   : string list;
+      (** Opaque connector rule identifiers granting this request. An empty list
+          carries no claim about a composed authorization chain. *)
   note             : string;  (** human-readable, connector-lifted explanation *)
 }
 (** A concrete violating request, lifted into the connector's vocabulary.
     [route]/[service] are populated by connectors that have that notion; core
     carries them as opaque strings and never depends on any connector. *)
 
-type clause_kind = Must_deny | Must_allow
+type clause_kind = Must_deny | Must_allow | Must_not_grant | Must_preserve
+(** [Must_not_grant] describes absence of a grant without claiming an explicit
+    target denial. [Must_preserve] identifies a decision-preservation obligation. *)
 
 type clause = {
   name        : string;
@@ -76,7 +88,7 @@ type outcome =
   | Proved                     (** property holds for all requests *)
   | Vacuous                    (** the property's forbidden request class is empty *)
   | Inconsistent of string     (** the frozen contract contradicts itself *)
-  | Violated of counterexample (** a concrete request the policy allows but the property forbids *)
+  | Violated of counterexample (** a validated counterexample to the reported obligation *)
   | Unknown of string          (** solver was inconclusive; string is the reason *)
 
 type t = {
@@ -98,7 +110,7 @@ val schema_version : int
 val to_json : t -> string
 (** The stable, versioned JSON contract:
     {[ { "result": "violated|proved|vacuous|inconsistent|unknown",
-         "schema_version": 9,
+         "schema_version": 10,
          "property": "...",
          "assurance": { "profile": "...",
                          "status": "within_profile|conservative|unsupported",
@@ -106,15 +118,19 @@ val to_json : t -> string
          "frozen_spec": { "schema_version": 1, "kind": "...",
                           "canonical": "..." },
          "clause": { "name": "...", "description": "...",
-                     "kind": "must_deny|must_allow" },
+                     "kind": "must_deny|must_allow|must_not_grant|must_preserve" },
          "counterexample": { "principal", "action", "path", "host", "scheme",
                              "sni", "headers",
                              "source_ip", "route", "service",
-                             "shadowed_route", "shadowed_service" } } ]}
+                             "shadowed_route", "shadowed_service",
+                             "object_request", "identity_groups", "granting_rules" } } ]}
     Every key is emitted unconditionally, [null] when absent, so consumers never
     probe for existence. [assurance] is [null] only when connector-neutral core
     code constructs a report without a semantic profile. [clause] is [null] for a legacy single property and
     [frozen_spec] is [null] for verification not bound to an external artifact.
+    An HTTP counterexample has [object_request:null], [identity_groups:null] and
+    [granting_rules:[]]. Object coordinates contain [namespace], [resource_kind]
+    and [name]; profile constants define any additional request dimensions.
     [counterexample] is [null] for [Proved], [Vacuous], and [Inconsistent]; for
     [Unknown] and [Inconsistent] a ["reason"] field carries the explanation.
     Emitted with a hand-rolled encoder (no external JSON dependency) since the

@@ -31,7 +31,7 @@ function response(result: Verdict): VerifyResponse {
     provenance: { inputs: {}, engine: { ...engine, source: "build" }, evidence: null },
     report: {
       result,
-      schema_version: 9,
+      schema_version: 10,
       property: "p",
       assurance: null,
       frozen_spec: null,
@@ -51,6 +51,9 @@ function response(result: Verdict): VerifyResponse {
               service: "s",
               shadowed_route: null,
               shadowed_service: null,
+              object_request: null,
+              identity_groups: null,
+              granting_rules: [],
             }
           : null,
       ...(result === "unknown" || result === "inconsistent" ? { reason: "why" } : {}),

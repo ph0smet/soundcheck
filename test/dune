@@ -38,6 +38,10 @@
  (libraries soundcheck_core unix))
 
 (test
+ (name report_schema_t)
+ (libraries soundcheck_core))
+
+(test
  (name witness_presentation_t)
  (libraries soundcheck_core soundcheck_kong))
 

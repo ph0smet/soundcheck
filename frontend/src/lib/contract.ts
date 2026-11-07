@@ -2,8 +2,8 @@
 // below is inferred from its validator, so the shape is declared once and the
 // web adapter rejects anything that does not match it exactly.
 //
-// Source of truth: core/report.ml (verify, schema 9), core/evidence.ml (bundle
-// manifest, schema 1), connectors/kong/compare.ml (compare and repair, schema 1)
+// Source of truth: core/report.ml (verify, schema 10), core/evidence.ml (bundle
+// manifest, schema 2), connectors/kong/compare.ml (compare and repair, schema 1)
 // and connectors/kong/assurance.ml (profile, schema 1). The conformance test in
 // src/lib/server/__tests__/conformance.test.ts runs the real CLI against these.
 
@@ -20,16 +20,18 @@ import {
   type Validator,
 } from "./schema";
 
-export const VERIFY_SCHEMA_VERSION = 9;
+export const VERIFY_SCHEMA_VERSION = 10;
 export const COMPARE_SCHEMA_VERSION = 1;
 export const PROFILE_SCHEMA_VERSION = 1;
-export const EVIDENCE_SCHEMA_VERSION = 1;
+export const EVIDENCE_SCHEMA_VERSION = 2;
 
 export const VERDICT_IDS = ["proved", "violated", "vacuous", "inconsistent", "unknown"] as const;
 export type Verdict = (typeof VERDICT_IDS)[number];
 
 const header = object({ name: string, value: string });
 export type Header = Infer<typeof header>;
+
+const objectRequest = object({ namespace: string, resource_kind: string, name: string });
 
 const counterexample = object({
   principal: string,
@@ -44,6 +46,9 @@ const counterexample = object({
   service: nullable(string),
   shadowed_route: nullable(string),
   shadowed_service: nullable(string),
+  object_request: nullable(objectRequest),
+  identity_groups: nullable(array(string)),
+  granting_rules: array(string),
 });
 export type Counterexample = Infer<typeof counterexample>;
 
@@ -64,7 +69,7 @@ export type Assurance = Infer<typeof assurance>;
 const frozenSpec = object({ schema_version: integer, kind: string, canonical: string });
 export type FrozenSpec = Infer<typeof frozenSpec>;
 
-const clause = object({ name: string, description: string, kind: oneOf(["must_deny", "must_allow"]) });
+const clause = object({ name: string, description: string, kind: oneOf(["must_deny", "must_allow", "must_not_grant", "must_preserve"]) });
 export type Clause = Infer<typeof clause>;
 
 const WITH_REASON: readonly Verdict[] = ["inconsistent", "unknown"];

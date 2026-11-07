@@ -16,6 +16,8 @@ type profile = {
 type t
 
 val schema_version : int
+(** Manifest schema 2 retains optional exact named identity and typed object
+    coordinates on every recorded SAT model; absent dimensions are null. *)
 
 val collect_provenance : unit -> (provenance, string) result
 (** Identify this verifier executable by SHA-256 and capture the OCaml and Z3

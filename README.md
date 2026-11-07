@@ -150,7 +150,7 @@ or CI job.
 | Verification | Six manual property templates and three parameterized frozen contract kinds |
 | Verdicts | `proved`, `violated`, `vacuous`, `inconsistent`, or `unknown` |
 | Comparisons | Decision, route/service, service target, and literal-path upstream URI equivalence, within their supported boundaries |
-| Interfaces | CLI, schema-v9 JSON, GitHub annotations, frozen/manual MCP, and a reusable GitHub Action |
+| Interfaces | CLI, schema-v10 JSON, GitHub annotations, frozen/manual MCP, and a reusable GitHub Action |
 | Audit output | SMT-LIB2 emission for single queries and complete evidence bundles for frozen contracts |
 
 Additional gateways, Kubernetes RBAC, OPA/Rego, IAM, and app-level authorization
@@ -311,7 +311,7 @@ for the full boundary.
 
 ### Stable JSON
 
-On `verify`, `--format json` emits the schema-v9 verification result used by
+On `verify`, `--format json` emits the schema-v10 verification result used by
 machine consumers. Its core result, property, assurance, frozen-spec, clause,
 and counterexample keys are always present and use `null` when not applicable;
 `reason` appears for `unknown` and `inconsistent`. `compare` and `profile` have
@@ -356,7 +356,7 @@ observations return `unknown` instead of an unjustified equivalence proof.
 Non-contract runs can retain the most recently executed SMT-LIB2 query with
 `--emit-smt`. Inhabitance and shadowing may require more than one query, so that
 file is not a complete trace. Frozen contracts reject `--emit-smt` and use
-multiple ordered obligations; `--evidence-dir` writes their complete schema-v1
+multiple ordered obligations; `--evidence-dir` writes their complete schema-v2
 bundle with the normalized contract, assurance profile, report, every planned
 query, execution status, digests, and provenance.
 

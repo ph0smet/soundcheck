@@ -43,6 +43,7 @@ let () =
       sni = "";
       source_ip = 0l;
       headers = [];
+      object_request = None; identity_groups = None; granting_rules = [];
       note = "public% access\nexposed" }
   in
   let detailed =
