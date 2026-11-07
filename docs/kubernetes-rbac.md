@@ -115,9 +115,43 @@ Preservation uses a `must_preserve` clause with before/after RBAC decisions in
 its description. Only `proved` exits `0`; violation/unknown/vacuous/inconsistent
 exit `3`/`4`/`5`/`6`. I/O and usage failures exit `1` and `2`.
 
-RBAC exposes CLI and library workflows. MCP, the reusable Action, the web UI
-and `--evidence-dir` remain Kong-specific. The conformance harness retains its
-synthetic SMT queries and target replays; this is not a user-facing RBAC bundle.
+RBAC exposes CLI and library workflows. MCP, the reusable Action and the web UI
+remain Kong-specific.
+
+## Verification evidence
+
+Add `--evidence-dir NEW_DIRECTORY` to `rbac verify` to retain an audit bundle:
+
+```sh
+eval "$(opam env)"
+dune exec soundcheck -- rbac verify \
+  bench/kubernetes-rbac/fixtures/03-valid-repair.json \
+  --contract bench/kubernetes-rbac/contracts/frontend-access.json \
+  --format json --evidence-dir /tmp/soundcheck-rbac-verify-evidence
+```
+
+The destination must not exist; its parent must exist. Evidence schema 2 contains
+the normalized frozen contract (including identities, groups, completeness and
+change scope), complete assurance profile, report, exact input digest and byte
+count, verifier/solver provenance, and every planned SMT obligation. The raw
+snapshot is not copied. Executed SAT models retain exact named identities and
+object coordinates and have passed obligation validation. Obligations skipped
+after a decisive result remain present as `not_executed`.
+
+Unsupported snapshots produce an `unknown` report and an explicitly unavailable
+plan. Invalid contracts and input I/O errors produce no bundle. Requesting
+evidence preserves normal report output and verdict exit codes on success;
+an evidence write error exits `1` without printing a successful report.
+The private directory and files are created exclusively. `manifest.json` is
+published last; a failed write may leave an incomplete directory without it.
+
+Queries permit formula replay, not independent checking of an UNSAT certificate,
+the parser or the target model. A saved query's trailing `get-value` can produce
+a model-unavailable error after `unsat` during direct batch Z3 replay; Soundcheck's
+solver executes the observation only after SAT. Retained formulas, contracts,
+reports and models can contain sensitive identifiers even though raw snapshots
+are omitted. Review bundles before sharing. The web UI does not accept RBAC
+bundles. Comparison evidence is a separate planned addition.
 
 ## Validation
 

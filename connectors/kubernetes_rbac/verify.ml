@@ -36,8 +36,7 @@ let request_description model =
   Printf.sprintf "%S get core %s %S in namespace %S"
     (Option.get model.principal_name) coordinates.resource_kind coordinates.name coordinates.namespace
 
-let contract_report ?z3 spec policy =
-  match Contract_verify.run ?z3 policy (Contract_spec.to_contract spec) with
+let contract_report_of_result spec policy = function
   | Contract_verify.Proved -> report spec Report.Proved
   | Vacuous clause -> report ~clause:(report_clause clause) spec Report.Vacuous
   | Inconsistent (left,right) ->
@@ -52,10 +51,20 @@ let contract_report ?z3 spec policy =
     report ~clause:(report_clause clause) spec
       (Report.Violated (counterexample spec policy ~note model))
 
-let run ?z3 spec source =
+let contract_report_with_trace ?z3 spec policy =
+  let result,trace = Contract_verify.run_with_trace ?z3 policy (Contract_spec.to_contract spec) in
+  contract_report_of_result spec policy result,trace
+
+let contract_report ?z3 spec policy = fst (contract_report_with_trace ?z3 spec policy)
+
+let run_with_trace ?z3 spec source =
   match Snapshot.of_string source with
-  | Error reason -> report ~unsupported:reason spec (Report.Unknown reason)
-  | Ok snapshot -> contract_report ?z3 spec (Lower.policy spec snapshot)
+  | Error reason -> report ~unsupported:reason spec (Report.Unknown reason),None
+  | Ok snapshot ->
+    let report,trace = contract_report_with_trace ?z3 spec (Lower.policy spec snapshot) in
+    report,Some trace
+
+let run ?z3 spec source = fst (run_with_trace ?z3 spec source)
 
 let compare ?z3 spec ~before ~after =
   let ( let* ) = Result.bind in

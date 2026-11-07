@@ -392,6 +392,9 @@ multiple ordered obligations; `--evidence-dir` writes their complete schema-v2
 bundle with the normalized contract, assurance profile, report, every planned
 query, execution status, digests, and provenance.
 
+The same schema-v2 bundle is available for [RBAC verification](docs/kubernetes-rbac.md#verification-evidence)
+with `soundcheck rbac verify ... --evidence-dir NEW_DIRECTORY`.
+
 Follow the [evidence walkthrough](docs/getting-started.md#8-retain-an-evidence-bundle)
 to create a bundle in a new destination. Evidence permits formula replay; it is
 not an independently checked UNSAT certificate or a proof of the parser, encoder,
