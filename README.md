@@ -155,7 +155,7 @@ or CI job.
 | Verification | Six Kong property templates, three Kong frozen contract kinds, and paired RBAC access contracts |
 | Verdicts | `proved`, `violated`, `vacuous`, `inconsistent`, or `unknown` |
 | Comparisons | Kong decision/routing equivalence; RBAC decision preservation outside a frozen change scope |
-| Interfaces | CLI/library and schema-v10 JSON for both targets; Kong also has GitHub annotations, MCP, the Action, and web UI |
+| Interfaces | CLI/library, schema-v10 JSON and frozen MCP for both targets; Kong also has GitHub annotations, the Action, and web UI |
 | Audit output | Kong/RBAC verification bundles, RBAC repair-comparison bundles, SMT-LIB2 queries and reference conformance replays |
 
 Additional gateways, OPA/Rego, IAM, and app-level authorization
@@ -305,6 +305,11 @@ configuration and retry; the interface rejects attempts to replace the property
 or scope. The caller must keep the server and its startup contract outside the
 agent's control. Running MCP without `--contract` remains a manual exploration
 mode with mutable requirements.
+
+For Kubernetes RBAC, use `mcp --connector kubernetes-rbac --contract CONTRACT.json`
+and optionally `--baseline SNAPSHOT.json`. The [RBAC MCP workflow](docs/kubernetes-rbac.md#frozen-mcp-workflow)
+exposes candidate-only `verify` and, with a frozen baseline, `compare` tools.
+Both retain the startup contract and identity context throughout the session.
 
 ### GitHub Action
 

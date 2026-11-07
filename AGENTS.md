@@ -155,6 +155,9 @@ together:
   Existing AI agents call it while generating and self-correct from the
   counterexample; they cannot substitute property or scope arguments. MCP
   without `--contract` remains a manual exploration mode and is not frozen.
+  RBAC uses `mcp --connector kubernetes-rbac --contract FILE`; its optional
+  `--baseline FILE` enables candidate-only repair comparison against a snapshot
+  retained at startup. RBAC has no mutable-requirement exploration mode.
   **MCP is an adapter, not a new agent framework.**
 - **Hard / gate (CI):** the CLI exits nonzero for every non-proof. A trusted,
   required, non-bypassable CI/pre-apply workflow uses that status to block
@@ -211,7 +214,7 @@ connectors/kong/       parse, target boundary/lowering, comparisons, lifting
 connectors/kubernetes_rbac/ strict snapshots, frozen identity/access contracts,
                           exact grant lowering and repair preservation
 cli/                  verify / compare / rbac / profile / mcp subcommands
-mcp/                  config-only frozen verification adapter
+mcp/                  config-only frozen Kong/RBAC verification adapters
 ci/                   GitHub annotation formatting
 action.yml            approved-base-contract CI adapter
 scripts/              local/full/clean-commit checks and gate helper
