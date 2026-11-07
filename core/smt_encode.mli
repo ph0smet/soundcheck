@@ -11,7 +11,12 @@
     - [is_anon] : whether the principal is anonymous, as a [Bool]
     - [scheme]  : the normalized request protocol
     - [sni]     : TLS Server Name Indication, or the empty string
-    - one [Bool] for every exact header-name/value membership used by a policy *)
+    - one [Bool] for every exact header-name/value membership used by a policy
+
+    Exact named-principal and typed object coordinates are declared and observed
+    only when the obligation uses their predicates. Existing HTTP queries retain
+    their original observation fields. Object predicates require an explicit
+    [has_object_request] Boolean, so absent coordinates cannot match a literal. *)
 
 val cond : Ir.condition -> string
 (** One condition as an SMT-LIB2 boolean over the symbolic request constants.
@@ -36,6 +41,12 @@ val definitely_allowed_formula : Ir.policy -> string
     possible because their order is tied or incomparable, it requires every
     possible winner to allow. Uncertainty can therefore cause a false violation,
     never a false functionality proof. *)
+
+val possibly_allowed_formula : Ir.policy -> string
+(** The same possible-allowance expression used by the production safety
+    encoder, without a structural rule filter. Callers must separately assert
+    [policy.request_domain]. Exposed for independent target conformance of
+    concrete request decisions, without reconstructing the policy encoding. *)
 
 val contract_clause_query : Ir.policy -> Contract.clause -> string
 (** Ask for a counterexample to one contract clause. For [Must_deny], this is an

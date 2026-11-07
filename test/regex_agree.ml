@@ -110,7 +110,7 @@ let () =
         List.iter
           (fun (h, expected) ->
             let req : Ir.request =
-              { principal = Ir.Anonymous; action = ""; resource = "";
+              { object_request = None; principal = Ir.Anonymous; action = ""; resource = "";
                 context = []; source = 0l; host = h; scheme = "http"; sni = "" }
             in
             let concrete = Ir.matches cond req in

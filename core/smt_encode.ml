@@ -8,6 +8,11 @@ let hex s =
 let header_symbol name value =
   Printf.sprintf "header_%s_%s" (hex name) (hex value)
 
+let object_symbol = function
+  | Ir.Object_namespace -> "object_namespace"
+  | Ir.Object_kind -> "object_kind"
+  | Ir.Object_name -> "object_name"
+
 (* A condition becomes a boolean SMT-LIB2 expression over the symbolic request
    fields [path], [method], [is_anon]. *)
 let rec cond (c : Ir.condition) : string =
@@ -19,6 +24,17 @@ let rec cond (c : Ir.condition) : string =
   | Ir.Method_is m -> Printf.sprintf "(= method %s)" (smt_str m)
   | Ir.Is_anonymous -> "is_anon"
   | Ir.Requires_auth -> "(not is_anon)"
+  | Ir.Principal_is name ->
+    Printf.sprintf "(and (not is_anon) (= principal_name %s))" (smt_str name)
+  | Ir.Has_object_request -> "has_object_request"
+  | Ir.Object_is (field, value) ->
+    Printf.sprintf "(and has_object_request (= %s %s))" (object_symbol field) (smt_str value)
+  | Ir.Object_matches (field, regex) ->
+    Printf.sprintf "(and has_object_request (str.in_re %s %s))"
+      (object_symbol field) (Regex.to_smt regex)
+  | Ir.Object_length_at_most (field, limit) ->
+    Printf.sprintf "(and has_object_request (<= (str.len %s) %d))"
+      (object_symbol field) limit
   | Ir.Source_in c -> Cidr.to_smt ~var:"src_ip" c
   | Ir.Host_matches re -> Printf.sprintf "(str.in_re host %s)" (Regex.to_smt re)
   | Ir.Scheme_is scheme -> Printf.sprintf "(= scheme %s)" (smt_str scheme)
@@ -87,6 +103,8 @@ let allowed_formula ~reach_via (p : Ir.policy) : string =
   in
   Printf.sprintf "(or %s %s)" matched default
 
+let possibly_allowed_formula policy = allowed_formula ~reach_via:(fun _ -> true) policy
+
 let rec header_atoms = function
   | Ir.Header_has (name, value) -> [ (name, value) ]
   | Ir.Not condition -> header_atoms condition
@@ -94,8 +112,24 @@ let rec header_atoms = function
     List.concat_map header_atoms conditions
   | _ -> []
 
-let unique_headers conditions =
-  conditions |> List.concat_map header_atoms |> List.sort_uniq compare
+type observations = {
+  headers : (string * string) list;
+  principal_name : bool;
+  object_request : bool;
+}
+
+let observations conditions =
+  let rec needs predicate = function
+    | Ir.Not condition -> needs predicate condition
+    | Ir.And conditions | Ir.Or conditions -> List.exists (needs predicate) conditions
+    | condition -> predicate condition
+  in
+  { headers = conditions |> List.concat_map header_atoms |> List.sort_uniq compare;
+    principal_name = List.exists (needs (function Ir.Principal_is _ -> true | _ -> false)) conditions;
+    object_request = List.exists (needs (function
+        | Ir.Has_object_request | Ir.Object_is _ | Ir.Object_matches _
+        | Ir.Object_length_at_most _ -> true
+        | _ -> false)) conditions }
 
 let policy_conditions (policy : Ir.policy) =
   policy.request_domain
@@ -103,7 +137,7 @@ let policy_conditions (policy : Ir.policy) =
        (fun (rule : Ir.rule) -> [ rule.match_; rule.guard ])
        policy.rules
 
-let preamble b title headers =
+let preamble b title observations =
   Buffer.add_string b "; Soundcheck SMT-LIB2 query\n";
   Buffer.add_string b title;
   Buffer.add_string b "(set-logic ALL)\n";
@@ -116,24 +150,36 @@ let preamble b title headers =
   Buffer.add_string b "(declare-const host String)\n";
   Buffer.add_string b "(declare-const scheme String)\n";
   Buffer.add_string b "(declare-const sni String)\n";
+  if observations.principal_name then
+    Buffer.add_string b "(declare-const principal_name String)\n";
+  if observations.object_request then
+    Buffer.add_string b
+      "(declare-const has_object_request Bool)\n\
+       (declare-const object_namespace String)\n\
+       (declare-const object_kind String)\n\
+       (declare-const object_name String)\n";
   List.iter
     (fun (name, value) ->
       Buffer.add_string b
         (Printf.sprintf "(declare-const %s Bool)\n"
            (header_symbol name value)))
-    headers
+    observations.headers
 
-let epilogue b headers =
+let epilogue b observations =
   Buffer.add_string b "(check-sat)\n";
   Buffer.add_string b
     "; Conditional SAT observation: Soundcheck replays get-value only after sat.\n";
-  let header_symbols =
-    headers |> List.map (fun (name, value) -> header_symbol name value)
+  let extra_symbols =
+    (if observations.principal_name then [ "principal_name" ] else [])
+    @ (if observations.object_request then
+         [ "has_object_request"; "object_namespace"; "object_kind"; "object_name" ]
+       else [])
+    @ (observations.headers |> List.map (fun (name, value) -> header_symbol name value))
     |> String.concat " "
   in
   Buffer.add_string b
     (Printf.sprintf "(get-value (path method is_anon src_ip host scheme sni%s%s))\n"
-       (if header_symbols = "" then "" else " ") header_symbols);
+       (if extra_symbols = "" then "" else " ") extra_symbols);
   Buffer.contents b
 
 let assert_domain b domain =
@@ -142,7 +188,7 @@ let assert_domain b domain =
 
 let condition_query ?(domain = Ir.True) ~name ~description condition =
   let b = Buffer.create 256 in
-  let headers = unique_headers [ domain; condition ] in
+  let headers = observations [ domain; condition ] in
   preamble b (Printf.sprintf "; property preflight: %s — %s\n" name description)
     headers;
   assert_domain b domain;
@@ -197,7 +243,7 @@ let definitely_allowed_formula (p : Ir.policy) : string =
 let contract_clause_query (p : Ir.policy) (clause : Contract.clause) : string =
   let b = Buffer.create 512 in
   let headers =
-    unique_headers
+    observations
       (Contract.request_class clause :: policy_conditions p)
   in
   preamble b
@@ -223,7 +269,7 @@ let contract_clause_query (p : Ir.policy) (clause : Contract.clause) : string =
 let to_smtlib (p : Ir.policy) (prop : Property.t) : string =
   let b = Buffer.create 512 in
   let headers =
-    unique_headers (prop.forbidden_when :: policy_conditions p)
+    observations (prop.forbidden_when :: policy_conditions p)
   in
   preamble b (Printf.sprintf "; property: %s — %s\n" prop.name prop.description)
     headers;
@@ -244,7 +290,7 @@ let to_smtlib (p : Ir.policy) (prop : Property.t) : string =
 let shadowing_query (p : Ir.policy) (pair : Shadowing.pair) : string =
   let i = pair.shadowing and k = pair.shadowed in
   let b = Buffer.create 512 in
-  let headers = unique_headers (policy_conditions p) in
+  let headers = observations (policy_conditions p) in
   preamble b
     (Printf.sprintf "; property: %s — route %S shadowed by route %S\n"
        Shadowing.name k.Ir.id i.Ir.id)
@@ -264,7 +310,7 @@ let decision_equivalence_query ?(when_ = Ir.True) (left : Ir.policy)
     (right : Ir.policy) : string =
   let b = Buffer.create 768 in
   let headers =
-    unique_headers (when_ :: policy_conditions left @ policy_conditions right)
+    observations (when_ :: policy_conditions left @ policy_conditions right)
   in
   preamble b "; decision equivalence: find a request where policies disagree\n"
     headers;
@@ -349,7 +395,7 @@ let route_equivalence_query ?(when_ = Ir.True) ?left_value ?right_value
     ~left_label ~right_label (left : Ir.policy) (right : Ir.policy) : string =
   let b = Buffer.create 1024 in
   let headers =
-    unique_headers (when_ :: policy_conditions left @ policy_conditions right)
+    observations (when_ :: policy_conditions left @ policy_conditions right)
   in
   preamble b
     "; route/service equivalence: find a request where decision or selection differs\n"

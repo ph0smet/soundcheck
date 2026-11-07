@@ -79,7 +79,7 @@ let artifact directory value =
 let assert_bundle ~soundcheck ~directory ~config ~canonical ~output ~verdict
     ~results =
   let manifest = read_file (Filename.concat directory "manifest.json") |> parse in
-  if field "schema_version" manifest <> `Float 1. then fail "unexpected bundle version";
+  if field "schema_version" manifest <> `Float 2. then fail "unexpected bundle version";
   if string "result" manifest <> verdict then fail "bundle verdict changed";
   let config_metadata = field "config" manifest in
   if string "sha256" config_metadata <> Sha256.string config

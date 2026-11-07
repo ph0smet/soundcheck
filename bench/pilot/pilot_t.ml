@@ -24,7 +24,8 @@ let witness : Report.counterexample =
   { principal = secret; action = secret; path = secret; route = Some secret;
     service = Some secret; shadowed_route = Some secret; shadowed_service = Some secret;
     host = secret; scheme = secret; sni = secret; source_ip = 0l;
-    headers = [ secret, secret ]; note = secret }
+    headers = [ secret, secret ]; object_request = None;
+    identity_groups = None; granting_rules = []; note = secret }
 let report ?(status = Report.Within_profile) ?(codes = []) result : Report.t =
   { result; property_name = "authenticated-access"; property_description = secret;
     assurance = Some { profile = Assurance.profile.id; status;

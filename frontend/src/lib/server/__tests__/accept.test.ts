@@ -2,7 +2,8 @@ import { createHash } from "node:crypto";
 
 import { describe, expect, it } from "vitest";
 
-import type { EvidenceManifest, VerifyReport } from "@/lib/contract";
+import { evidenceManifest, verifyReport, type EvidenceManifest, type VerifyReport } from "@/lib/contract";
+import { parseJson } from "@/lib/schema";
 
 import { acceptCompare, acceptVerify, checkEvidence } from "../accept";
 import type { RunResult } from "../engine";
@@ -25,7 +26,7 @@ const assurance = { profile: "kong-3.x-v1", status: "within_profile", findings: 
 
 const proved = {
   result: "proved",
-  schema_version: 9,
+  schema_version: 10,
   property: "no-anonymous-access",
   assurance,
   frozen_spec: null,
@@ -46,6 +47,9 @@ const counterexample = {
   service: "admin-svc",
   shadowed_route: null,
   shadowed_service: null,
+  object_request: null,
+  identity_groups: null,
+  granting_rules: [],
 };
 
 const violated = { ...proved, result: "violated", counterexample };
@@ -123,7 +127,46 @@ describe("acceptVerify: false greens are rejected", () => {
 
   it("rejects an unknown schema version", () => {
     expectFailure(verify({ ...proved, schema_version: 8 }), "protocol");
-    expectFailure(verify({ ...proved, schema_version: 10 }), "protocol");
+    expectFailure(verify({ ...proved, schema_version: 9 }), "protocol");
+    expectFailure(verify({ ...proved, schema_version: 11 }), "protocol");
+  });
+
+  it.each(["object_request", "identity_groups", "granting_rules"])("requires the schema-10 %s field", (field) => {
+    const incomplete: Record<string, unknown> = { ...counterexample };
+    delete incomplete[field];
+    expectFailure(verify({ ...violated, counterexample: incomplete }, { exitCode: 3 }), "protocol");
+  });
+
+  it("validates typed object reports without displaying them as Kong", () => {
+    const report = {
+      ...violated,
+      assurance: { ...assurance, profile: "kubernetes-rbac-v1.34-get-v1" },
+      clause: { name: "payments-secrets-not-granted", description: "RBAC must not grant access", kind: "must_not_grant" },
+      counterexample: {
+        ...counterexample,
+        principal: "system:serviceaccount:frontend:frontend-sa",
+        action: "get",
+        object_request: { namespace: "payments", resource_kind: "secrets", name: "db-password" },
+        identity_groups: ["system:authenticated"],
+        granting_rules: ["RoleBinding/payments/extra -> ClusterRole/secret-reader/rules/0"],
+      },
+    };
+    expect(parseJson(JSON.stringify(report), verifyReport).counterexample?.object_request?.name).toBe("db-password");
+    expect(parseJson(JSON.stringify({ ...report, clause: { ...report.clause, kind: "must_preserve" } }), verifyReport).clause?.kind).toBe("must_preserve");
+    expectFailure(verify(report, { exitCode: 3 }), "protocol");
+    expectFailure(verify({ ...report, assurance }, { exitCode: 3 }), "protocol");
+    expectFailure(verify({ ...proved, assurance: report.assurance }), "protocol");
+  });
+
+  it("rejects malformed object coordinates and group context", () => {
+    for (const changed of [
+      { object_request: { namespace: "payments", resource_kind: "secrets" } },
+      { object_request: { namespace: 1, resource_kind: "secrets", name: "db" } },
+      { identity_groups: "system:authenticated" },
+      { granting_rules: [1] },
+    ]) {
+      expectFailure(verify({ ...violated, counterexample: { ...counterexample, ...changed } }, { exitCode: 3 }), "protocol");
+    }
   });
 
   it("rejects unexpected fields", () => {
@@ -294,11 +337,11 @@ describe("checkEvidence", () => {
   const stdout = `${JSON.stringify(report)}\n`;
   const hash = (text: string) => createHash("sha256").update(text).digest("hex");
   const manifest = {
-    schema_version: 1,
+    schema_version: 2,
     config: { sha256: hash(config), size_bytes: config.length },
     contract: { path: "contract.json", sha256: hash(`${canonical}\n`) },
     assurance_profile: { id: "kong-3.x-v1", artifact: { path: "assurance-profile.json", sha256: "0".repeat(64) } },
-    soundcheck: { executable_sha256: "f".repeat(64), ocaml_version: "5.2.0", report_schema_version: 9 },
+    soundcheck: { executable_sha256: "f".repeat(64), ocaml_version: "5.2.0", report_schema_version: 10 },
     solver: { name: "z3", version: "Z3 version 4.16.0 - 64 bit", version_error: null },
     obligation_plan: {},
     obligations: [],
@@ -307,7 +350,13 @@ describe("checkEvidence", () => {
   } as unknown as EvidenceManifest;
 
   it("accepts a bundle that matches the accepted run exactly", () => {
+    expect(parseJson(JSON.stringify(manifest), evidenceManifest).schema_version).toBe(2);
     expect(checkEvidence(manifest, { config, stdout, report })).toBeNull();
+  });
+
+  it("rejects old or inconsistent evidence schema versions", () => {
+    expect(() => parseJson(JSON.stringify({ ...manifest, schema_version: 1 }), evidenceManifest)).toThrow();
+    expect(() => parseJson(JSON.stringify({ ...manifest, soundcheck: { ...manifest.soundcheck, report_schema_version: 9 } }), evidenceManifest)).toThrow();
   });
 
   it("rejects a bundle for different config bytes", () => {

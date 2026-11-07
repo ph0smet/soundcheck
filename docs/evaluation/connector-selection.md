@@ -1,11 +1,11 @@
 # Choosing connector #2
 
-This is an engineering shortlist, not a shipped connector or a conclusion from
-deployment pilots. Kong remains the only implemented target. The
-[Kubernetes RBAC source study](kubernetes-rbac-exploration.md) outlines a possible
-static-grant subset, shared-core changes and an upstream-authorizer experiment.
-That experiment and validation with authorized representative inputs remain
-pending; the source study does not establish user demand or deployment readiness.
+This historical engineering shortlist informed connector selection. The
+[RBAC source study](kubernetes-rbac-exploration.md) was followed by an authorized
+synthetic feasibility benchmark and the [bounded RBAC connector](../kubernetes-rbac.md).
+Its reference harness now executes the pinned upstream authorizer. Validation
+with authorized representative deployment inputs remains pending; synthetic
+conformance does not establish user demand or deployment readiness.
 
 | Candidate | Useful first requirement | Semantic work and independent evidence |
 | --- | --- | --- |
@@ -29,7 +29,7 @@ IAM has a broader initial modeling burden: applicable policies combine using
 different union/intersection rules, with explicit denials taking precedence.
 See [AWS policy evaluation logic](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_evaluation-logic.html).
 
-Before committing to an implementation:
+The original selection criteria were:
 
 1. Obtain authorized representative inputs and independently written paired
    denial/required-access requirements. Record unsupported cases and authoring
@@ -42,6 +42,7 @@ Before committing to an implementation:
 4. Review the minimal shared-core changes. Do not encode Kubernetes identities
    as Kong's anonymous/authenticated bit or assume contracts are portable.
 
-Only after that evidence should the project announce connector #2 as selected
-for delivery. These selection criteria and the source study support a provisional
-feasibility recommendation; they make no multi-target support claim.
+The initial connector follows the approved synthetic benchmark scope. Its
+published profile states the precise supported model; the representative-input
+pilot criterion remains open. Broader RBAC semantics and other targets still
+need separate properties, evidence and approval.

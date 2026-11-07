@@ -11,7 +11,7 @@ type profile = {
 
 type t = (string * string) list
 
-let schema_version = 1
+let schema_version = 2
 
 let collect_provenance () =
   let executable =
@@ -63,12 +63,19 @@ let model_json (model : Solve.model) =
              (json_string name) (json_string value))
     |> String.concat ","
   in
+  let object_request = match model.object_request with
+    | None -> "null"
+    | Some request ->
+      Printf.sprintf "{\"namespace\":%s,\"resource_kind\":%s,\"name\":%s}"
+        (json_string request.namespace) (json_string request.resource_kind) (json_string request.name)
+  in
   Printf.sprintf
-    "{\"principal\":%s,\"method\":%s,\"path\":%s,\"source_ip\":%s,\"host\":%s,\"scheme\":%s,\"sni\":%s,\"headers\":[%s]}"
+    "{\"principal\":%s,\"method\":%s,\"path\":%s,\"source_ip\":%s,\"host\":%s,\"scheme\":%s,\"sni\":%s,\"headers\":[%s],\"principal_name\":%s,\"object_request\":%s}"
     (json_string (if model.is_anon then "anonymous" else "authenticated"))
     (json_string model.method_) (json_string model.path)
     (json_string (Cidr.string_of_ip model.src_ip)) (json_string model.host)
     (json_string model.scheme) (json_string model.sni) headers
+    (json_option model.principal_name) object_request
 
 let phase_name = function
   | Contract_verify.Inhabitance -> "inhabitance"

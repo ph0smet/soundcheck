@@ -7,7 +7,7 @@ let parse source =
   | Error error -> failwith error
 
 let request ?(source = 0l) () : Ir.request =
-  { principal = Anonymous;
+  { object_request = None; principal = Anonymous;
     action = "GET";
     resource = "/maintenance";
     context = [];

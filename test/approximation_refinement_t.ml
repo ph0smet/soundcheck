@@ -84,7 +84,7 @@ let actual_outcomes ~default left right =
       winners
 
 let request : Ir.request =
-  { principal = Anonymous; action = "GET"; resource = "/";
+  { object_request = None; principal = Anonymous; action = "GET"; resource = "/";
     context = []; source = 0l; host = "example.test"; scheme = "http"; sni = "" }
 
 (* Deliberately broken controls demonstrate what the independent oracle catches.

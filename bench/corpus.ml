@@ -116,7 +116,7 @@ let mask_witness json =
   |> mask "scheme" |> mask "sni"
 
 let request_of (ce : Report.counterexample) : Ir.request =
-  { principal =
+  { object_request = None; principal =
       (if ce.principal = "anonymous" then Ir.Anonymous
        else Ir.Authenticated "user");
     action = ce.action;

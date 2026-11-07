@@ -1,4 +1,4 @@
-(** Soundcheck decision IR (v0).
+(** Soundcheck decision IR.
 
     Every Shape-B policy target (Kong, K8s RBAC, ...) lowers into this shared
     decision model: a policy is a function from a symbolic {!request} to a
@@ -6,12 +6,12 @@
     {!policy}; the SMT encoder reasons over it; counterexamples are lifted back
     to the connector's own vocabulary.
 
-    v0 is deliberately minimal and extracted from the Kong use case. Per the
-    project discipline it will be *refined*, not rewritten, when connector #2
-    (tenant isolation) lands. *)
+    Extracted from the Kong use case, with typed named-principal and resource
+    coordinates for connectors that do not operate on HTTP routing alone. *)
 
 type principal =
   | Anonymous                 (** no authenticated identity *)
+  | Authenticated_unknown     (** authenticated, but no exact name was observed *)
   | Authenticated of string   (** an identified consumer / subject *)
 
 type action = string          (** e.g. HTTP method: "GET", "POST" *)
@@ -21,6 +21,16 @@ type resource = string        (** e.g. a request path: "/admin/config" *)
 type context = (string * string) list
 (** Request attributes. Repeated keys represent multi-valued attributes such as
     HTTP headers. *)
+
+type object_request = {
+  namespace : string;
+  resource_kind : string;
+  name : string;
+}
+(** Coordinates of a named resource, separate from HTTP paths and headers.
+    Connectors define their valid namespace, kind, and name domain. *)
+
+type object_field = Object_namespace | Object_kind | Object_name
 
 type request = {
   principal : principal;
@@ -39,13 +49,15 @@ type request = {
       (** Normalized request scheme, currently ["http"] or ["https"] for Kong. *)
   sni       : string;
       (** TLS Server Name Indication, or the empty string when absent. *)
+  object_request : object_request option;
+      (** [None] for requests without named-object coordinates. *)
 }
 
 (** The effect of a policy decision. ([effect] itself is a reserved keyword in
     OCaml 5.x, hence [decision].) *)
 type decision = Allow | Deny
 
-(** A predicate over requests. The v0 encoder supports exactly these forms. *)
+(** A predicate over requests. The encoder supports exactly these forms. *)
 type condition =
   | True
   | Path_prefix of string     (** [resource] starts with the given prefix *)
@@ -60,7 +72,17 @@ type condition =
           encoding for the common literal case. *)
   | Method_is   of string
   | Is_anonymous              (** [principal] = [Anonymous] *)
-  | Requires_auth             (** [principal] is [Authenticated _] *)
+  | Requires_auth             (** named or unnamed authenticated principal *)
+  | Principal_is of string
+      (** Exact, case-sensitive authenticated identity. An unnamed principal
+          never satisfies this condition, including for the empty string. *)
+  | Has_object_request
+  | Object_is of object_field * string
+  | Object_matches of object_field * Regex.t
+  | Object_length_at_most of object_field * int
+      (** Object predicates require present coordinates. Matching is full-string
+          and byte-oriented, as for {!Path_regex}; length is measured in bytes.
+          A negative maximum cannot match. *)
   | Source_in   of Cidr.t     (** [source] falls inside the address block *)
   | Host_matches of Regex.t
       (** [host] belongs to the language, in full. The connector owns the
@@ -96,12 +118,18 @@ val outranks : priority -> priority -> bool
 type rule = {
   id           : string;      (** connector-facing identifier (e.g. route name) *)
   match_       : condition;
-      (** ROUTING only: which requests this rule is a candidate to serve (path,
-          method). Deliberately separate from {!guard}, because a real gateway
+      (** For route-based policies, ROUTING only: which requests this rule is a
+          candidate to serve (path, method). Deliberately separate from {!guard},
+          because a real gateway
           picks the serving route from routing criteria ALONE and only then
           applies policy. Folding policy in here would let a request that fails
           authentication "fall through" to a more permissive rule, which no
-          gateway does: it routes first, then returns 401. *)
+          gateway does: it routes first, then returns 401.
+
+          For exact additive grant policies, put the complete grant predicate
+          here, use [guard = True], complete matching/guards, equal priorities,
+          only [Allow] rules, and a non-allowing default. Both possible and
+          definite allowance then describe the exact union of grants. *)
   match_complete : bool;
       (** Whether [match_] exactly captures every routing criterion. An
           over-approximated match may find conservative safety violations, but

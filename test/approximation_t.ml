@@ -5,7 +5,7 @@ let failures = ref []
 let check name okay = if not okay then failures := name :: !failures
 
 let request : Ir.request =
-  { principal = Anonymous; action = "GET"; resource = "/admin/reports";
+  { object_request = None; principal = Anonymous; action = "GET"; resource = "/admin/reports";
     context = []; source = 0l; host = "api.example"; scheme = "http"; sni = "" }
 
 let rule ?(rank = 1) ?(complete = true) ?(guard = Ir.True) id decision : Ir.rule =

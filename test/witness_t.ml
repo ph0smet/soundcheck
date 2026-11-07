@@ -137,7 +137,7 @@ let config ?(routes = "  - name: admin\n    paths: [/admin]\n") ?(plugins = "")
 
 let parse text = match Parse.parse_string text with Ok value -> value | Error e -> failwith e
 let model : Solve.model =
-  {path = "/admin"; method_ = "GET"; is_anon = true; src_ip = 0x0a000001l;
+  { principal_name = None; object_request = None; path = "/admin"; method_ = "GET"; is_anon = true; src_ip = 0x0a000001l;
    host = "example.com"; scheme = "http"; sni = ""; headers = []}
 
 let verify_unknown label only config property =
@@ -149,7 +149,7 @@ let verify_unknown label only config property =
 let semantic_validation () =
   let request = Witness.request_of_model model in
   check "model conversion keeps every request dimension"
-    (request = Ir.{principal = Anonymous; action = "GET"; resource = "/admin";
+    (request = Ir.{ object_request = None; principal = Anonymous; action = "GET"; resource = "/admin";
        context = []; source = 0x0a000001l; host = "example.com";
        scheme = "http"; sni = ""});
   let checked label predicate expected candidate =

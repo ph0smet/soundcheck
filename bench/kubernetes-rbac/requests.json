@@ -1,0 +1,4622 @@
+[
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0000",
+    "name": "settings",
+    "namespace": "frontend",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0001",
+    "name": "db-password",
+    "namespace": "frontend",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0002",
+    "name": "other",
+    "namespace": "frontend",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0003",
+    "name": "x",
+    "namespace": "frontend",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0004",
+    "name": "a.b-c",
+    "namespace": "frontend",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0005",
+    "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "namespace": "frontend",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0006",
+    "name": "settings",
+    "namespace": "frontend",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0007",
+    "name": "db-password",
+    "namespace": "frontend",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0008",
+    "name": "other",
+    "namespace": "frontend",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0009",
+    "name": "x",
+    "namespace": "frontend",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0010",
+    "name": "a.b-c",
+    "namespace": "frontend",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0011",
+    "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "namespace": "frontend",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0012",
+    "name": "settings",
+    "namespace": "payments",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0013",
+    "name": "db-password",
+    "namespace": "payments",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0014",
+    "name": "other",
+    "namespace": "payments",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0015",
+    "name": "x",
+    "namespace": "payments",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0016",
+    "name": "a.b-c",
+    "namespace": "payments",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0017",
+    "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "namespace": "payments",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0018",
+    "name": "settings",
+    "namespace": "payments",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0019",
+    "name": "db-password",
+    "namespace": "payments",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0020",
+    "name": "other",
+    "namespace": "payments",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0021",
+    "name": "x",
+    "namespace": "payments",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0022",
+    "name": "a.b-c",
+    "namespace": "payments",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0023",
+    "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "namespace": "payments",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0024",
+    "name": "settings",
+    "namespace": "ops",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0025",
+    "name": "db-password",
+    "namespace": "ops",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0026",
+    "name": "other",
+    "namespace": "ops",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0027",
+    "name": "x",
+    "namespace": "ops",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0028",
+    "name": "a.b-c",
+    "namespace": "ops",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0029",
+    "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "namespace": "ops",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0030",
+    "name": "settings",
+    "namespace": "ops",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0031",
+    "name": "db-password",
+    "namespace": "ops",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0032",
+    "name": "other",
+    "namespace": "ops",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0033",
+    "name": "x",
+    "namespace": "ops",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0034",
+    "name": "a.b-c",
+    "namespace": "ops",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0035",
+    "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "namespace": "ops",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0036",
+    "name": "settings",
+    "namespace": "other",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0037",
+    "name": "db-password",
+    "namespace": "other",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0038",
+    "name": "other",
+    "namespace": "other",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0039",
+    "name": "x",
+    "namespace": "other",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0040",
+    "name": "a.b-c",
+    "namespace": "other",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0041",
+    "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "namespace": "other",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0042",
+    "name": "settings",
+    "namespace": "other",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0043",
+    "name": "db-password",
+    "namespace": "other",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0044",
+    "name": "other",
+    "namespace": "other",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0045",
+    "name": "x",
+    "namespace": "other",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0046",
+    "name": "a.b-c",
+    "namespace": "other",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0047",
+    "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "namespace": "other",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0048",
+    "name": "settings",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0049",
+    "name": "db-password",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0050",
+    "name": "other",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0051",
+    "name": "x",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0052",
+    "name": "a.b-c",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0053",
+    "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0054",
+    "name": "settings",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0055",
+    "name": "db-password",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0056",
+    "name": "other",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0057",
+    "name": "x",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0058",
+    "name": "a.b-c",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0059",
+    "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0060",
+    "name": "settings",
+    "namespace": "frontend",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0061",
+    "name": "db-password",
+    "namespace": "frontend",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0062",
+    "name": "other",
+    "namespace": "frontend",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0063",
+    "name": "x",
+    "namespace": "frontend",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0064",
+    "name": "a.b-c",
+    "namespace": "frontend",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0065",
+    "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "namespace": "frontend",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0066",
+    "name": "settings",
+    "namespace": "frontend",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0067",
+    "name": "db-password",
+    "namespace": "frontend",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0068",
+    "name": "other",
+    "namespace": "frontend",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0069",
+    "name": "x",
+    "namespace": "frontend",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0070",
+    "name": "a.b-c",
+    "namespace": "frontend",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0071",
+    "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "namespace": "frontend",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0072",
+    "name": "settings",
+    "namespace": "payments",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0073",
+    "name": "db-password",
+    "namespace": "payments",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0074",
+    "name": "other",
+    "namespace": "payments",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0075",
+    "name": "x",
+    "namespace": "payments",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0076",
+    "name": "a.b-c",
+    "namespace": "payments",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0077",
+    "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "namespace": "payments",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0078",
+    "name": "settings",
+    "namespace": "payments",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0079",
+    "name": "db-password",
+    "namespace": "payments",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0080",
+    "name": "other",
+    "namespace": "payments",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0081",
+    "name": "x",
+    "namespace": "payments",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0082",
+    "name": "a.b-c",
+    "namespace": "payments",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0083",
+    "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "namespace": "payments",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0084",
+    "name": "settings",
+    "namespace": "ops",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0085",
+    "name": "db-password",
+    "namespace": "ops",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0086",
+    "name": "other",
+    "namespace": "ops",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0087",
+    "name": "x",
+    "namespace": "ops",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0088",
+    "name": "a.b-c",
+    "namespace": "ops",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0089",
+    "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "namespace": "ops",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0090",
+    "name": "settings",
+    "namespace": "ops",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0091",
+    "name": "db-password",
+    "namespace": "ops",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0092",
+    "name": "other",
+    "namespace": "ops",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0093",
+    "name": "x",
+    "namespace": "ops",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0094",
+    "name": "a.b-c",
+    "namespace": "ops",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0095",
+    "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "namespace": "ops",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0096",
+    "name": "settings",
+    "namespace": "other",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0097",
+    "name": "db-password",
+    "namespace": "other",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0098",
+    "name": "other",
+    "namespace": "other",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0099",
+    "name": "x",
+    "namespace": "other",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0100",
+    "name": "a.b-c",
+    "namespace": "other",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0101",
+    "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "namespace": "other",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0102",
+    "name": "settings",
+    "namespace": "other",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0103",
+    "name": "db-password",
+    "namespace": "other",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0104",
+    "name": "other",
+    "namespace": "other",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0105",
+    "name": "x",
+    "namespace": "other",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0106",
+    "name": "a.b-c",
+    "namespace": "other",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0107",
+    "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "namespace": "other",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0108",
+    "name": "settings",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0109",
+    "name": "db-password",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0110",
+    "name": "other",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0111",
+    "name": "x",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0112",
+    "name": "a.b-c",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0113",
+    "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0114",
+    "name": "settings",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0115",
+    "name": "db-password",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0116",
+    "name": "other",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0117",
+    "name": "x",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0118",
+    "name": "a.b-c",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated",
+      "ops"
+    ],
+    "id": "r0119",
+    "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "ops-auditor",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0120",
+    "name": "settings",
+    "namespace": "frontend",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0121",
+    "name": "db-password",
+    "namespace": "frontend",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0122",
+    "name": "other",
+    "namespace": "frontend",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0123",
+    "name": "x",
+    "namespace": "frontend",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0124",
+    "name": "a.b-c",
+    "namespace": "frontend",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0125",
+    "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "namespace": "frontend",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0126",
+    "name": "settings",
+    "namespace": "frontend",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0127",
+    "name": "db-password",
+    "namespace": "frontend",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0128",
+    "name": "other",
+    "namespace": "frontend",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0129",
+    "name": "x",
+    "namespace": "frontend",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0130",
+    "name": "a.b-c",
+    "namespace": "frontend",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0131",
+    "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "namespace": "frontend",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0132",
+    "name": "settings",
+    "namespace": "payments",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0133",
+    "name": "db-password",
+    "namespace": "payments",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0134",
+    "name": "other",
+    "namespace": "payments",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0135",
+    "name": "x",
+    "namespace": "payments",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0136",
+    "name": "a.b-c",
+    "namespace": "payments",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0137",
+    "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "namespace": "payments",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0138",
+    "name": "settings",
+    "namespace": "payments",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0139",
+    "name": "db-password",
+    "namespace": "payments",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0140",
+    "name": "other",
+    "namespace": "payments",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0141",
+    "name": "x",
+    "namespace": "payments",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0142",
+    "name": "a.b-c",
+    "namespace": "payments",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0143",
+    "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "namespace": "payments",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0144",
+    "name": "settings",
+    "namespace": "ops",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0145",
+    "name": "db-password",
+    "namespace": "ops",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0146",
+    "name": "other",
+    "namespace": "ops",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0147",
+    "name": "x",
+    "namespace": "ops",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0148",
+    "name": "a.b-c",
+    "namespace": "ops",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0149",
+    "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "namespace": "ops",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0150",
+    "name": "settings",
+    "namespace": "ops",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0151",
+    "name": "db-password",
+    "namespace": "ops",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0152",
+    "name": "other",
+    "namespace": "ops",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0153",
+    "name": "x",
+    "namespace": "ops",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0154",
+    "name": "a.b-c",
+    "namespace": "ops",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0155",
+    "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "namespace": "ops",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0156",
+    "name": "settings",
+    "namespace": "other",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0157",
+    "name": "db-password",
+    "namespace": "other",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0158",
+    "name": "other",
+    "namespace": "other",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0159",
+    "name": "x",
+    "namespace": "other",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0160",
+    "name": "a.b-c",
+    "namespace": "other",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0161",
+    "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "namespace": "other",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0162",
+    "name": "settings",
+    "namespace": "other",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0163",
+    "name": "db-password",
+    "namespace": "other",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0164",
+    "name": "other",
+    "namespace": "other",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0165",
+    "name": "x",
+    "namespace": "other",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0166",
+    "name": "a.b-c",
+    "namespace": "other",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0167",
+    "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "namespace": "other",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0168",
+    "name": "settings",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0169",
+    "name": "db-password",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0170",
+    "name": "other",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0171",
+    "name": "x",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0172",
+    "name": "a.b-c",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0173",
+    "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0174",
+    "name": "settings",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0175",
+    "name": "db-password",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0176",
+    "name": "other",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0177",
+    "name": "x",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0178",
+    "name": "a.b-c",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:authenticated"
+    ],
+    "id": "r0179",
+    "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "alice",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0180",
+    "name": "settings",
+    "namespace": "frontend",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0181",
+    "name": "db-password",
+    "namespace": "frontend",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0182",
+    "name": "other",
+    "namespace": "frontend",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0183",
+    "name": "x",
+    "namespace": "frontend",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0184",
+    "name": "a.b-c",
+    "namespace": "frontend",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0185",
+    "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "namespace": "frontend",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0186",
+    "name": "settings",
+    "namespace": "frontend",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0187",
+    "name": "db-password",
+    "namespace": "frontend",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0188",
+    "name": "other",
+    "namespace": "frontend",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0189",
+    "name": "x",
+    "namespace": "frontend",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0190",
+    "name": "a.b-c",
+    "namespace": "frontend",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0191",
+    "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "namespace": "frontend",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0192",
+    "name": "settings",
+    "namespace": "payments",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0193",
+    "name": "db-password",
+    "namespace": "payments",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0194",
+    "name": "other",
+    "namespace": "payments",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0195",
+    "name": "x",
+    "namespace": "payments",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0196",
+    "name": "a.b-c",
+    "namespace": "payments",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0197",
+    "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "namespace": "payments",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0198",
+    "name": "settings",
+    "namespace": "payments",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0199",
+    "name": "db-password",
+    "namespace": "payments",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0200",
+    "name": "other",
+    "namespace": "payments",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0201",
+    "name": "x",
+    "namespace": "payments",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0202",
+    "name": "a.b-c",
+    "namespace": "payments",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0203",
+    "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "namespace": "payments",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0204",
+    "name": "settings",
+    "namespace": "ops",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0205",
+    "name": "db-password",
+    "namespace": "ops",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0206",
+    "name": "other",
+    "namespace": "ops",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0207",
+    "name": "x",
+    "namespace": "ops",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0208",
+    "name": "a.b-c",
+    "namespace": "ops",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0209",
+    "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "namespace": "ops",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0210",
+    "name": "settings",
+    "namespace": "ops",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0211",
+    "name": "db-password",
+    "namespace": "ops",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0212",
+    "name": "other",
+    "namespace": "ops",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0213",
+    "name": "x",
+    "namespace": "ops",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0214",
+    "name": "a.b-c",
+    "namespace": "ops",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0215",
+    "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "namespace": "ops",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0216",
+    "name": "settings",
+    "namespace": "other",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0217",
+    "name": "db-password",
+    "namespace": "other",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0218",
+    "name": "other",
+    "namespace": "other",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0219",
+    "name": "x",
+    "namespace": "other",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0220",
+    "name": "a.b-c",
+    "namespace": "other",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0221",
+    "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "namespace": "other",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0222",
+    "name": "settings",
+    "namespace": "other",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0223",
+    "name": "db-password",
+    "namespace": "other",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0224",
+    "name": "other",
+    "namespace": "other",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0225",
+    "name": "x",
+    "namespace": "other",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0226",
+    "name": "a.b-c",
+    "namespace": "other",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0227",
+    "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "namespace": "other",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0228",
+    "name": "settings",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0229",
+    "name": "db-password",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0230",
+    "name": "other",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0231",
+    "name": "x",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0232",
+    "name": "a.b-c",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0233",
+    "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0234",
+    "name": "settings",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0235",
+    "name": "db-password",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0236",
+    "name": "other",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0237",
+    "name": "x",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0238",
+    "name": "a.b-c",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "id": "r0239",
+    "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:frontend:other-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0240",
+    "name": "settings",
+    "namespace": "frontend",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0241",
+    "name": "db-password",
+    "namespace": "frontend",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0242",
+    "name": "other",
+    "namespace": "frontend",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0243",
+    "name": "x",
+    "namespace": "frontend",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0244",
+    "name": "a.b-c",
+    "namespace": "frontend",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0245",
+    "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "namespace": "frontend",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0246",
+    "name": "settings",
+    "namespace": "frontend",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0247",
+    "name": "db-password",
+    "namespace": "frontend",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0248",
+    "name": "other",
+    "namespace": "frontend",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0249",
+    "name": "x",
+    "namespace": "frontend",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0250",
+    "name": "a.b-c",
+    "namespace": "frontend",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0251",
+    "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "namespace": "frontend",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0252",
+    "name": "settings",
+    "namespace": "payments",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0253",
+    "name": "db-password",
+    "namespace": "payments",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0254",
+    "name": "other",
+    "namespace": "payments",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0255",
+    "name": "x",
+    "namespace": "payments",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0256",
+    "name": "a.b-c",
+    "namespace": "payments",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0257",
+    "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "namespace": "payments",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0258",
+    "name": "settings",
+    "namespace": "payments",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0259",
+    "name": "db-password",
+    "namespace": "payments",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0260",
+    "name": "other",
+    "namespace": "payments",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0261",
+    "name": "x",
+    "namespace": "payments",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0262",
+    "name": "a.b-c",
+    "namespace": "payments",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0263",
+    "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "namespace": "payments",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0264",
+    "name": "settings",
+    "namespace": "ops",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0265",
+    "name": "db-password",
+    "namespace": "ops",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0266",
+    "name": "other",
+    "namespace": "ops",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0267",
+    "name": "x",
+    "namespace": "ops",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0268",
+    "name": "a.b-c",
+    "namespace": "ops",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0269",
+    "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "namespace": "ops",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0270",
+    "name": "settings",
+    "namespace": "ops",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0271",
+    "name": "db-password",
+    "namespace": "ops",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0272",
+    "name": "other",
+    "namespace": "ops",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0273",
+    "name": "x",
+    "namespace": "ops",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0274",
+    "name": "a.b-c",
+    "namespace": "ops",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0275",
+    "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "namespace": "ops",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0276",
+    "name": "settings",
+    "namespace": "other",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0277",
+    "name": "db-password",
+    "namespace": "other",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0278",
+    "name": "other",
+    "namespace": "other",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0279",
+    "name": "x",
+    "namespace": "other",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0280",
+    "name": "a.b-c",
+    "namespace": "other",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0281",
+    "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "namespace": "other",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0282",
+    "name": "settings",
+    "namespace": "other",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0283",
+    "name": "db-password",
+    "namespace": "other",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0284",
+    "name": "other",
+    "namespace": "other",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0285",
+    "name": "x",
+    "namespace": "other",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0286",
+    "name": "a.b-c",
+    "namespace": "other",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0287",
+    "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "namespace": "other",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0288",
+    "name": "settings",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0289",
+    "name": "db-password",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0290",
+    "name": "other",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0291",
+    "name": "x",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0292",
+    "name": "a.b-c",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0293",
+    "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "configmaps",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0294",
+    "name": "settings",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0295",
+    "name": "db-password",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0296",
+    "name": "other",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0297",
+    "name": "x",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0298",
+    "name": "a.b-c",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  },
+  {
+    "apiGroup": "",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:backend",
+      "system:authenticated"
+    ],
+    "id": "r0299",
+    "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "namespace": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resource": "secrets",
+    "resourceRequest": true,
+    "subresource": "",
+    "username": "system:serviceaccount:backend:frontend-sa",
+    "verb": "get"
+  }
+]

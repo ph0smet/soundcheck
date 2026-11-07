@@ -99,6 +99,7 @@ let counterexample ?(reach_via = fun _ -> true) ?(missing = modeled_allowance)
     sni = m.sni;
     source_ip = m.src_ip;
     headers = m.headers;
+    object_request = None; identity_groups = None; granting_rules = [];
     note =
       Printf.sprintf
         "Conservative model-level candidate, not a guaranteed target replay: \
@@ -160,6 +161,7 @@ let functionality_counterexample ?(show_source = false) (cfg : Ast.config)
     sni = m.sni;
     source_ip = m.src_ip;
     headers = m.headers;
+    object_request = None; identity_groups = None; granting_rules = [];
     note =
       Printf.sprintf
         "Conservative model-level candidate, not a guaranteed target replay: \
@@ -195,6 +197,7 @@ let shadowing_counterexample (cfg : Ast.config) (pair : Shadowing.pair)
     sni = m.sni;
     source_ip = m.src_ip;
     headers = m.headers;
+    object_request = None; identity_groups = None; granting_rules = [];
     note =
       Printf.sprintf
         "Conservative model-level candidate, not a guaranteed target replay: \

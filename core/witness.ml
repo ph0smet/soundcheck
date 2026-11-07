@@ -1,12 +1,17 @@
 let request_of_model (model : Solve.model) : Ir.request =
-  { principal = if model.is_anon then Anonymous else Authenticated "subject";
+  { principal =
+      (if model.is_anon then Anonymous
+      else match model.principal_name with
+        | None -> Authenticated_unknown
+        | Some name -> Authenticated name);
     action = model.method_;
     resource = model.path;
     context = model.headers;
     source = model.src_ip;
     host = model.host;
     scheme = model.scheme;
-    sni = model.sni }
+    sni = model.sni;
+    object_request = model.object_request }
 
 let validate ~obligation satisfies = function
   | Solve.Violated model ->

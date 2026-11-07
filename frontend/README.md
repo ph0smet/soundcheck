@@ -120,8 +120,13 @@ Engine discovery order: `SOUNDCHECK_BIN`, then `_build/default/cli/main.exe`, th
 | `GET /api/profile` | | Assurance profile |
 | `GET /api/engine` | | Engine and solver availability |
 
-`report` is the engine's JSON after strict validation (verify schema 9, compare and
-repair schema 1, profile schema 1). `provenance` gives the SHA-256 of every input
+`report` is the engine's JSON after strict validation (verify schema 10, compare and
+repair schema 1, profile schema 1; evidence manifest schema 2). The adapter pins
+these versions and rejects older or unknown wire shapes. The web interface
+remains Kong-only: object-resource reports are rejected before presentation,
+even though the shared report schema can represent them. Kong counterexamples
+carry `object_request: null`, `identity_groups: null` and `granting_rules: []`.
+`provenance` gives the SHA-256 of every input
 document, the engine's identity (executable SHA-256 and Z3 version, when the web
 server can establish them) and, for frozen-contract runs, the engine's own evidence
 manifest. `stage` separates tool errors (`parse`, exit 1; `usage`, exit 2) from input

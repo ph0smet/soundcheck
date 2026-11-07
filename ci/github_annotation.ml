@@ -45,7 +45,9 @@ let clause = function
   | None -> []
   | Some (value : Report.clause) ->
     let kind =
-      match value.kind with Report.Must_deny -> "must_deny" | Report.Must_allow -> "must_allow"
+      match value.kind with
+      | Report.Must_deny -> "must_deny" | Report.Must_allow -> "must_allow"
+      | Report.Must_not_grant -> "must_not_grant" | Report.Must_preserve -> "must_preserve"
     in
     [ Printf.sprintf "clause %s (%s)" value.name kind ]
 

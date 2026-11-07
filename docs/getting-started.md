@@ -170,7 +170,7 @@ dune exec soundcheck -- verify \
   --format json
 ```
 
-The schema-v9 verification report always emits its core keys, using `null` when
+The schema-v10 verification report always emits its core keys, using `null` when
 a field does not apply. The conditional `reason` key appears for `unknown` and
 `inconsistent`; comparison and profile JSON use separate schemas. A verification
 report includes:

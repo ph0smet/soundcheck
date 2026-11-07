@@ -159,7 +159,7 @@ let path_condition (p : string) : Ir.condition =
    finding with no route attached. *)
 let path_matches (kong_path : string) (concrete : string) : bool =
   Ir.matches (path_condition kong_path)
-    { Ir.principal = Ir.Anonymous; action = ""; resource = concrete;
+    { object_request = None; Ir.principal = Ir.Anonymous; action = ""; resource = concrete;
       context = []; source = 0l; host = ""; scheme = "http"; sni = "" }
 
 (* Kong compiles a host pattern to a regex at load time and matches it against the

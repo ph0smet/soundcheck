@@ -19,7 +19,7 @@ let policy source =
 let valid_auth_difference before after (witness : Compare.witness) =
   let model = witness.request in
   let request : Ir.request =
-    { principal = if model.is_anon then Anonymous else Authenticated "subject";
+    { object_request = None; principal = if model.is_anon then Anonymous else Authenticated "subject";
       action = model.method_;
       resource = model.path;
       context = model.headers;
@@ -487,7 +487,7 @@ assumptions:
 |}
   in
   let request principal source : Soundcheck_core.Ir.request =
-    { principal;
+    { object_request = None; principal;
       action = "GET";
       resource = "/internal/status";
       context = [];

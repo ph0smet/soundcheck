@@ -48,7 +48,7 @@ let () =
   in
   check_clause "deny-all violates functionality" deny_all required_anonymous
     (Solve.Violated
-       { path = ""; method_ = ""; is_anon = true; src_ip = 0l; host = "";
+       { principal_name = None; object_request = None; path = ""; method_ = ""; is_anon = true; src_ip = 0l; host = "";
          scheme = ""; sni = "";
          headers = [] });
 
@@ -70,11 +70,11 @@ let () =
   in
   check_clause "every possible winner must allow" ambiguous required_anonymous
     (Solve.Violated
-       { path = ""; method_ = ""; is_anon = true; src_ip = 0l; host = "";
+       { principal_name = None; object_request = None; path = ""; method_ = ""; is_anon = true; src_ip = 0l; host = "";
          scheme = ""; sni = "";
          headers = [] });
   let anonymous_admin : Ir.request =
-    { principal = Anonymous;
+    { object_request = None; principal = Anonymous;
       action = "GET";
       resource = "/admin";
       context = [];
@@ -106,7 +106,7 @@ let () =
   check_clause "incomplete match cannot prove functionality" incomplete
     required_anonymous
     (Solve.Violated
-       { path = ""; method_ = ""; is_anon = true; src_ip = 0l; host = "";
+       { principal_name = None; object_request = None; path = ""; method_ = ""; is_anon = true; src_ip = 0l; host = "";
          scheme = ""; sni = "";
          headers = [] });
   if Ir.definitely_allows incomplete anonymous_admin then
@@ -133,7 +133,7 @@ let () =
     Smt_encode.overlap_query left right |> Solve.check
     |> expect "overlapping clauses are inconsistent"
          (Solve.Violated
-            { path = ""; method_ = ""; is_anon = true; src_ip = 0l; host = "";
+            { principal_name = None; object_request = None; path = ""; method_ = ""; is_anon = true; src_ip = 0l; host = "";
               scheme = ""; sni = "";
               headers = [] })
   | _ -> failwith "expected exactly one safety/functionality pair"
@@ -301,7 +301,7 @@ let () =
       frozen_spec = None }
   in
   let expected =
-    {|{"result":"inconsistent","schema_version":9,"property":"admin-access","assurance":null,"frozen_spec":null,"clause":{"name":"authenticated-admin-allowed","description":"Authenticated admin traffic is allowed","kind":"must_allow"},"counterexample":null,"reason":"clauses overlap"}|}
+    {|{"result":"inconsistent","schema_version":10,"property":"admin-access","assurance":null,"frozen_spec":null,"clause":{"name":"authenticated-admin-allowed","description":"Authenticated admin traffic is allowed","kind":"must_allow"},"counterexample":null,"reason":"clauses overlap"}|}
   in
   let got = Report.to_json report in
   if got <> expected then

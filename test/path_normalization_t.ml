@@ -132,7 +132,7 @@ let () =
    | _ -> failwith "SMT request domain admitted an unnormalized path");
 
   let outside_request : Ir.request =
-    { principal = Anonymous;
+    { object_request = None; principal = Anonymous;
       action = "GET";
       resource = "/raw/../path";
       context = [];

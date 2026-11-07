@@ -46,7 +46,7 @@ let report : Report.t =
       Some { schema_version = 1; kind = "authenticated-access"; canonical } }
 
 let model : Solve.model =
-  { path = "/admin"; method_ = "GET"; is_anon = true; src_ip = 0x0a000001l;
+  { principal_name = None; object_request = None; path = "/admin"; method_ = "GET"; is_anon = true; src_ip = 0x0a000001l;
     host = "admin.example"; scheme = "https"; sni = "admin.example";
     headers = [ ("x-z", "last"); ("x-a", "first") ] }
 
@@ -103,6 +103,18 @@ let () =
     files;
   if files <> Evidence.files (ok (create ())) then
     failwith "identical evidence input changed bundle contents";
+  let named_model = {model with is_anon=false;
+    principal_name=Some "system:serviceaccount:frontend:frontend-sa";
+    object_request=Some {namespace="payments";resource_kind="secrets";name="db-password"}} in
+  let named_trace = [entry "clause-01-rbac" Contract_verify.Clause ["rbac"]
+      "(check-sat)\n" (Contract_verify.Executed (Solve.Violated named_model))] in
+  let named_manifest = manifest (ok (create ~trace:(Some named_trace) ())) in
+  if not (contains named_manifest {|"schema_version":2|})
+     || not (contains named_manifest {|"principal_name":"system:serviceaccount:frontend:frontend-sa"|})
+     || not (contains named_manifest {|"object_request":{"namespace":"payments","resource_kind":"secrets","name":"db-password"}|})
+  then failwith "evidence lost the named identity or object coordinates";
+  if not (contains (manifest bundle) {|"principal_name":null,"object_request":null|}) then
+    failwith "evidence fabricated absent HTTP identity/object dimensions";
   expect_error "unfrozen report" (create ~report:{ report with frozen_spec = None } ());
   expect_error "missing assurance" (create ~report:{ report with assurance = None } ());
   expect_error "different profile" (create ~profile:{ profile with id = "different" } ());

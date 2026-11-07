@@ -1,10 +1,19 @@
 type principal =
   | Anonymous
+  | Authenticated_unknown
   | Authenticated of string
 
 type action = string
 type resource = string
 type context = (string * string) list
+
+type object_request = {
+  namespace : string;
+  resource_kind : string;
+  name : string;
+}
+
+type object_field = Object_namespace | Object_kind | Object_name
 
 type request = {
   principal : principal;
@@ -15,6 +24,7 @@ type request = {
   host      : string;  (* request Host, already lowercased by the server *)
   scheme    : string;  (* normalized request scheme, e.g. http / https *)
   sni       : string;  (* TLS server name, empty when absent *)
+  object_request : object_request option;
 }
 
 type decision = Allow | Deny
@@ -27,6 +37,11 @@ type condition =
   | Method_is   of string
   | Is_anonymous
   | Requires_auth
+  | Principal_is of string
+  | Has_object_request
+  | Object_is of object_field * string
+  | Object_matches of object_field * Regex.t
+  | Object_length_at_most of object_field * int
   | Source_in   of Cidr.t
   | Host_matches of Regex.t
   | Scheme_is of string
@@ -84,6 +99,12 @@ let starts_with ~prefix s =
   let lp = String.length prefix in
   String.length s >= lp && String.sub s 0 lp = prefix
 
+let object_value field (object_request : object_request) =
+  match field with
+  | Object_namespace -> object_request.namespace
+  | Object_kind -> object_request.resource_kind
+  | Object_name -> object_request.name
+
 let rec matches (c : condition) (r : request) : bool =
   match c with
   | True -> true
@@ -91,8 +112,22 @@ let rec matches (c : condition) (r : request) : bool =
   | Path_exact p -> r.resource = p
   | Path_regex re -> Regex.matches_full re r.resource
   | Method_is m -> r.action = m
-  | Is_anonymous -> (match r.principal with Anonymous -> true | Authenticated _ -> false)
-  | Requires_auth -> (match r.principal with Authenticated _ -> true | Anonymous -> false)
+  | Is_anonymous -> r.principal = Anonymous
+  | Requires_auth -> r.principal <> Anonymous
+  | Principal_is name ->
+    (match r.principal with Authenticated actual -> actual = name | _ -> false)
+  | Has_object_request -> Option.is_some r.object_request
+  | Object_is (field, value) ->
+    Option.fold ~none:false ~some:(fun object_request -> object_value field object_request = value)
+      r.object_request
+  | Object_matches (field, regex) ->
+    Option.fold ~none:false
+      ~some:(fun object_request -> Regex.matches_full regex (object_value field object_request))
+      r.object_request
+  | Object_length_at_most (field, limit) ->
+    Option.fold ~none:false
+      ~some:(fun object_request -> String.length (object_value field object_request) <= limit)
+      r.object_request
   | Source_in c -> Cidr.contains c r.source
   | Host_matches re -> Regex.matches_full re r.host
   | Scheme_is scheme -> r.scheme = scheme
@@ -148,4 +183,5 @@ let string_of_decision = function Allow -> "Allow" | Deny -> "Deny"
 
 let string_of_principal = function
   | Anonymous -> "anonymous"
+  | Authenticated_unknown -> "authenticated"
   | Authenticated s -> Printf.sprintf "authenticated(%s)" s

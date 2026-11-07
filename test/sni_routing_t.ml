@@ -20,7 +20,7 @@ let parse source =
   | Error error -> failwith error
 
 let request ~scheme ~sni : Ir.request =
-  { principal = Anonymous;
+  { object_request = None; principal = Anonymous;
     action = "GET";
     resource = "/admin";
     context = [];
@@ -31,7 +31,7 @@ let request ~scheme ~sni : Ir.request =
 
 let valid_blocked_authenticated_request policy (ce : Report.counterexample) =
   let request : Ir.request =
-    { principal = Authenticated "subject";
+    { object_request = None; principal = Authenticated "subject";
       action = ce.action;
       resource = ce.path;
       context = ce.headers;

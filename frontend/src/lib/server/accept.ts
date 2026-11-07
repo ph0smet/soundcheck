@@ -118,12 +118,30 @@ const VERIFY_EXITS = Object.values(VERIFY_EXIT);
 
 export type VerifyQuestion = { mode: "property"; property: string } | { mode: "contract" };
 
+/** The shared engine schema also carries object-resource reports. This UI
+ * presents Kong requests and must not render another target as HTTP evidence. */
+function kongReportProblem(report: VerifyReport): string | null {
+  if (report.assurance && !report.assurance.profile.startsWith("kong-")) {
+    return "this interface supports Kong reports only";
+  }
+  const witness = report.counterexample;
+  if (witness && (witness.object_request !== null || witness.identity_groups !== null || witness.granting_rules.length !== 0)) {
+    return "object-resource counterexamples are outside this Kong interface";
+  }
+  if (report.clause && !["must_deny", "must_allow"].includes(report.clause.kind)) {
+    return "the reported clause is outside this Kong interface";
+  }
+  return null;
+}
+
 export function acceptVerify(result: RunResult, command: string, question: VerifyQuestion): Accepted<VerifyReport> {
   return accept(result, command, {
     validate: verifyReport,
     verdictExits: VERIFY_EXITS,
     exitFor: (report) => VERIFY_EXIT[report.result],
     answers: (report) => {
+      const targetProblem = kongReportProblem(report);
+      if (targetProblem) return targetProblem;
       if (question.mode === "contract") {
         return report.frozen_spec === null ? "a frozen-contract run must carry the frozen spec identity" : null;
       }
@@ -154,16 +172,22 @@ export function acceptCompare(
       validate: repairReport,
       verdictExits: [0, 3, 4, 5, 6],
       exitFor: repairExit,
-      answers: (report) =>
-        report.comparison === comparison.repair ? null : `asked for ${comparison.repair}, got ${report.comparison}`,
+      answers: (report) => {
+        if (!report.assurance_profile.startsWith("kong-")) return "this interface supports Kong reports only";
+        const targetProblem = kongReportProblem(report.contract_result);
+        if (targetProblem) return targetProblem;
+        return report.comparison === comparison.repair ? null : `asked for ${comparison.repair}, got ${report.comparison}`;
+      },
     });
   }
   return accept<CompareReport>(result, command, {
     validate: compareReport,
     verdictExits: [0, 3, 4],
     exitFor: compareExit,
-    answers: (report) =>
-      report.comparison === comparison.plain ? null : `asked for ${comparison.plain}, got ${report.comparison}`,
+    answers: (report) => {
+      if (!report.assurance_profile.startsWith("kong-")) return "this interface supports Kong reports only";
+      return report.comparison === comparison.plain ? null : `asked for ${comparison.plain}, got ${report.comparison}`;
+    },
   });
 }
 
