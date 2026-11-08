@@ -1,0 +1,123 @@
+{
+  "apiVersion": "v1",
+  "items": [
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "ClusterRole",
+      "metadata": {
+        "name": "config-reader",
+        "labels": {
+          "fixture.soundcheck.dev/source": "synthetic"
+        },
+        "annotations": {
+          "fixture.soundcheck.dev/review": "preserve verbatim, including unicode \u00e9 and escaped \\ text"
+        },
+        "uid": "c633c519-14f2-4a83-a7e9-549ce413e45e",
+        "resourceVersion": "1200",
+        "selfLink": "/synthetic/ClusterRole/config-reader",
+        "generation": 9223372036854775807,
+        "creationTimestamp": null,
+        "generateName": "",
+        "deletionTimestamp": null,
+        "deletionGracePeriodSeconds": null,
+        "ownerReferences": null,
+        "finalizers": [],
+        "managedFields": null
+      },
+      "rules": [
+        {
+          "apiGroups": [
+            ""
+          ],
+          "resources": [
+            "configmaps"
+          ],
+          "verbs": [
+            "get"
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "ClusterRole",
+      "metadata": {
+        "name": "secret-reader",
+        "labels": {
+          "fixture.soundcheck.dev/source": "synthetic"
+        },
+        "annotations": {
+          "fixture.soundcheck.dev/review": "preserve verbatim, including unicode \u00e9 and escaped \\ text"
+        },
+        "uid": "c633c519-14f2-4a83-a7e9-549ce413e45e",
+        "resourceVersion": "1201",
+        "selfLink": "/synthetic/ClusterRole/secret-reader",
+        "generation": 1,
+        "creationTimestamp": "2024-02-29T10:11:12.123456789+05:30",
+        "generateName": "",
+        "deletionTimestamp": null,
+        "deletionGracePeriodSeconds": null,
+        "ownerReferences": [],
+        "finalizers": null,
+        "managedFields": []
+      },
+      "rules": [
+        {
+          "apiGroups": [
+            ""
+          ],
+          "resources": [
+            "secrets"
+          ],
+          "verbs": [
+            "get"
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "RoleBinding",
+      "metadata": {
+        "name": "frontend-config",
+        "namespace": "frontend",
+        "labels": {
+          "fixture.soundcheck.dev/source": "synthetic"
+        },
+        "annotations": {
+          "fixture.soundcheck.dev/review": "preserve verbatim, including unicode \u00e9 and escaped \\ text"
+        },
+        "uid": "c633c519-14f2-4a83-a7e9-549ce413e45e",
+        "resourceVersion": "1202",
+        "selfLink": "/synthetic/RoleBinding/frontend-config",
+        "generation": 2,
+        "creationTimestamp": "2026-11-08T00:00:00Z",
+        "generateName": "",
+        "deletionTimestamp": null,
+        "deletionGracePeriodSeconds": null,
+        "ownerReferences": null,
+        "finalizers": [],
+        "managedFields": null
+      },
+      "roleRef": {
+        "apiGroup": "rbac.authorization.k8s.io",
+        "kind": "ClusterRole",
+        "name": "config-reader"
+      },
+      "subjects": [
+        {
+          "kind": "ServiceAccount",
+          "name": "frontend-sa",
+          "namespace": "frontend"
+        }
+      ]
+    }
+  ],
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": "1200",
+    "selfLink": "/synthetic/rbac",
+    "continue": "",
+    "remainingItemCount": 0
+  }
+}

@@ -43,6 +43,78 @@ outside the approved change scope. `verify` alone does not check preservation.
 
 These are synthetic snapshots, not production or live-agent evaluation results.
 
+## Prepare a JSON export
+
+`rbac prepare` explicitly removes a small, validated set of metadata from an
+otherwise-supported static RBAC inventory. It emits the same strict `v1/List`
+that `verify`, `compare`, MCP and the Action already accept:
+
+```sh
+eval "$(opam env)"
+dune exec soundcheck -- rbac prepare \
+  bench/kubernetes-rbac/preparation/fixtures/01-export-unsafe.json \
+  --receipt /tmp/rbac-preparation-receipt.json > /tmp/rbac-snapshot.json
+dune exec soundcheck -- rbac verify /tmp/rbac-snapshot.json \
+  --contract bench/kubernetes-rbac/contracts/frontend-access.json --format json
+```
+
+The first command succeeds; the second still finds the unwanted grant and exits
+`3`. Preparation does not repair or verify a policy. It preserves every object,
+rule, subject, role reference, name, namespace, label and annotation. The complete
+prepared result must pass the existing snapshot reader before any bytes reach
+stdout. Preparation contacts neither Kubernetes nor Z3.
+
+Accepted metadata removal is deliberately narrow:
+
+| Metadata | Accepted form |
+| --- | --- |
+| Object `uid`, `resourceVersion`, `selfLink` | Strings; values are treated as opaque |
+| Object `generation` | Nonnegative int64 |
+| Object `creationTimestamp` | Null or supported RFC3339 timestamp |
+| Object `generateName` | Empty string only; an explicit object name is still required |
+| Object `deletionTimestamp`, `deletionGracePeriodSeconds` | Null only |
+| Object `ownerReferences`, `finalizers`, `managedFields` | Null or empty array only |
+| List `resourceVersion`, `selfLink` | Strings |
+| List `continue` | Empty string only |
+| List `remainingItemCount` | Null or integer zero only |
+
+All fields may be absent. Timestamp parsing validates Gregorian dates in years
+0001..9999, uppercase `T`/`Z`, seconds 0..59, optional 1..9 fractional digits,
+and numeric timezone offsets with hours below 24 and minutes below 60. Unknown
+or malformed metadata and populated lifecycle/managed-fields data are rejected.
+These checks follow the pinned [Kubernetes metadata types](https://github.com/kubernetes/apimachinery/blob/v0.34.0/pkg/apis/meta/v1/types.go).
+
+Input is one strict JSON `apiVersion: v1`, `kind: List`. YAML, typed lists such
+as `RoleList`, individual objects and concatenated documents are unsupported.
+The 16 MiB input limit and all existing policy checks still apply, including
+aggregation rules, non-resource permissions, duplicate identities and unresolved
+references. An ordinary whole-cluster export may therefore remain unsupported.
+Do not filter out objects or fields simply to obtain an accepted snapshot.
+
+The optional receipt is created exclusively with private permissions; its parent
+must exist, and an existing file, directory or symlink is never replaced. Schema
+1 records exact input/output SHA-256 hashes and byte counts, object count and
+sorted paths of removed metadata fields. Its output hash includes the snapshot's
+final newline. It explicitly records `verification_performed: false` and
+`completeness_established: false`. This receipt is separate from verification
+evidence, which binds the prepared bytes. A failed receipt write emits no
+snapshot but can leave an incomplete new receipt file.
+
+Exit `0` means preparation succeeded, `2` means unsupported/invalid input or
+usage, and `1` means a read/output failure, including the file-size limit. Keep
+the original export and receipt when the transformation needs to be audited.
+The prepared snapshot is an analysis artifact; it is not a deployment-ready
+replacement for the original resource metadata.
+
+**Acquisition and completeness remain external.** Check the export command's
+exit status before preparing its output. `kubectl` can print collected objects
+before returning a retrieval error, and its generic List can omit pagination
+context. Empty continuation also cannot distinguish a full collection from its
+last page. The command does not discover missing resources, selectors, namespace
+restrictions or cross-resource snapshot consistency. See the pinned
+[`kubectl` implementation](https://github.com/kubernetes/kubernetes/blob/v1.34.0/staging/src/k8s.io/kubectl/pkg/cmd/get/get.go)
+and [pagination semantics](https://v1-34.docs.kubernetes.io/docs/reference/using-api/api-concepts/#retrieving-large-results-sets-in-chunks).
+
 ## Frozen contract
 
 Start from the complete [example contract](../bench/kubernetes-rbac/contracts/frontend-access.json).
@@ -75,8 +147,9 @@ This does not sandbox an agent that can replace those files or the verifier.
 - One strict JSON Kubernetes `v1/List` of RBAC v1 Roles, ClusterRoles,
   RoleBindings and ClusterRoleBindings. JSON is also valid YAML; general YAML
   syntax and multiple documents are not accepted.
-- Explicit object names/namespaces and validated labels/annotations. Other
-  metadata, including live-export bookkeeping, is outside the first input format.
+- Explicit object names/namespaces and validated labels/annotations. Direct
+  verification rejects other metadata; [explicit preparation](#prepare-a-json-export)
+  can remove only the supported bookkeeping fields before verification.
 - Exact User, Group and ServiceAccount subjects. An omitted ServiceAccount
   namespace defaults to its RoleBinding's namespace; ClusterRoleBindings
   require it explicitly. User/Group and roleRef API groups must be explicit.
@@ -190,14 +263,49 @@ immutable PR base commit or protected-default-branch push commit. A candidate's
 edited contract cannot replace that approved blob. The selector defaults to
 `kong`; unknown or empty selectors fail before verification.
 
-The Action calls `rbac verify --format github`. It checks required and forbidden
-grants, but does **not** compare with a baseline or establish preservation outside
-the change scope. Use `rbac compare` separately with an operator-controlled
-baseline when accepting repairs; a candidate can satisfy its contract while
-changing unrelated permissions.
+The default `mode: verify` calls `rbac verify --format github`. It checks required
+and forbidden grants without claiming preservation outside the change scope.
+
+For repair acceptance on pull requests, select `mode: repair` in a trusted job:
+
+```yaml
+on: [pull_request]
+permissions:
+  contents: read
+jobs:
+  rbac-repair:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ph0smet/soundcheck@<reviewed-full-commit-sha>
+        with:
+          connector: kubernetes-rbac
+          mode: repair
+          config: rbac-snapshot.json
+          contract: contracts/rbac-access.json
+```
+
+Repair mode calls `rbac compare` with two approved inputs from the **same
+immutable PR base commit**: the contract at `contract` and the baseline at
+`config`. Only the candidate comes from the checkout's `config` file. Both
+approved inputs must be regular Git blobs, and their commit/path/blob identities
+are logged. Candidate edits cannot replace the baseline, widen the approved
+change scope or select an alternative baseline revision.
+
+The base snapshot may violate the contract because it is the policy being
+repaired. The candidate must satisfy the contract and preserve all modeled
+decisions outside its approved change scope. The operator-regression example
+passes `verify` but fails `repair`.
+
+The fixed config path must already exist in the PR base. A missing, non-regular,
+malformed or unsupported baseline fails the gate; it never falls back to
+verification. Repair mode requires `kubernetes-rbac` and a `pull_request` event.
+It rejects pushes: the push's after commit cannot also serve as a meaningful
+before snapshot. Protected-default-branch pushes can still use explicit/default
+`verify` mode. New contract or baseline selection requires independent review.
 
 Use a fresh trusted Ubuntu job and a reviewed full Action commit SHA. Protect
-the workflow, connector choice and contract path, and approve requirements
+the workflow, mode, connector choice and both fixed paths, and approve requirements
 separately. Required checks, branch protection and fresh-base reruns remain
 repository responsibilities. See the [Action trust boundary](../README.md#github-action)
 for supported events, runner requirements and dependency assumptions.
@@ -303,9 +411,11 @@ witnesses, formulas or diagnostics. No agent or cluster is contacted.
 
 ## Validation
 
-Ordinary `dune test` runs parser, core, contract, preservation, CLI, MCP, Action
-gate and submitted-repair regressions without Go or network access. The [reference harness](../bench/kubernetes-rbac/conformance/README.md)
+Ordinary `dune test` runs parser, preparation, core, contract, preservation, CLI,
+MCP, Action gate and submitted-repair regressions without Go or network access. The [reference harness](../bench/kubernetes-rbac/conformance/README.md)
 compares concrete and production SMT decisions with Kubernetes' actual pinned
-authorizer, on original input bytes, and replays CLI witnesses. Finite agreement
-is implementation evidence, not proof of parser/encoder correctness or a live
-cluster guarantee.
+authorizer, on original input bytes, and replays CLI witnesses. Its separate
+[preparation corpus](../bench/kubernetes-rbac/preparation/README.md) compares
+original and prepared typed policy inventories and decisions, including
+deliberately corrupted outputs. Finite agreement is implementation evidence,
+not proof of parser/encoder correctness or a live-cluster guarantee.

@@ -10,13 +10,29 @@ if [[ "${1:-}" == verify || "${1:-}" == rbac ]]; then
     shift
   fi
   [[ "$soundcheck_mock_connector" == "${SOUNDCHECK_CONNECTOR_INPUT-kong}" ]] || exit 90
-  [[ $# -eq 6 && "$3" == --contract && "$5" == --format && "$6" == github ]] || exit 91
-  [[ "$2" == "$GITHUB_WORKSPACE/$SOUNDCHECK_CONFIG_INPUT" ]] || exit 92
-  [[ "$4" == "$RUNNER_TEMP/"*/contract.yaml && "$4" != "$GITHUB_WORKSPACE/"* ]] || exit 93
-  cmp -s "$4" "$SOUNDCHECK_EXPECTED_CONTRACT" || exit 94
-  [[ "$(LC_ALL=C ls -ld "$4")" == '-r--------'* ]] || exit 95
-  [[ "$(LC_ALL=C ls -ld "$(dirname "$4")")" == 'drwx------'* ]] || exit 96
-  printf '%s\n' "$4" > "$SOUNDCHECK_GATE_TEST_LOG"
+  soundcheck_mock_sources=()
+  if [[ "${SOUNDCHECK_MODE_INPUT-verify}" == repair ]]; then
+    [[ "$soundcheck_mock_connector" == kubernetes-rbac && "$1" == compare &&
+       $# -eq 7 && "$4" == --contract && "$6" == --format && "$7" == github ]] || exit 91
+    [[ "$3" == "$GITHUB_WORKSPACE/$SOUNDCHECK_CONFIG_INPUT" ]] || exit 92
+    [[ "$2" == "$RUNNER_TEMP/"*/baseline.json && "$2" != "$GITHUB_WORKSPACE/"* ]] || exit 93
+    cmp -s "$2" "$SOUNDCHECK_EXPECTED_BASELINE" || exit 94
+    soundcheck_mock_sources+=("$2")
+    soundcheck_mock_contract="$5"
+  else
+    [[ $# -eq 6 && "$1" == verify && "$3" == --contract && "$5" == --format && "$6" == github ]] || exit 91
+    [[ "$2" == "$GITHUB_WORKSPACE/$SOUNDCHECK_CONFIG_INPUT" ]] || exit 92
+    soundcheck_mock_contract="$4"
+  fi
+  [[ "$soundcheck_mock_contract" == "$RUNNER_TEMP/"*/contract.yaml &&
+     "$soundcheck_mock_contract" != "$GITHUB_WORKSPACE/"* ]] || exit 93
+  cmp -s "$soundcheck_mock_contract" "$SOUNDCHECK_EXPECTED_CONTRACT" || exit 94
+  soundcheck_mock_sources+=("$soundcheck_mock_contract")
+  for soundcheck_mock_file in "${soundcheck_mock_sources[@]}"; do
+    [[ "$(LC_ALL=C ls -ld "$soundcheck_mock_file")" == '-r--------'* ]] || exit 95
+    [[ "$(LC_ALL=C ls -ld "$(dirname "$soundcheck_mock_file")")" == 'drwx------'* ]] || exit 96
+  done
+  printf '%s\n' "${soundcheck_mock_sources[@]}" > "$SOUNDCHECK_GATE_TEST_LOG"
   exit "${SOUNDCHECK_MOCK_STATUS:-0}"
 fi
 
@@ -136,9 +152,22 @@ cat > "$soundcheck_test_dir/unsafe-rbac.json" <<'JSON'
   {"apiVersion":"rbac.authorization.k8s.io/v1","kind":"RoleBinding",
    "metadata":{"namespace":"payments","name":"secret-grant"},
    "roleRef":{"apiGroup":"rbac.authorization.k8s.io","kind":"Role","name":"secret-reader"},
+   "subjects":[{"kind":"User","apiGroup":"rbac.authorization.k8s.io","name":"alice"}]},
+  {"apiVersion":"rbac.authorization.k8s.io/v1","kind":"Role",
+   "metadata":{"namespace":"ops","name":"ops-reader"},
+   "rules":[{"apiGroups":[""],"verbs":["get"],"resources":["configmaps"]}]},
+  {"apiVersion":"rbac.authorization.k8s.io/v1","kind":"RoleBinding",
+   "metadata":{"namespace":"ops","name":"ops-grant"},
+   "roleRef":{"apiGroup":"rbac.authorization.k8s.io","kind":"Role","name":"ops-reader"},
    "subjects":[{"kind":"User","apiGroup":"rbac.authorization.k8s.io","name":"alice"}]}]}
 JSON
 cp "$soundcheck_test_dir/unsafe-rbac.json" "$soundcheck_workspace/rbac.json"
+cp "$soundcheck_test_dir/unsafe-rbac.json" "$soundcheck_workspace/rbac with space.json"
+cp "$soundcheck_test_dir/unsafe-rbac.json" "$soundcheck_workspace/rbac[1].json"
+printf '{}\n' > "$soundcheck_workspace/rbac1.json"
+printf '{"apiVersion":"v1","kind":"List","items":[],"unsupported":true}\n' \
+  > "$soundcheck_workspace/unsupported-rbac.json"
+printf '{\n' > "$soundcheck_workspace/malformed-rbac.json"
 cp "$soundcheck_test_dir/approved-rbac.json" "$soundcheck_workspace/contracts/rbac.json"
 cp "$soundcheck_test_dir/approved.yaml" "$soundcheck_workspace/contracts/security.yaml"
 cp "$soundcheck_test_dir/approved.yaml" "$soundcheck_workspace/contracts/contract with space.yaml"
@@ -150,6 +179,7 @@ git_fixture update-index --add --cacheinfo "160000,$soundcheck_seed,contracts/mo
 git_fixture commit --quiet -m 'Local approved base'
 soundcheck_base="$(git_fixture rev-parse HEAD)"
 soundcheck_blob="$(git_fixture rev-parse "$soundcheck_base:contracts/security.yaml")"
+soundcheck_baseline_blob="$(git_fixture rev-parse "$soundcheck_base:rbac.json")"
 soundcheck_tree="$(git_fixture rev-parse "$soundcheck_base^{tree}")"
 git_fixture tag --annotate approved-tag --message 'Local tag' "$soundcheck_base"
 soundcheck_tag="$(git_fixture rev-parse approved-tag)"
@@ -157,6 +187,10 @@ soundcheck_tag="$(git_fixture rev-parse approved-tag)"
 # Candidate content and a moving branch ref must not replace the event SHA.
 cp "$soundcheck_test_dir/candidate.yaml" "$soundcheck_workspace/contracts/security.yaml"
 cp "$soundcheck_test_dir/candidate-rbac.json" "$soundcheck_workspace/contracts/rbac.json"
+# Head/checkout bytes differ from the approved baseline, including a permission
+# outside the repair scope. Neither a moving branch nor the checkout is trusted.
+jq '.items |= map(select(.metadata.name != "ops-grant"))' "$soundcheck_test_dir/unsafe-rbac.json" \
+  > "$soundcheck_workspace/rbac.json"
 mkdir -p "$soundcheck_workspace/scripts" "$soundcheck_workspace/_build/default/cli"
 printf '#!/usr/bin/env bash\nexit 90\n' > "$soundcheck_workspace/scripts/verify-approved-contract.sh"
 cp "$soundcheck_workspace/scripts/verify-approved-contract.sh" \
@@ -188,9 +222,11 @@ run_gate() {
   local output="$soundcheck_test_dir/$soundcheck_case.output"
   local invocation="$soundcheck_test_dir/$soundcheck_case.invocation"
   SOUNDCHECK_CONNECTOR_INPUT=kong \
+    SOUNDCHECK_MODE_INPUT=verify \
     SOUNDCHECK_CONFIG_INPUT=config.yaml \
     SOUNDCHECK_CONTRACT_INPUT=contracts/security.yaml \
     SOUNDCHECK_EXPECTED_CONTRACT="$soundcheck_test_dir/approved.yaml" \
+    SOUNDCHECK_EXPECTED_BASELINE="$soundcheck_test_dir/unsafe-rbac.json" \
     SOUNDCHECK_GATE_TEST_LOG="$invocation" \
     GITHUB_WORKSPACE="$soundcheck_workspace" \
     GITHUB_EVENT_PATH="$soundcheck_event" \
@@ -211,7 +247,9 @@ run_gate() {
   [[ -z "$(find "$soundcheck_runner_temp" -mindepth 1 -print -quit)" ]] || \
     fail 'approved contract temporary file was not cleaned'
   if [[ -f "$invocation" ]]; then
-    [[ ! -e "$(< "$invocation")" ]] || fail 'verifier contract file survived cleanup'
+    while IFS= read -r soundcheck_temporary_file; do
+      [[ ! -e "$soundcheck_temporary_file" ]] || fail 'verifier approved input survived cleanup'
+    done < "$invocation"
   fi
   soundcheck_count=$((soundcheck_count + 1))
   printf '[ok] approved contract gate: %s\n' "$soundcheck_case"
@@ -220,10 +258,31 @@ run_gate() {
 write_pr_event
 run_gate pr-base-not-candidate 0 "$soundcheck_base:contracts/security.yaml"
 run_gate implicit-kong-backward-compatible 0 "$soundcheck_base:contracts/security.yaml" -u SOUNDCHECK_CONNECTOR_INPUT
+run_gate implicit-verify-backward-compatible 0 "$soundcheck_base:contracts/security.yaml" -u SOUNDCHECK_MODE_INPUT
 run_gate explicit-rbac-dispatch 0 "$soundcheck_base:contracts/rbac.json" \
   SOUNDCHECK_CONNECTOR_INPUT=kubernetes-rbac SOUNDCHECK_CONFIG_INPUT=rbac.json \
   SOUNDCHECK_CONTRACT_INPUT=contracts/rbac.json \
   "SOUNDCHECK_EXPECTED_CONTRACT=$soundcheck_test_dir/approved-rbac.json"
+soundcheck_repair_env=(SOUNDCHECK_CONNECTOR_INPUT=kubernetes-rbac SOUNDCHECK_MODE_INPUT=repair \
+  SOUNDCHECK_CONFIG_INPUT=rbac.json SOUNDCHECK_CONTRACT_INPUT=contracts/rbac.json \
+  "SOUNDCHECK_EXPECTED_CONTRACT=$soundcheck_test_dir/approved-rbac.json")
+run_gate repair-base-not-candidate 0 "Approved baseline: $soundcheck_base:rbac.json (blob $soundcheck_baseline_blob)" \
+  "${soundcheck_repair_env[@]}"
+run_gate repair-has-no-baseline-override 0 "Approved baseline: $soundcheck_base:rbac.json" \
+  "${soundcheck_repair_env[@]}" SOUNDCHECK_BASELINE_INPUT=rbac1.json \
+  "SOUNDCHECK_BASELINE_REF=$soundcheck_candidate"
+run_gate repair-kong-rejected 1 'repair mode requires the kubernetes-rbac connector' SOUNDCHECK_MODE_INPUT=repair
+soundcheck_mode_count=0
+for soundcheck_bad_mode in '' compare VERIFY 'repair --contract candidate.json' \
+  $'verify\n::notice::injected' "\$(touch $soundcheck_test_dir/mode-injected)" \
+  "\`touch $soundcheck_test_dir/mode-injected\`"; do
+  soundcheck_mode_count=$((soundcheck_mode_count + 1))
+  run_gate "invalid-mode-$soundcheck_mode_count" 1 'mode must be verify or repair' \
+    "SOUNDCHECK_MODE_INPUT=$soundcheck_bad_mode"
+  [[ ! -e "$soundcheck_test_dir/invalid-mode-$soundcheck_mode_count.invocation" ]] || \
+    fail 'invalid mode reached the verifier'
+done
+[[ ! -e "$soundcheck_test_dir/mode-injected" ]] || fail 'mode input executed shell code'
 soundcheck_selector_count=0
 for soundcheck_bad_connector in '' k8s RBAC 'kong verify' 'kubernetes-rbac --contract candidate.json' \
   $'kong\n::notice::injected' "\$(touch $soundcheck_test_dir/connector-injected)" \
@@ -238,12 +297,17 @@ done
 for soundcheck_verifier_status in 1 2 3 4 5 6; do
   run_gate "verifier-exit-$soundcheck_verifier_status" "$soundcheck_verifier_status" '' \
     "SOUNDCHECK_MOCK_STATUS=$soundcheck_verifier_status"
+  run_gate "repair-verifier-exit-$soundcheck_verifier_status" "$soundcheck_verifier_status" '' \
+    "${soundcheck_repair_env[@]}" "SOUNDCHECK_MOCK_STATUS=$soundcheck_verifier_status"
 done
 run_gate literal-space-path 0 '' 'SOUNDCHECK_CONTRACT_INPUT=contracts/contract with space.yaml'
 run_gate literal-glob-path 0 '' 'SOUNDCHECK_CONTRACT_INPUT=contracts/literal[1].yaml'
+run_gate repair-literal-space-path 0 '' "${soundcheck_repair_env[@]}" 'SOUNDCHECK_CONFIG_INPUT=rbac with space.json'
+run_gate repair-literal-glob-path 0 '' "${soundcheck_repair_env[@]}" 'SOUNDCHECK_CONFIG_INPUT=rbac[1].json'
 
 git_fixture replace "$soundcheck_base" "$soundcheck_candidate"
 run_gate replacement-objects-ignored 0 "$soundcheck_base:contracts/security.yaml"
+run_gate repair-replacement-objects-ignored 0 "$soundcheck_base:rbac.json" "${soundcheck_repair_env[@]}"
 git_fixture replace --delete "$soundcheck_base" >/dev/null
 
 mv "$soundcheck_workspace/contracts/security.yaml" "$soundcheck_test_dir/saved-candidate.yaml"
@@ -257,6 +321,15 @@ run_gate base-symlink-rejected 1 'regular Git blob' SOUNDCHECK_CONTRACT_INPUT=co
 run_gate base-directory-rejected 1 'regular Git blob' SOUNDCHECK_CONTRACT_INPUT=contracts
 run_gate base-submodule-rejected 1 'regular Git blob' SOUNDCHECK_CONTRACT_INPUT=contracts/module
 run_gate base-path-missing 1 'exactly one tree entry' SOUNDCHECK_CONTRACT_INPUT=contracts/missing.yaml
+run_gate repair-base-symlink-rejected 1 'Approved baseline must be a regular Git blob' \
+  "${soundcheck_repair_env[@]}" SOUNDCHECK_CONFIG_INPUT=contracts/base-link.yaml
+run_gate repair-base-directory-rejected 1 'Approved baseline must be a regular Git blob' \
+  "${soundcheck_repair_env[@]}" SOUNDCHECK_CONFIG_INPUT=contracts
+run_gate repair-base-submodule-rejected 1 'Approved baseline must be a regular Git blob' \
+  "${soundcheck_repair_env[@]}" SOUNDCHECK_CONFIG_INPUT=contracts/module
+cp "$soundcheck_test_dir/unsafe-rbac.json" "$soundcheck_workspace/new-rbac.json"
+run_gate repair-base-missing-never-uses-candidate 1 'Approved baseline path must select exactly one tree entry' \
+  "${soundcheck_repair_env[@]}" SOUNDCHECK_CONFIG_INPUT=new-rbac.json
 soundcheck_path_case=0
 for soundcheck_bad_path in /contracts/security.yaml ../contracts/security.yaml \
   ./contracts/security.yaml contracts/../security.yaml contracts//security.yaml \
@@ -314,6 +387,10 @@ cat > "$soundcheck_test_dir/mock-bin/git" <<'SH'
 #!/usr/bin/env bash
 set -euo pipefail
 for arg in "$@"; do
+  if [[ "$arg" == cat-file && -n "${SOUNDCHECK_FAIL_BLOB:-}" &&
+        "${!#}" == "$SOUNDCHECK_FAIL_BLOB" ]]; then
+    exit 44
+  fi
   if [[ "$arg" == fetch ]]; then
     printf '%s\n' "$@" > "$SOUNDCHECK_FETCH_LOG"
     case "${SOUNDCHECK_FETCH_MODE:-fail}" in
@@ -336,6 +413,10 @@ write_pr_event "$soundcheck_missing_sha"
 run_gate missing-object-exact-fetch 1 'Could not fetch the exact approved contract revision' \
   "PATH=$soundcheck_test_dir/mock-bin:$PATH" "SOUNDCHECK_REAL_GIT=$(command -v git)" \
   "SOUNDCHECK_FETCH_LOG=$soundcheck_test_dir/fetch.args"
+run_gate repair-missing-object-never-falls-back 1 'Could not fetch the exact approved contract revision' \
+  "${soundcheck_repair_env[@]}" \
+  "PATH=$soundcheck_test_dir/mock-bin:$PATH" "SOUNDCHECK_REAL_GIT=$(command -v git)" \
+  "SOUNDCHECK_FETCH_LOG=$soundcheck_test_dir/repair-fetch-failed.args"
 expect_contains "$soundcheck_test_dir/fetch.args" 'https://github.example.invalid/local/soundcheck.git'
 expect_contains "$soundcheck_test_dir/fetch.args" "$soundcheck_missing_sha"
 expect_contains "$soundcheck_test_dir/fetch.args" '--no-write-fetch-head'
@@ -364,10 +445,34 @@ run_gate shallow-base-exact-fetch 0 "$soundcheck_base:contracts/security.yaml" \
 expect_contains "$soundcheck_test_dir/shallow-fetch.args" 'https://github.example.invalid/local/soundcheck.git'
 expect_contains "$soundcheck_test_dir/shallow-fetch.args" "$soundcheck_base"
 
+soundcheck_shallow_repair="$soundcheck_test_dir/shallow-repair-workspace"
+git -c protocol.file.allow=always clone --quiet --depth=1 \
+  "file://$soundcheck_workspace" "$soundcheck_shallow_repair"
+if git -C "$soundcheck_shallow_repair" cat-file -e "$soundcheck_base" 2>/dev/null; then
+  fail 'shallow repair fixture unexpectedly already contains the base commit'
+fi
+run_gate repair-shallow-base-exact-fetch 0 "$soundcheck_base:rbac.json" \
+  "${soundcheck_repair_env[@]}" "GITHUB_WORKSPACE=$soundcheck_shallow_repair" \
+  "PATH=$soundcheck_test_dir/mock-bin:$PATH" "SOUNDCHECK_REAL_GIT=$(command -v git)" \
+  SOUNDCHECK_FETCH_MODE=local "SOUNDCHECK_FETCH_SOURCE=file://$soundcheck_workspace" \
+  "SOUNDCHECK_FETCH_LOG=$soundcheck_test_dir/repair-shallow-fetch.args"
+[[ "$(git -C "$soundcheck_shallow_repair" rev-parse HEAD)" == "$soundcheck_candidate" ]] || \
+  fail 'repair fetch changed the candidate checkout revision'
+expect_contains "$soundcheck_test_dir/repair-shallow-fetch.args" "$soundcheck_base"
+run_gate repair-baseline-extraction-failure-cleans-contract 1 'Cannot extract the approved baseline blob' \
+  "${soundcheck_repair_env[@]}" "PATH=$soundcheck_test_dir/mock-bin:$PATH" \
+  "SOUNDCHECK_REAL_GIT=$(command -v git)" "SOUNDCHECK_FAIL_BLOB=$soundcheck_baseline_blob"
+[[ ! -e "$soundcheck_test_dir/repair-baseline-extraction-failure-cleans-contract.invocation" ]] || \
+  fail 'failed baseline extraction reached the verifier'
+
 write_push_event
 soundcheck_push_env=(GITHUB_EVENT_NAME=push GITHUB_REF=refs/heads/main \
   GITHUB_REF_PROTECTED=true "SOUNDCHECK_EXPECTED_CONTRACT=$soundcheck_test_dir/candidate.yaml")
 run_gate protected-default-push 0 "$soundcheck_candidate:contracts/security.yaml" "${soundcheck_push_env[@]}"
+run_gate repair-protected-push-rejected 1 'repair mode requires a pull_request event' \
+  "${soundcheck_push_env[@]}" "${soundcheck_repair_env[@]}"
+[[ ! -e "$soundcheck_test_dir/repair-protected-push-rejected.invocation" ]] || \
+  fail 'push repair fell back to verification'
 run_gate unprotected-push 1 'protected repository default branch' "${soundcheck_push_env[@]}" GITHUB_REF_PROTECTED=false
 run_gate feature-push 1 'protected repository default branch' "${soundcheck_push_env[@]}" GITHUB_REF=refs/heads/feature
 run_gate tag-push 1 'protected repository default branch' "${soundcheck_push_env[@]}" GITHUB_REF_TYPE=tag
@@ -414,6 +519,7 @@ soundcheck_rbac_env=(SOUNDCHECK_CONNECTOR_INPUT=kubernetes-rbac SOUNDCHECK_CONFI
   > "$soundcheck_test_dir/rbac-candidate-contract-direct.json"
 expect_contains "$soundcheck_test_dir/rbac-candidate-contract-direct.json" '"result":"proved"'
 run_gate real-rbac-rejects-contract-weakening 3 'must_not_grant' "${soundcheck_rbac_env[@]}"
+run_gate real-rbac-repair-rejects-contract-weakening 3 'must_not_grant' "${soundcheck_repair_env[@]}"
 expect_contains "$soundcheck_test_dir/real-rbac-rejects-contract-weakening.output" '::error file='
 expect_contains "$soundcheck_test_dir/real-rbac-rejects-contract-weakening.output" 'in namespace payments'
 expect_contains "$soundcheck_test_dir/real-rbac-rejects-contract-weakening.output" 'granting rules ['
@@ -421,6 +527,7 @@ expect_contains "$soundcheck_test_dir/real-rbac-rejects-contract-weakening.outpu
 jq '.items |= map(select(.kind != "RoleBinding"))' "$soundcheck_test_dir/unsafe-rbac.json" \
   > "$soundcheck_workspace/rbac.json"
 run_gate real-rbac-rejects-deny-all 3 'must_allow' "${soundcheck_rbac_env[@]}"
+run_gate real-rbac-repair-rejects-deny-all 3 'must_allow' "${soundcheck_repair_env[@]}"
 expect_contains "$soundcheck_test_dir/real-rbac-rejects-deny-all.output" 'NoOpinion'
 expect_contains "$soundcheck_test_dir/real-rbac-rejects-deny-all.output" 'granting rules []'
 # Only remove the unwanted grant. The required frontend grant remains.
@@ -428,11 +535,44 @@ jq '.items |= map(select(.metadata.name != "secret-grant"))' "$soundcheck_test_d
   > "$soundcheck_workspace/rbac.json"
 run_gate real-rbac-accepts-repair 0 '::notice file=' "${soundcheck_rbac_env[@]}"
 expect_contains "$soundcheck_test_dir/real-rbac-accepts-repair.output" 'proved'
+# An unsafe approved baseline is a valid repair starting point. Only the
+# candidate must satisfy the contract, with other decisions preserved.
+run_gate real-rbac-repair-accepts-preserved-repair 0 'rbac-repair-preservation proved' "${soundcheck_repair_env[@]}"
 # A dangling reference cannot be treated as absence of a grant.
 jq '.items |= map(select(.metadata.name != "secret-reader"))' "$soundcheck_test_dir/unsafe-rbac.json" \
   > "$soundcheck_workspace/rbac.json"
 run_gate real-rbac-rejects-unsupported 4 'unsupported' "${soundcheck_rbac_env[@]}"
+run_gate real-rbac-repair-rejects-unsupported-candidate 4 'candidate:' "${soundcheck_repair_env[@]}"
 expect_contains "$soundcheck_test_dir/real-rbac-rejects-unsupported.output" '::error file='
 # The selector cannot turn an unsupported RBAC snapshot into a Kong proof.
 run_gate real-rbac-wrong-connector-fails-closed 2 'contract error' "${soundcheck_rbac_env[@]}" SOUNDCHECK_CONNECTOR_INPUT=kong
+
+# Contract success alone cannot authorize deleting unrelated ConfigMap grants.
+# The candidate occupies the same path as the baseline and cannot replace it.
+jq '.items |= map(select(.metadata.name != "secret-grant" and .metadata.name != "ops-grant"))' \
+  "$soundcheck_test_dir/unsafe-rbac.json" > "$soundcheck_workspace/rbac.json"
+run_gate real-rbac-unrelated-loss-passes-contract 0 'proved' "${soundcheck_rbac_env[@]}"
+run_gate real-rbac-repair-rejects-unrelated-loss 3 'must_preserve' "${soundcheck_repair_env[@]}"
+expect_contains "$soundcheck_test_dir/real-rbac-repair-rejects-unrelated-loss.output" 'in namespace ops'
+expect_contains "$soundcheck_test_dir/real-rbac-repair-rejects-unrelated-loss.output" 'Allow to NoOpinion'
+
+# Weakening the candidate's approved-change scope would hide that regression;
+# the Action must still use the scope from the original approved contract blob.
+jq '.change_scope += [{subject:"alice",namespace:"ops",resource:"configmaps",names:null}]' \
+  "$soundcheck_test_dir/approved-rbac.json" > "$soundcheck_workspace/contracts/rbac.json"
+"$soundcheck_action/_build/default/cli/main.exe" rbac compare "$soundcheck_test_dir/unsafe-rbac.json" \
+  "$soundcheck_workspace/rbac.json" --contract "$soundcheck_workspace/contracts/rbac.json" --format json \
+  > "$soundcheck_test_dir/rbac-candidate-change-scope-direct.json"
+expect_contains "$soundcheck_test_dir/rbac-candidate-change-scope-direct.json" '"result":"proved"'
+run_gate real-rbac-repair-rejects-change-scope-weakening 3 'must_preserve' "${soundcheck_repair_env[@]}"
+
+# Even a supported candidate cannot make a malformed/unsupported base snapshot
+# disappear. These paths have regular Git blobs at the exact approved base.
+jq '.items |= map(select(.metadata.name != "secret-grant"))' "$soundcheck_test_dir/unsafe-rbac.json" \
+  > "$soundcheck_workspace/unsupported-rbac.json"
+cp "$soundcheck_workspace/unsupported-rbac.json" "$soundcheck_workspace/malformed-rbac.json"
+run_gate real-rbac-repair-rejects-unsupported-baseline 4 'baseline:' "${soundcheck_repair_env[@]}" \
+  SOUNDCHECK_CONFIG_INPUT=unsupported-rbac.json
+run_gate real-rbac-repair-rejects-malformed-baseline 4 'baseline:' "${soundcheck_repair_env[@]}" \
+  SOUNDCHECK_CONFIG_INPUT=malformed-rbac.json
 printf 'All %s approved-contract gate checks passed (local Git, no network).\n' "$soundcheck_count"

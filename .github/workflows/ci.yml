@@ -182,6 +182,42 @@ jobs:
           check_rbac_gate 02-delete-workload-grants 3
           check_rbac_gate 18-aggregation-boundary 4
 
+      - name: Frozen Kubernetes RBAC repair preservation
+        if: github.event_name == 'pull_request'
+        # Keep one fixed config path: its original base blob is the baseline,
+        # while each replacement below is only the candidate checkout content.
+        shell: bash
+        env:
+          SOUNDCHECK_CONNECTOR_INPUT: kubernetes-rbac
+          SOUNDCHECK_MODE_INPUT: repair
+          SOUNDCHECK_CONFIG_INPUT: bench/kubernetes-rbac/fixtures/01-unsafe.json
+          SOUNDCHECK_CONTRACT_INPUT: bench/kubernetes-rbac/contracts/frontend-access.json
+        run: |
+          set -euo pipefail
+          soundcheck_smoke_backup="$(mktemp "$RUNNER_TEMP/soundcheck-rbac-smoke.XXXXXX")"
+          cp -- "$SOUNDCHECK_CONFIG_INPUT" "$soundcheck_smoke_backup"
+          restore_candidate() {
+            local status=$?
+            trap - EXIT
+            if ! cp -- "$soundcheck_smoke_backup" "$SOUNDCHECK_CONFIG_INPUT" ||
+               ! rm -f -- "$soundcheck_smoke_backup"; then
+              [[ "$status" -ne 0 ]] || status=1
+            fi
+            exit "$status"
+          }
+          trap restore_candidate EXIT
+          check_rbac_repair() {
+            local fixture="$1" expected="$2" status=0
+            cp -- "bench/kubernetes-rbac/fixtures/$fixture.json" "$SOUNDCHECK_CONFIG_INPUT"
+            bash scripts/verify-approved-contract.sh || status=$?
+            if [[ "$status" -ne "$expected" ]]; then
+              printf 'RBAC repair %s: expected exit %s, got %s\n' "$fixture" "$expected" "$status" >&2
+              exit 1
+            fi
+          }
+          check_rbac_repair 03-valid-repair 0
+          check_rbac_repair 16-operator-regression 3
+
   frontend:
     # The web adapter's checks, plus a conformance run of its schema validators
     # against the real CLI so engine/frontend drift fails here.

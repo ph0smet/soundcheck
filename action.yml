@@ -8,11 +8,15 @@ branding:
 
 inputs:
   connector:
-    description: Trusted workflow-selected connector, kong or kubernetes-rbac; RBAC verifies the contract only, without before/after preservation
+    description: Trusted workflow-selected connector, kong or kubernetes-rbac
     required: false
     default: kong
+  mode:
+    description: Trusted workflow-selected mode, verify or repair; repair requires kubernetes-rbac on a pull request and preserves decisions against the same config path in the approved base commit
+    required: false
+    default: verify
   config:
-    description: Path to the Kong declarative configuration or complete strict JSON RBAC snapshot, relative to the caller workspace
+    description: Fixed repository-relative path to the candidate configuration; in repair mode this same path selects the baseline in the approved base commit
     required: true
   contract:
     description: Repository-relative path to the approved contract in the PR base commit or protected default-branch push commit
@@ -73,6 +77,7 @@ runs:
       shell: bash
       env:
         SOUNDCHECK_CONNECTOR_INPUT: ${{ inputs.connector }}
+        SOUNDCHECK_MODE_INPUT: ${{ inputs.mode }}
         SOUNDCHECK_CONFIG_INPUT: ${{ inputs.config }}
         SOUNDCHECK_CONTRACT_INPUT: ${{ inputs.contract }}
       run: |

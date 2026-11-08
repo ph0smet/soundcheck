@@ -2,9 +2,9 @@
 set -euo pipefail
 
 # Run only from a trusted, commit-pinned Action. The candidate repository owns
-# the config bytes, never this helper, verifier, event metadata, connector, or
-# contract selection policy. Repository protection and separate contract approval are
-# deployment prerequisites; extracting a base blob does not establish them.
+# the config bytes, never this helper, verifier, event metadata, connector, mode,
+# or fixed config/contract path selection. Repository protection and separate
+# contract approval are prerequisites; extracting base blobs does not establish them.
 fail() {
   printf '::error title=Soundcheck contract source::%s\n' "$1" >&2
   exit 1
@@ -33,10 +33,19 @@ valid_relative_path() {
 soundcheck_config_input="${SOUNDCHECK_CONFIG_INPUT:-}"
 soundcheck_contract_input="${SOUNDCHECK_CONTRACT_INPUT:-}"
 soundcheck_connector="${SOUNDCHECK_CONNECTOR_INPUT-kong}"
+soundcheck_check_mode="${SOUNDCHECK_MODE_INPUT-verify}"
 case "$soundcheck_connector" in
   kong) soundcheck_verify_command=(verify) ;;
   kubernetes-rbac) soundcheck_verify_command=(rbac verify) ;;
   *) fail 'connector must be kong or kubernetes-rbac, selected by the trusted workflow.' ;;
+esac
+case "$soundcheck_check_mode" in
+  verify) ;;
+  repair)
+    [[ "$soundcheck_connector" == kubernetes-rbac ]] || fail 'repair mode requires the kubernetes-rbac connector.'
+    soundcheck_verify_command=(rbac compare)
+    ;;
+  *) fail 'mode must be verify or repair, selected by the trusted workflow.' ;;
 esac
 valid_relative_path "$soundcheck_config_input" || fail 'config must be a normalized workspace-relative file path.'
 valid_relative_path "$soundcheck_contract_input" || fail 'contract must be a normalized repository-relative file path.'
@@ -76,6 +85,9 @@ case "${GITHUB_EVENT_NAME:-}" in
     git check-ref-format "refs/heads/$soundcheck_base_ref" >/dev/null || fail 'Invalid pull request base branch.'
     ;;
   push)
+    # The push source below is after, not the previously deployed policy. Using
+    # it as a baseline would not establish before/after repair preservation.
+    [[ "$soundcheck_check_mode" != repair ]] || fail 'repair mode requires a pull_request event; pushes support verify mode only.'
     # This bit only says protections/rulesets exist. It cannot establish that
     # the required review and separate contract approval actually took place.
     soundcheck_default_branch="$(jq -er '.repository.default_branch | strings' "$GITHUB_EVENT_PATH")" || fail 'Push payload has no default branch.'
@@ -105,13 +117,23 @@ if ! soundcheck_object_type="$(git_repo cat-file -t "$soundcheck_source_sha" 2>/
 fi
 [[ "$soundcheck_object_type" == commit ]] || fail 'Approved revision is not a commit object.'
 
-soundcheck_entry="$(git_repo ls-tree --full-tree --format='%(objectmode) %(objecttype) %(objectname)' \
-  "$soundcheck_source_sha" -- "$soundcheck_contract_input")" || fail 'Cannot resolve the approved contract path.'
-[[ -n "$soundcheck_entry" && "$soundcheck_entry" != *$'\n'* ]] || fail 'Approved contract path must select exactly one tree entry.'
-IFS=' ' read -r soundcheck_mode soundcheck_type soundcheck_blob soundcheck_extra <<< "$soundcheck_entry"
-[[ ( "$soundcheck_mode" == 100644 || "$soundcheck_mode" == 100755 ) &&
-   "$soundcheck_type" == blob && -z "$soundcheck_extra" ]] || fail 'Approved contract must be a regular Git blob, not a symlink, directory, or submodule.'
-valid_sha "$soundcheck_blob" || fail 'Approved contract has an invalid blob identity.'
+approved_blob() {
+  local path="$1" label="$2" entry mode type blob extra
+  entry="$(git_repo ls-tree --full-tree --format='%(objectmode) %(objecttype) %(objectname)' \
+    "$soundcheck_source_sha" -- "$path")" || fail "Cannot resolve the approved $label path."
+  [[ -n "$entry" && "$entry" != *$'\n'* ]] || fail "Approved $label path must select exactly one tree entry."
+  IFS=' ' read -r mode type blob extra <<< "$entry"
+  [[ ( "$mode" == 100644 || "$mode" == 100755 ) &&
+     "$type" == blob && -z "$extra" ]] || fail "Approved $label must be a regular Git blob, not a symlink, directory, or submodule."
+  valid_sha "$blob" || fail "Approved $label has an invalid blob identity."
+  printf '%s\n' "$blob"
+}
+soundcheck_blob="$(approved_blob "$soundcheck_contract_input" contract)"
+if [[ "$soundcheck_check_mode" == repair ]]; then
+  # Both approved inputs come from the one immutable event commit. There is no
+  # caller-supplied baseline path/ref and no fallback to checkout bytes.
+  soundcheck_baseline_blob="$(approved_blob "$soundcheck_config_input" baseline)"
+fi
 
 # Reject config symlinks, including ancestor directories. The config belongs to
 # the candidate workspace, but must not redirect verification outside it.
@@ -128,11 +150,12 @@ umask 077
 soundcheck_temp_dir="$(mktemp -d "$RUNNER_TEMP/soundcheck-approved-contract.XXXXXX")"
 readonly soundcheck_temp_dir
 soundcheck_contract_file="$soundcheck_temp_dir/contract.yaml"
+soundcheck_baseline_file="$soundcheck_temp_dir/baseline.json"
 cleanup() {
   local status=$?
   trap - EXIT INT TERM
-  # Only the immutable mktemp path and the one file this invocation creates.
-  if ! rm -f -- "$soundcheck_contract_file" || ! rmdir -- "$soundcheck_temp_dir"; then
+  # Only the immutable mktemp path and the fixed files this invocation creates.
+  if ! rm -f -- "$soundcheck_contract_file" "$soundcheck_baseline_file" || ! rmdir -- "$soundcheck_temp_dir"; then
     printf 'Soundcheck: could not fully clean the approved-contract temporary directory.\n' >&2
     [[ "$status" -ne 0 ]] || status=1
   fi
@@ -146,7 +169,15 @@ git_repo cat-file blob "$soundcheck_blob" > "$soundcheck_contract_file" || fail 
 chmod 400 "$soundcheck_contract_file"
 printf 'Approved contract: %s:%s (blob %s)\n' \
   "$soundcheck_source_sha" "$soundcheck_contract_input" "$soundcheck_blob"
-# RBAC verifies only the frozen access contract. There is no comparison or
-# before-snapshot input here, so this gate does not establish preservation.
-"$soundcheck_verifier" "${soundcheck_verify_command[@]}" "$soundcheck_config_path" \
-  --contract "$soundcheck_contract_file" --format github
+if [[ "$soundcheck_check_mode" == repair ]]; then
+  git_repo cat-file blob "$soundcheck_baseline_blob" > "$soundcheck_baseline_file" || fail 'Cannot extract the approved baseline blob.'
+  chmod 400 "$soundcheck_baseline_file"
+  printf 'Approved baseline: %s:%s (blob %s)\n' \
+    "$soundcheck_source_sha" "$soundcheck_config_input" "$soundcheck_baseline_blob"
+  "$soundcheck_verifier" "${soundcheck_verify_command[@]}" "$soundcheck_baseline_file" "$soundcheck_config_path" \
+    --contract "$soundcheck_contract_file" --format github
+else
+  # Default verification checks the contract without claiming preservation.
+  "$soundcheck_verifier" "${soundcheck_verify_command[@]}" "$soundcheck_config_path" \
+    --contract "$soundcheck_contract_file" --format github
+fi

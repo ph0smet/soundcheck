@@ -112,6 +112,7 @@ baseline; see its [contract and integration boundary](docs/kubernetes-rbac.md).
    and can revise and retry. The tool accepts no replacement property or scope.
 3. **Rerun in trusted CI.** The [GitHub Action](#github-action) independently
    verifies the candidate against the contract from the approved event commit.
+   RBAC repair mode also checks preservation against that PR base's snapshot.
    It does not trust an agent's earlier verdict. Only `proved` passes the
    verification gate; required checks and deployment controls enforce the result.
 
@@ -186,6 +187,11 @@ Secrets. `NoOpinion` means RBAC supplies no grant; other authorizers, admission,
 list/watch, indirect access and runtime deployment behavior are outside this
 claim. See the [RBAC guide](docs/kubernetes-rbac.md) for the supported input,
 deny-all and operator-regression examples, and exact assumptions.
+
+For otherwise-supported JSON exports, [`rbac prepare`](docs/kubernetes-rbac.md#prepare-a-json-export)
+removes validated bookkeeping metadata and can retain a receipt binding the
+original and prepared bytes. It preserves policy content; preparation success
+does not establish verification or snapshot completeness.
 
 ## What Soundcheck establishes
 
@@ -338,15 +344,17 @@ steps:
       contract: soundcheck-contract.yaml
 ```
 
-The connector defaults to `kong`. For the bounded RBAC profile, set
-`connector: kubernetes-rbac` and select a complete strict JSON snapshot and an
+The connector defaults to `kong` and the mode to `verify`. For the bounded RBAC
+profile, set `connector: kubernetes-rbac` and select a complete strict JSON snapshot and an
 approved RBAC contract. The [RBAC Action example](docs/kubernetes-rbac.md#github-action)
-shows this setup. The Action checks the frozen access contract; repair
-preservation requires a separate `rbac compare` check against a trusted baseline.
+shows contract verification and `mode: repair`. On pull requests, repair mode
+also preserves decisions outside the frozen change scope against the same config
+path in the approved base commit. It rejects pushes and missing baselines;
+ordinary verification remains available without a preservation claim.
 
 Use a reviewed full commit SHA in a fresh, trusted job before candidate code
-runs. The caller workflow, connector, fixed contract path, and Action SHA must not be
-candidate-controlled; `uses: ./` is only suitable for testing the Action. The
+runs. The caller workflow, mode, connector, fixed config/contract paths, and
+Action SHA must not be candidate-controlled; `uses: ./` is only suitable for testing the Action. The
 adapter accepts `pull_request` and non-forced, non-deleted protected-default-branch
 push events and fails closed elsewhere.
 
@@ -488,7 +496,8 @@ The repository keeps several kinds of evidence separate:
   observations.
 - [Pinned Kubernetes RBAC conformance](bench/kubernetes-rbac/conformance/README.md)
   comparing concrete and SMT decisions with Kubernetes' production authorizer
-  on original snapshot bytes, including replay of CLI counterexamples.
+  on original snapshot bytes, including replay of CLI counterexamples and
+  independent policy-preservation checks for prepared exports.
 
 These are finite checks of the implementation and abstraction rules, not a
 universal proof that the target model matches every deployment.

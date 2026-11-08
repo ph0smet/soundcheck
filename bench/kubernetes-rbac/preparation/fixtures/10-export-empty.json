@@ -1,0 +1,11 @@
+{
+  "apiVersion": "v1",
+  "kind": "List",
+  "items": [],
+  "metadata": {
+    "resourceVersion": "1200",
+    "selfLink": "/synthetic/rbac",
+    "continue": "",
+    "remainingItemCount": null
+  }
+}

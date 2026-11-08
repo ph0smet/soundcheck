@@ -5,6 +5,11 @@ authorizer** on the same original snapshot bytes. It also runs the real CLI and
 replays its contract and preservation counterexamples through that authorizer.
 It uses in-memory snapshots; it does not start a cluster or read a kubeconfig.
 
+The same command separately checks [offline JSON preparation](../preparation/README.md):
+original and prepared upstream typed policies must agree, the receipt must bind
+both exact byte sequences, and prepared connector/SMT decisions must match both
+upstream inputs. The original 29-case results and counts retain their meaning.
+
 Run from the repository root:
 
 ```sh
@@ -73,6 +78,12 @@ after all comparisons, replays, and unchanged-input checks pass. Detailed comman
 records live under `artifacts/<case>/`. Solver-chosen object names are checked
 against their domain and obligation, not compared with arbitrary golden names.
 
+Preparation has its own `preparation/results.json`, including accepted/rejected
+preparations, typed-policy comparisons, four-way request comparisons, witness
+replays through both inputs, and deliberately corrupted preparation controls.
+The combined command exits nonzero if either suite fails. The original matrix's
+`complete:true` alone does not establish preparation conformance.
+
 ## Reference adapter and provenance
 
 `oracle/` imports the pinned upstream implementation rather than copying its
@@ -91,6 +102,22 @@ input validity, not an authorization decision:
 | 0 | Valid input; decisions are in JSON |
 | 1 | Invalid input; no authorization calls accepted |
 | 2 | Invocation, file, or output failure |
+
+A separate `rbac-oracle --compare-policies ORIGINAL.json PREPARED.json` mode
+strictly decodes, defaults and validates each input independently, then compares
+typed role/binding inventories. It retains object identity, subjects, role
+references, every policy-rule field, aggregation rules, labels and annotations;
+only bookkeeping/lifecycle metadata is excluded from that policy projection.
+The Python preparation checker separately enforces the exact approved metadata
+removals and rejects active lifecycle or incomplete-pagination input.
+
+This mode returns `kind: typed_rbac_policy_comparison`, schema version 1, exact
+input digests, typed-policy digests/object counts, `valid`, `policy_equal`,
+validation errors and differing object identities. Exit 0 means both inputs
+are valid and their typed policies match; exit 1 means invalid input or different
+typed policy; exit 2 means invocation/I/O failure. Invalid input has a null
+`policy_equal`, never a successful comparison. This mode does not change the
+existing `MANIFEST.json REQUESTS.json` response protocol.
 
 Upstream is pinned to commit
 `f28b4c9efbca5c5c0af716d9f2d5702667ee8a45` (`v1.34.0`). Every staging replacement
@@ -126,4 +153,5 @@ Runner acceptance tests can be run without Go or Z3:
 
 ```sh
 python3 bench/kubernetes-rbac/conformance/test_runner.py
+python3 bench/kubernetes-rbac/conformance/test_preparation_runner.py
 ```

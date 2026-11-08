@@ -269,9 +269,9 @@ to a counterexample without gaining an interface for changing the property.
 
 For the hard enforcement layer, use the
 [GitHub Action](../README.md#github-action) from a reviewed full commit SHA. Run
-it in a fresh trusted job before candidate code; the caller workflow, connector,
-fixed contract path, and Action SHA must not be candidate-controlled. `uses: ./` is a
-test mechanism, not an approval boundary. The adapter accepts only
+it in a fresh trusted job before candidate code; the caller workflow, mode,
+connector, fixed config/contract paths, and Action SHA must not be
+candidate-controlled. `uses: ./` is a test mechanism, not an approval boundary. The adapter accepts only
 `pull_request` and non-forced, non-deleted protected-default-branch push events,
 reading the contract from the immutable event commit. Other events fail closed.
 Branch protection, required checks, separate contract review, and fresh-base
@@ -284,7 +284,10 @@ resolved opam dependencies transitively unpinned; review or lock those separatel
 when the deployment requires it.
 
 These examples use Kong, the default connector. The [RBAC integration guide](kubernetes-rbac.md#frozen-mcp-workflow)
-covers frozen MCP comparison and the Action's explicit `kubernetes-rbac` selector.
+covers export preparation, frozen MCP comparison and the Action's explicit
+`kubernetes-rbac` selector. Its `mode: repair` checks PR candidates against the
+contract and same-path baseline from the immutable base commit; push events
+continue to support `verify` only.
 
 ## Troubleshooting
 

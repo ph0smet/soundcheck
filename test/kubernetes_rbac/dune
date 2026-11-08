@@ -74,3 +74,29 @@
   ../../bench/kubernetes-rbac/contracts/frontend-access.json)
  (action
   (run %{exe:mcp_t.exe} %{exe:../../cli/main.exe} ../../bench/kubernetes-rbac)))
+
+(executable
+ (name prepare_t)
+ (modules prepare_t)
+ (libraries soundcheck_core soundcheck_kubernetes_rbac))
+
+(rule
+ (alias runtest)
+ (deps
+  (source_tree ../../bench/kubernetes-rbac/fixtures)
+  ../../bench/kubernetes-rbac/contracts/frontend-access.json
+  ../../bench/kubernetes-rbac/requests.json)
+ (action (run %{exe:prepare_t.exe} ../../bench/kubernetes-rbac)))
+
+(executable
+ (name prepare_cli_t)
+ (modules prepare_cli_t)
+ (libraries soundcheck_core soundcheck_kubernetes_rbac unix))
+
+(rule
+ (alias runtest)
+ (deps
+  (source_tree ../../bench/kubernetes-rbac/fixtures)
+  ../../bench/kubernetes-rbac/contracts/frontend-access.json)
+ (action
+  (run %{exe:prepare_cli_t.exe} %{exe:../../cli/main.exe} ../../bench/kubernetes-rbac)))
