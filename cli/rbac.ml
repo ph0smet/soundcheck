@@ -9,7 +9,7 @@ let usage () =
      Input is a complete desired RBAC snapshot in one strict JSON Kubernetes v1/List.\n\
      The contract freezes identities, groups, access requirements and approved change scope.\n\
      Preparation emits a supported snapshot, not a verification result or completeness proof.\n\
-     Use soundcheck profile kubernetes-rbac for the exact model and assumptions.";
+     Use soundcheck profile kubernetes-rbac --contract-version 1|2 for the exact model and assumptions.";
   exit 2
 
 let options args =
@@ -33,7 +33,7 @@ let read path =
 let exit_code = function
   | Report.Proved -> 0 | Violated _ -> 3 | Unknown _ -> 4 | Vacuous -> 5 | Inconsistent _ -> 6
 
-let write_evidence ~on_error directory make_bundle =
+let write_evidence ~on_error ~version directory make_bundle =
   match directory with
   | None -> ()
   | Some directory ->
@@ -41,7 +41,7 @@ let write_evidence ~on_error directory make_bundle =
     let result =
       let* provenance = Evidence.collect_provenance () in
       let profile : Evidence.profile =
-        {id=K.Assurance.profile_id;json=K.Assurance.profile_json ()} in
+        {id=K.Assurance.id_for_version version;json=K.Assurance.profile_json ~version ()} in
       let* bundle = make_bundle ~profile ~provenance in
       Evidence.write ~directory bundle in
     match result with
@@ -63,7 +63,9 @@ let run_verification args =
   let report = try
     match K.Contract_spec.of_string (read contract_path) with
     | Error reason -> K.Verify.invalid_contract reason
-    | Ok spec -> (match operation with
+    | Ok spec ->
+      let write_evidence = write_evidence ~version:(K.Contract_spec.version spec) in
+      (match operation with
         | `Verify file ->
           let config = read file in
           let report,trace = K.Verify.run_with_trace spec config in

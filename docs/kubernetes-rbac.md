@@ -1,7 +1,8 @@
 # Kubernetes RBAC
 
 Soundcheck checks paired access requirements and repair preservation for a
-bounded static RBAC profile. CLI and library workflows share the decision IR,
+bounded static RBAC profiles. Contract schema 1 checks named `get`; schema 2
+checks `get`, `list` and `watch` for core ConfigMaps and Secrets. CLI and library workflows share the decision IR,
 encoder, Z3 backend and witness validation with the Kong connector.
 
 ## Try the workflow
@@ -118,7 +119,7 @@ and [pagination semantics](https://v1-34.docs.kubernetes.io/docs/reference/using
 ## Frozen contract
 
 Start from the complete [example contract](../bench/kubernetes-rbac/contracts/frontend-access.json).
-The strict JSON schema requires:
+The original strict JSON contract (schema 1) requires:
 
 - `schema_version: 1` and `kind: "kubernetes-rbac-access"`.
 - `context`: schema version 1, `snapshot_complete: true`, and nonempty unique
@@ -131,7 +132,7 @@ The strict JSON schema requires:
   using the same subject/namespace/resource/names selectors. An empty list
   requires complete decision preservation within the profile.
 
-The verb is always `get`, the API group core (`""`), and the subresource empty.
+For schema 1 the verb is always `get`, the API group core (`""`), and the subresource empty.
 Unknown versions and scope fields are rejected. RBAC rule `resourceNames: ["*"]`
 is literal, whereas rule verbs, API groups and resources support `"*"` wildcards.
 
@@ -140,7 +141,76 @@ The CLI accepts no identity/group/property/scope overrides. Reports carry the
 canonical frozen contract, including its context and approved change scope.
 This does not sandbox an agent that can replace those files or the verifier.
 
-## Supported profile
+## Read-access contracts (schema 2)
+
+The [runnable read-access repair demo](../bench/kubernetes-rbac/workflows/read-access/README.md)
+pairs a frozen schema-2 contract with unsafe, partial-repair, valid-repair,
+deny-all and operator-regression snapshots.
+
+Schema 2 keeps the same `kind`, frozen identity context, paired clause kinds and
+approved `change_scope`. Every clause and change-scope entry also requires a
+singular `verb`: `get`, `list` or `watch`. The contract selects the
+`kubernetes-rbac-v1.34-read-v1` profile. Existing schema-1 artifacts, canonical
+identities, profiles and get-only preservation semantics keep their meaning;
+upgrading a contract requires separate requirement review.
+
+| Scope field | Schema-2 meaning |
+| --- | --- |
+| `namespace: "frontend"` | Exactly that namespaced endpoint |
+| `namespace: null` | Exactly the all-namespace collection endpoint; only list/watch |
+| `names: null` with get | Every valid named object request |
+| `names: null` with list/watch | Empty effective authorization name **and** every supported valid name |
+| `names: ["settings"]` | Exactly that effective authorization name |
+
+An all-namespace scope is not a wildcard over namespaced endpoints. Namespace
+and name strings retain the DNS/length bounds below. Empty name arrays, empty
+name literals, wildcard names, missing verbs and unknown fields are rejected.
+This version cannot express an empty-effective-name-only requirement.
+
+For a modern collection request, a nonempty effective name can come from
+`fieldSelector=metadata.name=settings`; a legacy named watch path can also
+supply it. Without a usable exact-name restriction, authorization sees the empty
+name. It does **not** check each returned object against `resourceNames`.
+Consequently `resourceNames: ["settings"]` does not grant an unrestricted list,
+while `resourceNames: [""]` grants the empty-name case but cannot satisfy
+`must_allow` with `names: null`. A literal `resourceNames: ["*"]` remains a
+literal star and matches no supported object name. These rules follow the
+[pinned RBAC matching helpers](https://github.com/kubernetes/kubernetes/blob/v1.34.0/pkg/apis/rbac/v1/evaluation_helpers.go)
+and [request interpretation](https://github.com/kubernetes/apiserver/blob/v0.34.0/pkg/endpoints/request/requestinfo.go).
+
+A clause forbidding only a name-selected list/watch request is a requirement
+about that request class, not confidentiality of the named object's contents:
+an unnamed collection request may still return that object. To forbid all
+direct Secret read grants in a scope, cover `get`, `list` and `watch` with
+`names: null`, as the demo does.
+
+All-namespace collection requests require a ClusterRoleBinding grant. A
+RoleBinding to a ClusterRole still applies only in the RoleBinding's namespace;
+adding a `metadata.namespace` field selector to an all-namespace URL does not
+change its authorization namespace.
+
+Safety clauses should explicitly cover the relevant read verbs: removing a
+Secret `get` grant can still leave `list` or `watch` grants that expose contents.
+For a schema-2 repair, preservation quantifies over **all three verbs**, every
+supported namespace/name and the all-namespace collection endpoint for each
+frozen identity, regardless of which verbs appear in its access clauses.
+Change scope includes the verb, so approval to change `get` does not permit
+changing `watch`.
+
+```sh
+dune exec soundcheck -- profile kubernetes-rbac --contract-version 2 --format json
+```
+
+The existing CLI, frozen MCP and approved-base Action select the model from the
+trusted contract. Evidence bundles bind that selected profile. Raw URLs and
+selector expressions are not new verifier inputs; reports describe effective
+authorization attributes. The model does not assert successful API execution,
+returned objects or watch events. In particular, an empty witness name means
+no effective exact-name restriction, not necessarily no selectors in an HTTP
+request. Preparation still checks the shared snapshot format; its original
+receipt `target_profile` is not the profile selected for a later verification.
+
+## Supported profiles
 
 `kubernetes-rbac-v1.34-get-v1` references Kubernetes v1.34.0 and supports:
 
@@ -158,6 +228,12 @@ This does not sandbox an agent that can replace those files or the verifier.
 - Named `get` requests for core ConfigMaps/Secrets. Namespaces are DNS1123 labels
   of 1..63 bytes; object names are DNS1123 subdomains of 1..253 bytes.
 
+`kubernetes-rbac-v1.34-read-v1` uses the same snapshot/identity boundary, adding
+the schema-2 list/watch request classes described above. Get still requires a
+nonempty namespace and name. List/watch additionally permit empty effective
+namespace and/or name. Other verbs, resources, API groups, subresources and
+nonempty names outside the DNS bounds are outside the request domain.
+
 All supplied objects are checked, including unbound roles and unrelated
 bindings. Malformed input, unknown fields, duplicate identities, missing
 references, aggregation rules and nonResourceURLs return `unknown`. Escaped
@@ -173,12 +249,14 @@ the state that was verified.
 **No grant is not final denial.** The decision is RBAC `Allow` versus
 `NoOpinion`. Other authorizers, authentication, impersonation, admission, object
 existence, aggregation/reconciliation controllers, mutation and escalation
-checks are outside the model. Restrictions on `get` do not rule out Secret
-exposure through `list`, `watch`, pod creation or other indirect paths.
+checks are outside both models. Schema-1 restrictions on `get` do not rule out
+Secret exposure through `list` or `watch`. Schema 2 can cover those direct read
+grants, but pod creation and other indirect exposure paths remain outside it.
 
 Preservation ranges over all supported valid namespace/name strings for the
-frozen identities, not just namespaces present in the input. It excludes
-identities, verbs, resources and control planes outside the profile.
+frozen identities, not just namespaces present in the input. Schema 2 includes
+the all-namespace collection endpoint. Both exclude identities, verbs,
+resources and control planes outside their selected profile.
 
 ## Output and integrations
 

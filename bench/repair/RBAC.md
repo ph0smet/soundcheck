@@ -57,16 +57,23 @@ file checks are not a race-resistant sandbox or a contract-approval mechanism.
 
 ## Interpretation and boundaries
 
-The exact profile is `kubernetes-rbac-v1.34-get-v1`: one complete static desired
-RBAC snapshot in strict JSON, fixed trusted usernames/groups, and named `get`
-requests for core ConfigMaps and Secrets. `NoOpinion` means RBAC supplied no
-grant; it is not a final API-server denial. Preservation covers the same fixed
-identity and named-get domain outside the contract's `change_scope`.
+The frozen contract selects the profile. Schema 1 retains
+`kubernetes-rbac-v1.34-get-v1` and named `get`; schema 2 selects
+`kubernetes-rbac-v1.34-read-v1` and `get/list/watch`, including namespaced and
+all-namespace collection authorization. Both use complete static desired RBAC
+snapshots in strict JSON, fixed trusted usernames/groups, and core ConfigMaps
+and Secrets. Preservation covers that profile's fixed domain outside the
+contract's `change_scope`. Both returned stages must match the frozen contract
+and its profile; candidate output cannot downgrade the expected profile.
+The supplied examples remain schema 1.
 
 An omitted binding is assumed absent from the complete desired snapshot. Applying
 a partial manifest does not remove an existing live binding. Authentication,
-admission, object existence, aggregation controllers, list/watch and escalation
-paths remain outside this profile. See the [connector guide](../../docs/kubernetes-rbac.md).
+admission, object existence, aggregation controllers and escalation paths remain
+outside both profiles. Schema 2 models effective authorization attributes, not
+raw selector parsing, response contents or watch events. `NoOpinion` means RBAC
+supplied no grant, not a final API-server denial. See the
+[connector guide](../../docs/kubernetes-rbac.md).
 
 Both snapshots must be supported before the comparison can plan its work. If
 either is unsupported, the candidate stage is unavailable: `contract_result`
@@ -83,8 +90,12 @@ incoherent returned results have explicit fixed failure codes.
 
 ## Minimized summary
 
-The distinct experimental format is `kind: submitted_rbac_repair_evaluation`,
-`experimental_format_version: 1`; the existing Kong format is unchanged.
+The distinct experimental format is `kind: submitted_rbac_repair_evaluation`.
+Suites without a successfully frozen schema 2 contract retain format 1,
+including existing fatal summaries. Any frozen schema 2 task selects format 2:
+each task includes its trusted `profile` (null for an invalid/unreadable contract),
+and the top-level `profile` is the sole known profile or null for mixed profiles.
+The existing Kong format and report/evidence schemas are unchanged.
 Its fields include:
 
 - Every scheduled task, provenance, ordered attempts and first valid ordinal.

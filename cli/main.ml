@@ -39,8 +39,9 @@ let usage () =
     \  Prepare supported static JSON exports; this is not verification or a completeness check.\n\
      usage: soundcheck rbac verify SNAPSHOT.json --contract CONTRACT.json [--format human|json|github] [--evidence-dir NEW_DIRECTORY]\n\
      usage: soundcheck rbac compare BEFORE.json AFTER.json --contract CONTRACT.json [--format human|json|github] [--evidence-dir NEW_DIRECTORY]\n\
-    \  Verify static named-get RBAC requirements, or verify a repair and preserve other decisions.\n\
+    \  Verify versioned static RBAC read requirements, or verify a repair and preserve other decisions.\n\
      usage: soundcheck profile kong|kubernetes-rbac [--format human|json]\n\
+    \  RBAC also accepts --contract-version 1|2 (default 1).\n\
     \  Print the versioned connector assurance profile and exit.\n\
      \n\
      usage: soundcheck mcp [--connector kong] [--contract CONTRACT.yaml]\n\
@@ -400,27 +401,27 @@ let run_compare before_file after_file rest =
           | Compare.Unknown _ -> 4)))
 
 let run_profile connector rest =
-  let format =
-    match rest with
-    | [] -> Human
-    | [ "--format"; "human" ] -> Human
-    | [ "--format"; "json" ] -> Json
-    | [ "--format"; other ] ->
-      Printf.eprintf "unknown --format %S (expected human|json)\n" other;
-      exit 2
-    | [ "--format" ] ->
-      prerr_endline "--format requires human or json";
-      exit 2
-    | _ -> usage ()
-  in
+  let rec options format version = function
+    | [] -> Option.value ~default:Human format,Option.value ~default:1 version
+    | "--format" :: ("human"|"json" as value) :: rest when format = None ->
+      options (Some (if value = "human" then Human else Json)) version rest
+    | "--format" :: other :: _ when format = None ->
+      Printf.eprintf "unknown --format %S (expected human|json)\n" other; exit 2
+    | ["--format"] when format = None ->
+      prerr_endline "--format requires human or json"; exit 2
+    | "--contract-version" :: ("1"|"2" as value) :: rest
+        when connector = "kubernetes-rbac" && version = None ->
+      options format (Some (int_of_string value)) rest
+    | _ -> usage () in
+  let format,version = options None None rest in
   if connector <> "kong" && connector <> "kubernetes-rbac" then begin
     Printf.eprintf "unknown connector %S (expected kong|kubernetes-rbac)\n" connector;
     exit 2
   end;
   let rendered =
     match connector,format with
-    | "kubernetes-rbac",Human -> Soundcheck_kubernetes_rbac.Assurance.profile_human ()
-    | "kubernetes-rbac",Json -> Soundcheck_kubernetes_rbac.Assurance.profile_json ()
+    | "kubernetes-rbac",Human -> Soundcheck_kubernetes_rbac.Assurance.profile_human ~version ()
+    | "kubernetes-rbac",Json -> Soundcheck_kubernetes_rbac.Assurance.profile_json ~version ()
     | _,Human -> Assurance.profile_human ()
     | _,Json -> Assurance.profile_json ()
   in

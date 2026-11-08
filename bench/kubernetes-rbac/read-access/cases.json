@@ -1,0 +1,146 @@
+{
+  "01-unsafe": {
+    "sha256": "6d45ee025a78dcf35361c4a2494d2ec8c095a098220e8d6b5f54d0976b5d06cd",
+    "contract": "read-access",
+    "supported": true,
+    "expected_contract": "violated",
+    "expected_clause": "payments-get-not-granted",
+    "expected_preservation": "not_reached"
+  },
+  "02-get-only-repair": {
+    "sha256": "3b4a06cbe589e36ee942a770e44f02aefbee8483bd8d7b3c751c9ec25b1e2c00",
+    "contract": "read-access",
+    "supported": true,
+    "expected_contract": "violated",
+    "expected_clause": "payments-list-not-granted",
+    "expected_preservation": "not_reached"
+  },
+  "03-repaired": {
+    "sha256": "800a76231ced2942ad733679c47f02e50b65e6ac820fb8e0aca63f538bbf86cb",
+    "contract": "read-access",
+    "supported": true,
+    "expected_contract": "proved",
+    "expected_clause": null,
+    "expected_preservation": "preserved"
+  },
+  "04-operator-regression": {
+    "sha256": "35a55b1df52cb6d95fe84746c220c41520a2f84ff90e66304b449e15617cceb3",
+    "contract": "read-access",
+    "supported": true,
+    "expected_contract": "proved",
+    "expected_clause": null,
+    "expected_preservation": "changed"
+  },
+  "05-deny-all-workload": {
+    "sha256": "35c9e449e738c7f57f87e241c18bdb8e350395b9a788511aceff360493405fe8",
+    "contract": "read-access",
+    "supported": true,
+    "expected_contract": "violated",
+    "expected_clause": "frontend-get-required",
+    "expected_preservation": "not_reached"
+  },
+  "06-named-only-required": {
+    "sha256": "c17f6d27088066b7d5613dab6c47d4ff126273eeebd85ba7729b56cd6b50465f",
+    "contract": "read-access",
+    "supported": true,
+    "expected_contract": "violated",
+    "expected_clause": "frontend-list-required",
+    "expected_preservation": "not_reached"
+  },
+  "07-empty-name-leak": {
+    "sha256": "dd7fcf5e7fad76672475714aa75f342c296db3813a354073802255e0822020a5",
+    "contract": "read-access",
+    "supported": true,
+    "expected_contract": "violated",
+    "expected_clause": "payments-list-not-granted",
+    "expected_preservation": "not_reached"
+  },
+  "08-literal-star-name": {
+    "sha256": "f6dfe306e21ce0ab678363edbe2818968da2ae354deb98c652d9877ba6afb7f3",
+    "contract": "read-access",
+    "supported": true,
+    "expected_contract": "proved",
+    "expected_clause": null,
+    "expected_preservation": "preserved"
+  },
+  "09-named-watch-leak": {
+    "sha256": "1d76ebe227ec4d09f7b0da9f3cdba9c1c4d9a23c35898e5d4dd55822824be567",
+    "contract": "read-access",
+    "supported": true,
+    "expected_contract": "violated",
+    "expected_clause": "payments-watch-not-granted",
+    "expected_preservation": "not_reached"
+  },
+  "10-cluster-list-leak": {
+    "sha256": "7cb907eee54426c26cfab24b9a86ccae64d1ae0702213ec2a73aaa45f609ec7d",
+    "contract": "all-namespace",
+    "supported": true,
+    "expected_contract": "violated",
+    "expected_clause": "all-namespace-list-not-granted",
+    "expected_preservation": null
+  },
+  "11-cluster-watch-leak": {
+    "sha256": "5aca6196ab0a4239dc8ed03871093fbb625903a1d0ceb3adf68493968f8b0805",
+    "contract": "all-namespace",
+    "supported": true,
+    "expected_contract": "violated",
+    "expected_clause": "all-namespace-watch-not-granted",
+    "expected_preservation": null
+  },
+  "12-local-binding-only": {
+    "sha256": "0959adeea1a24692fd94be00cd777894efe02a82faebc53918d6dafcf64b9d59",
+    "contract": "read-access",
+    "supported": true,
+    "expected_contract": "proved",
+    "expected_clause": null,
+    "expected_preservation": null
+  },
+  "13-named-collection-required": {
+    "sha256": "c17f6d27088066b7d5613dab6c47d4ff126273eeebd85ba7729b56cd6b50465f",
+    "contract": "named-collections",
+    "supported": true,
+    "expected_contract": "proved",
+    "expected_clause": null,
+    "expected_preservation": null
+  },
+  "14-watch-functionality-lost": {
+    "sha256": "c49f0b6c2d92682bb0ce46709a573468303e03d27ab444fd517b98e15d3b54e0",
+    "contract": "read-access",
+    "supported": true,
+    "expected_contract": "violated",
+    "expected_clause": "frontend-watch-required",
+    "expected_preservation": "not_reached"
+  },
+  "15-aggregation-boundary": {
+    "sha256": "98acb1e49bcf943ae1594436228c061e3f3b7ef0f1c2b00591197fc56e526a26",
+    "contract": "read-access",
+    "supported": false,
+    "expected_contract": "unknown",
+    "expected_clause": null,
+    "expected_preservation": null
+  },
+  "16-all-namespace-required": {
+    "sha256": "800a76231ced2942ad733679c47f02e50b65e6ac820fb8e0aca63f538bbf86cb",
+    "contract": "operator-collection",
+    "supported": true,
+    "expected_contract": "proved",
+    "expected_clause": null,
+    "expected_preservation": null
+  },
+  "17-all-namespace-required-lost": {
+    "sha256": "35a55b1df52cb6d95fe84746c220c41520a2f84ff90e66304b449e15617cceb3",
+    "contract": "operator-collection",
+    "supported": true,
+    "expected_contract": "violated",
+    "expected_clause": "operator-all-namespace-list-required",
+    "expected_preservation": null
+  },
+  "18-named-exclusion-empty-grant": {
+    "sha256": "dd7fcf5e7fad76672475714aa75f342c296db3813a354073802255e0822020a5",
+    "contract": "named-exclusions",
+    "supported": true,
+    "expected_contract": "proved",
+    "expected_clause": null,
+    "expected_preservation": null
+  }
+}

@@ -13,6 +13,7 @@ type attempt_row = {
 }
 type task_row = {
   id : string; provenance : Pilot.provenance;
+  profile : string option;
   baseline_sha256 : string option; contract_sha256 : string option;
   frozen_contract_sha256 : string option;
   failure : failure option; attempts : attempt_row list;
@@ -76,10 +77,11 @@ let preservation_property = "rbac-repair-preservation"
    The benchmark does not encode policy semantics or interpret raw witnesses. *)
 let project spec (comparison : K.Verify.comparison) =
   let identity = K.Contract_spec.frozen_spec spec in
+  let expected_profile = K.Assurance.id_for_version (K.Contract_spec.version spec) in
   let assessment (report : Report.t) =
     match report.assurance with
     | Some value when report.frozen_spec = Some identity
-        && value.profile = K.Assurance.profile_id ->
+        && value.profile = expected_profile ->
       (match value.status, value.findings, report.result with
        | Report.Within_profile, [], _ -> Some "within_profile"
        | Report.Unsupported, [{Report.code="unsupported-rbac-input";_}], Report.Unknown _ ->
@@ -121,6 +123,8 @@ let project spec (comparison : K.Verify.comparison) =
 
 let task_row entry failure attempts =
   {id=entry.task.id;provenance=entry.task.provenance;
+   profile=(match entry.contract with Error _ -> None | Ok spec ->
+     Some (K.Assurance.id_for_version (K.Contract_spec.version spec)));
    baseline_sha256=entry.baseline_digest;contract_sha256=entry.contract_digest;
    frozen_contract_sha256=entry.frozen_contract_digest;failure;attempts}
 
@@ -191,7 +195,7 @@ let attempt_json (row : attempt_row) = `O [
   "comparison_assurance",optional row.comparison_assurance;
   "failure",optional (Option.map failure_name row.failure);
   "elapsed_seconds",`Number (Printf.sprintf "%.6f" row.elapsed_seconds)]
-let task_json (row : task_row) = `O [
+let task_json ~include_profile (row : task_row) = `O ([
   "id",string row.id; "provenance",string (provenance_name row.provenance);
   "baseline_sha256",optional row.baseline_sha256;
   "contract_sha256",optional row.contract_sha256;
@@ -199,11 +203,17 @@ let task_json (row : task_row) = `O [
   "failure",optional (Option.map failure_name row.failure);
   "first_valid_attempt",(match first_valid row with None -> `Null | Some attempt -> integer attempt.ordinal);
   "attempts",`A (List.map attempt_json row.attempts)]
-let header = ["experimental_format_version",integer 1;
+  @ if include_profile then ["profile",optional row.profile] else [])
+let header version profile = ["experimental_format_version",integer version;
   "kind",string "submitted_rbac_repair_evaluation";
-  "profile",string K.Assurance.profile_id;
+  "profile",optional profile;
   "comparison",string "frozen_scope_preservation"]
 let to_json tasks =
+  let profiles = List.filter_map (fun (task : task_row) -> task.profile) tasks
+    |> List.sort_uniq String.compare in
+  let version = if List.mem K.Assurance.read_profile_id profiles then 2 else 1 in
+  let profile = if version = 1 then Some K.Assurance.profile_id
+    else match profiles with [profile] -> Some profile | _ -> None in
   let attempts = List.concat_map (fun (task : task_row) -> task.attempts) tasks in
   let submissions_known = not (List.exists (fun (task : task_row) ->
     task.failure = Some Submissions_invalid || task.failure = Some Submissions_read_error) tasks) in
@@ -213,13 +223,13 @@ let to_json tasks =
       ["valid_repair";"contract_failed";"out_of_scope_regression";"unknown"]
     @ ["errors",integer (count (fun (row : attempt_row) -> row.failure <> None
         || row.repair_result = None) attempts)] in
-  K.Input.json (`O (header @ [
+  K.Input.json (`O (header version profile @ [
     "scheduled_tasks",integer (List.length tasks);
     "tasks_with_valid_repair",integer (count (fun task -> Option.is_some (first_valid task)) tasks);
     "tasks_with_errors",integer (count (fun (task : task_row) -> task.failure <> None
       || List.exists (fun (attempt : attempt_row) -> attempt.failure <> None) task.attempts) tasks);
     "submitted_attempts",(if submissions_known then integer (List.length attempts) else `Null);
     "attempt_counts",`O counts;
-    "tasks",`A (List.map task_json tasks)]))
-let fatal_json failure = K.Input.json (`O (header @
+    "tasks",`A (List.map (task_json ~include_profile:(version = 2)) tasks)]))
+let fatal_json failure = K.Input.json (`O (header 1 (Some K.Assurance.profile_id) @
   ["failure",string failure;"scheduled_tasks",`Null;"tasks",`A []]))

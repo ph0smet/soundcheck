@@ -231,8 +231,8 @@ P0 Kong verification and the P1 verified-agent interface are shipped. Current
 work deepens Kong coverage: an end-to-end frozen workflow, a versioned assurance
 profile, more paired contracts, semantic conformance, configuration equivalence,
 CI productization, and reproducible evidence. The bounded static Kubernetes RBAC
-connector follows the approved local feasibility benchmark. Its named-get
-profile is documented in `docs/kubernetes-rbac.md`; broader RBAC semantics and
+connector follows the approved local feasibility benchmark. Its named-get and
+get/list/watch profiles are documented in `docs/kubernetes-rbac.md`; broader RBAC semantics and
 integrations need separate scope and reference evidence.
 
 ---

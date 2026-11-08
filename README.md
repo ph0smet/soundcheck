@@ -152,7 +152,7 @@ or CI job.
 
 | Capability | Current support |
 | --- | --- |
-| Targets | Kong OSS 3.9.3 decK YAML; static Kubernetes RBAC JSON Lists, pinned to v1.34.0 named-`get` semantics |
+| Targets | Kong OSS 3.9.3 decK YAML; static Kubernetes RBAC JSON Lists, with versioned v1.34.0 `get`/`list`/`watch` profiles |
 | Verification | Six Kong property templates, three Kong frozen contract kinds, and paired RBAC access contracts |
 | Verdicts | `proved`, `violated`, `vacuous`, `inconsistent`, or `unknown` |
 | Comparisons | Kong decision/routing equivalence; RBAC decision preservation outside a frozen change scope |
@@ -181,12 +181,19 @@ dune exec soundcheck -- rbac compare \
 # proved: the candidate meets the contract and preserves other modeled decisions
 ```
 
-The first profile requires a complete static desired RBAC snapshot and trusted,
-fixed usernames/groups. It checks named `get` requests for core ConfigMaps and
-Secrets. `NoOpinion` means RBAC supplies no grant; other authorizers, admission,
-list/watch, indirect access and runtime deployment behavior are outside this
-claim. See the [RBAC guide](docs/kubernetes-rbac.md) for the supported input,
+The example uses the original named-`get` contract. New
+[schema-2 contracts](docs/kubernetes-rbac.md#read-access-contracts-schema-2) also
+check `list`/`watch` and all-namespace collection requests for core ConfigMaps
+and Secrets, while existing contracts keep their meaning. Both profiles require
+a complete static desired snapshot and trusted, fixed usernames/groups.
+`NoOpinion` means RBAC supplies no grant; other authorizers, admission, indirect
+access and runtime deployment behavior remain outside this claim.
+See the [RBAC guide](docs/kubernetes-rbac.md) for the supported input,
 deny-all and operator-regression examples, and exact assumptions.
+
+The [read-access repair demo](bench/kubernetes-rbac/workflows/read-access/README.md)
+shows why removing only `get` can leave Secret read access, and checks a repair
+that preserves ConfigMap watches and the operator's access.
 
 For otherwise-supported JSON exports, [`rbac prepare`](docs/kubernetes-rbac.md#prepare-a-json-export)
 removes validated bookkeeping metadata and can retain a receipt binding the
@@ -523,7 +530,7 @@ evidence to the shared verification core.
 - **Deepen Kong assurance and usability.** Expand semantic coverage and target
   conformance, improve contract authoring and diagnostics, and evaluate useful
   coverage through small authorized deployment pilots.
-- **Expand RBAC carefully.** The static named-`get` profile has CLI, frozen MCP,
+- **Expand RBAC carefully.** The static RBAC connector has CLI, frozen MCP,
   CI and submitted-repair workflows. Broader verbs/resources, input formats and
   integrations need separate semantic boundaries and reference evidence.
 - **Extend to more policy systems.** Additional gateways, OPA/Rego, IAM, and
