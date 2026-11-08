@@ -35,6 +35,8 @@ let usage () =
     \  With --contract, verify the replacement and preserve decisions outside\n\
     \  the frozen contract scope.\n\
      \n\
+     usage: soundcheck rbac prepare EXPORT.json [--receipt NEW_FILE]\n\
+    \  Prepare supported static JSON exports; this is not verification or a completeness check.\n\
      usage: soundcheck rbac verify SNAPSHOT.json --contract CONTRACT.json [--format human|json|github] [--evidence-dir NEW_DIRECTORY]\n\
      usage: soundcheck rbac compare BEFORE.json AFTER.json --contract CONTRACT.json [--format human|json|github] [--evidence-dir NEW_DIRECTORY]\n\
     \  Verify static named-get RBAC requirements, or verify a repair and preserve other decisions.\n\

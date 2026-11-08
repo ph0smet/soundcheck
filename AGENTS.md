@@ -212,7 +212,7 @@ core/                 shared decision/verification engine
   evidence.ml         audit artifacts, digests, provenance (not certificates)
 connectors/kong/       parse, target boundary/lowering, comparisons, lifting
 connectors/kubernetes_rbac/ strict snapshots, frozen identity/access contracts,
-                          exact grant lowering and repair preservation
+                          explicit export preparation, exact grants and preservation
 cli/                  verify / compare / rbac / profile / mcp subcommands
 mcp/                  config-only frozen Kong/RBAC verification adapters
 ci/                   GitHub annotation formatting

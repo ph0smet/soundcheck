@@ -3,10 +3,12 @@ module K = Soundcheck_kubernetes_rbac
 
 let usage () =
   prerr_endline
-    "usage: soundcheck rbac verify SNAPSHOT.json --contract CONTRACT.json [--format human|json|github] [--evidence-dir NEW_DIRECTORY]\n\
+    "usage: soundcheck rbac prepare EXPORT.json [--receipt NEW_FILE]\n\
+     usage: soundcheck rbac verify SNAPSHOT.json --contract CONTRACT.json [--format human|json|github] [--evidence-dir NEW_DIRECTORY]\n\
      usage: soundcheck rbac compare BEFORE.json AFTER.json --contract CONTRACT.json [--format human|json|github] [--evidence-dir NEW_DIRECTORY]\n\
      Input is a complete desired RBAC snapshot in one strict JSON Kubernetes v1/List.\n\
      The contract freezes identities, groups, access requirements and approved change scope.\n\
+     Preparation emits a supported snapshot, not a verification result or completeness proof.\n\
      Use soundcheck profile kubernetes-rbac for the exact model and assumptions.";
   exit 2
 
@@ -46,7 +48,7 @@ let write_evidence ~on_error directory make_bundle =
     | Ok () -> ()
     | Error reason -> on_error reason;exit 1
 
-let run args =
+let run_verification args =
   let operation,options_args = match args with
     | "verify" :: file :: rest -> (`Verify file),rest
     | "compare" :: before :: after :: rest -> (`Compare (before,after)),rest
@@ -82,3 +84,35 @@ let run args =
     | "github" -> Soundcheck_ci.Github_annotation.render ~file report
     | _ -> Report.to_human report);
   exit (exit_code report.result)
+
+let run_prepare args =
+  let path,receipt_path = match args with
+    | [path] when path <> "" && not (String.starts_with ~prefix:"-" path) -> path,None
+    | [path;"--receipt";receipt] when path <> "" && receipt <> ""
+        && not (String.starts_with ~prefix:"-" path)
+        && not (String.starts_with ~prefix:"-" receipt) -> path,Some receipt
+    | _ -> usage () in
+  try
+    match K.Prepare.of_string (read path) with
+    | Error reason -> Printf.eprintf "preparation error: %s\n" reason;exit 2
+    | Ok prepared ->
+      Option.iter (fun path ->
+        let descriptor = Unix.openfile path [Unix.O_WRONLY;Unix.O_CREAT;Unix.O_EXCL] 0o600 in
+        let channel = Unix.out_channel_of_descr descriptor in
+        Fun.protect ~finally:(fun () -> close_out_noerr channel) (fun () ->
+          output_string channel (K.Prepare.receipt_json prepared);
+          output_char channel '\n';
+          close_out channel)) receipt_path;
+      output_string stdout prepared.snapshot;
+      flush stdout;
+      Printf.eprintf "Prepared %d RBAC objects; removed %d metadata fields. No verification or completeness claim.\n"
+        prepared.object_count (List.length prepared.removed_fields)
+  with
+  | Sys_error reason -> Printf.eprintf "preparation I/O error: %s\n" reason;exit 1
+  | Unix.Unix_error (error,operation,path) ->
+    Printf.eprintf "preparation I/O error: %s: %s (%s)\n" operation (Unix.error_message error) path;
+    exit 1
+
+let run = function
+  | "prepare" :: args -> run_prepare args
+  | args -> run_verification args

@@ -187,6 +187,11 @@ list/watch, indirect access and runtime deployment behavior are outside this
 claim. See the [RBAC guide](docs/kubernetes-rbac.md) for the supported input,
 deny-all and operator-regression examples, and exact assumptions.
 
+For otherwise-supported JSON exports, [`rbac prepare`](docs/kubernetes-rbac.md#prepare-a-json-export)
+removes validated bookkeeping metadata and can retain a receipt binding the
+original and prepared bytes. It preserves policy content; preparation success
+does not establish verification or snapshot completeness.
+
 ## What Soundcheck establishes
 
 Schema validation checks a document's structure. Request tests exercise selected
@@ -488,7 +493,8 @@ The repository keeps several kinds of evidence separate:
   observations.
 - [Pinned Kubernetes RBAC conformance](bench/kubernetes-rbac/conformance/README.md)
   comparing concrete and SMT decisions with Kubernetes' production authorizer
-  on original snapshot bytes, including replay of CLI counterexamples.
+  on original snapshot bytes, including replay of CLI counterexamples and
+  independent policy-preservation checks for prepared exports.
 
 These are finite checks of the implementation and abstraction rules, not a
 universal proof that the target model matches every deployment.
