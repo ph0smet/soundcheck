@@ -139,6 +139,8 @@ failure/timeout, or invalid witness). Only proved exits zero at the gate.
   buggy output pass. Frozen reports carry the artifact's normalized identity.
   The CI Action reads the immutable PR base-commit contract (or the exact
   protected-default-branch push commit), not the candidate's contract file.
+  Optional RBAC `mode: repair` is PR-only and also reads the baseline from the
+  same config path in that base commit; no baseline/ref override is accepted.
   Trusted workflow/action sources, fixed contract selection, required checks,
   fresh-base reruns, and separate contract approval are external prerequisites.
 

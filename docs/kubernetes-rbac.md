@@ -263,14 +263,49 @@ immutable PR base commit or protected-default-branch push commit. A candidate's
 edited contract cannot replace that approved blob. The selector defaults to
 `kong`; unknown or empty selectors fail before verification.
 
-The Action calls `rbac verify --format github`. It checks required and forbidden
-grants, but does **not** compare with a baseline or establish preservation outside
-the change scope. Use `rbac compare` separately with an operator-controlled
-baseline when accepting repairs; a candidate can satisfy its contract while
-changing unrelated permissions.
+The default `mode: verify` calls `rbac verify --format github`. It checks required
+and forbidden grants without claiming preservation outside the change scope.
+
+For repair acceptance on pull requests, select `mode: repair` in a trusted job:
+
+```yaml
+on: [pull_request]
+permissions:
+  contents: read
+jobs:
+  rbac-repair:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ph0smet/soundcheck@<reviewed-full-commit-sha>
+        with:
+          connector: kubernetes-rbac
+          mode: repair
+          config: rbac-snapshot.json
+          contract: contracts/rbac-access.json
+```
+
+Repair mode calls `rbac compare` with two approved inputs from the **same
+immutable PR base commit**: the contract at `contract` and the baseline at
+`config`. Only the candidate comes from the checkout's `config` file. Both
+approved inputs must be regular Git blobs, and their commit/path/blob identities
+are logged. Candidate edits cannot replace the baseline, widen the approved
+change scope or select an alternative baseline revision.
+
+The base snapshot may violate the contract because it is the policy being
+repaired. The candidate must satisfy the contract and preserve all modeled
+decisions outside its approved change scope. The operator-regression example
+passes `verify` but fails `repair`.
+
+The fixed config path must already exist in the PR base. A missing, non-regular,
+malformed or unsupported baseline fails the gate; it never falls back to
+verification. Repair mode requires `kubernetes-rbac` and a `pull_request` event.
+It rejects pushes: the push's after commit cannot also serve as a meaningful
+before snapshot. Protected-default-branch pushes can still use explicit/default
+`verify` mode. New contract or baseline selection requires independent review.
 
 Use a fresh trusted Ubuntu job and a reviewed full Action commit SHA. Protect
-the workflow, connector choice and contract path, and approve requirements
+the workflow, mode, connector choice and both fixed paths, and approve requirements
 separately. Required checks, branch protection and fresh-base reruns remain
 repository responsibilities. See the [Action trust boundary](../README.md#github-action)
 for supported events, runner requirements and dependency assumptions.

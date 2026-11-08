@@ -112,6 +112,7 @@ baseline; see its [contract and integration boundary](docs/kubernetes-rbac.md).
    and can revise and retry. The tool accepts no replacement property or scope.
 3. **Rerun in trusted CI.** The [GitHub Action](#github-action) independently
    verifies the candidate against the contract from the approved event commit.
+   RBAC repair mode also checks preservation against that PR base's snapshot.
    It does not trust an agent's earlier verdict. Only `proved` passes the
    verification gate; required checks and deployment controls enforce the result.
 
@@ -343,15 +344,17 @@ steps:
       contract: soundcheck-contract.yaml
 ```
 
-The connector defaults to `kong`. For the bounded RBAC profile, set
-`connector: kubernetes-rbac` and select a complete strict JSON snapshot and an
+The connector defaults to `kong` and the mode to `verify`. For the bounded RBAC
+profile, set `connector: kubernetes-rbac` and select a complete strict JSON snapshot and an
 approved RBAC contract. The [RBAC Action example](docs/kubernetes-rbac.md#github-action)
-shows this setup. The Action checks the frozen access contract; repair
-preservation requires a separate `rbac compare` check against a trusted baseline.
+shows contract verification and `mode: repair`. On pull requests, repair mode
+also preserves decisions outside the frozen change scope against the same config
+path in the approved base commit. It rejects pushes and missing baselines;
+ordinary verification remains available without a preservation claim.
 
 Use a reviewed full commit SHA in a fresh, trusted job before candidate code
-runs. The caller workflow, connector, fixed contract path, and Action SHA must not be
-candidate-controlled; `uses: ./` is only suitable for testing the Action. The
+runs. The caller workflow, mode, connector, fixed config/contract paths, and
+Action SHA must not be candidate-controlled; `uses: ./` is only suitable for testing the Action. The
 adapter accepts `pull_request` and non-forced, non-deleted protected-default-branch
 push events and fails closed elsewhere.
 
