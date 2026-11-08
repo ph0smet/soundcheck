@@ -143,6 +143,10 @@ This does not sandbox an agent that can replace those files or the verifier.
 
 ## Read-access contracts (schema 2)
 
+The [runnable read-access repair demo](../bench/kubernetes-rbac/workflows/read-access/README.md)
+pairs a frozen schema-2 contract with unsafe, partial-repair, valid-repair,
+deny-all and operator-regression snapshots.
+
 Schema 2 keeps the same `kind`, frozen identity context, paired clause kinds and
 approved `change_scope`. Every clause and change-scope entry also requires a
 singular `verb`: `get`, `list` or `watch`. The contract selects the

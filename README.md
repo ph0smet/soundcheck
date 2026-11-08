@@ -191,6 +191,10 @@ access and runtime deployment behavior remain outside this claim.
 See the [RBAC guide](docs/kubernetes-rbac.md) for the supported input,
 deny-all and operator-regression examples, and exact assumptions.
 
+The [read-access repair demo](bench/kubernetes-rbac/workflows/read-access/README.md)
+shows why removing only `get` can leave Secret read access, and checks a repair
+that preserves ConfigMap watches and the operator's access.
+
 For otherwise-supported JSON exports, [`rbac prepare`](docs/kubernetes-rbac.md#prepare-a-json-export)
 removes validated bookkeeping metadata and can retain a receipt binding the
 original and prepared bytes. It preserves policy content; preparation success

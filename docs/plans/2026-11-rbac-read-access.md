@@ -46,11 +46,16 @@ continues using the unchanged snapshot parser and receipt format.
 
 1. Versioned contracts, read domain/lowering, preservation, accurate reports and
    profile/evidence selection, with focused regressions and bounded documentation.
-2. Independent read conformance: upstream RequestInfoFactory and authorization
+2. Adapter acceptance and runnable examples for CLI/evidence, frozen MCP and the
+   approved-base Action, including preservation across verb and endpoint scope.
+   The submitted-repair evaluator also validates each result against the frozen
+   contract's profile. Existing experimental format 1 stays unchanged; suites
+   with a frozen schema-2 contract select format 2 with trusted per-task profiles
+   and a null common profile when tasks use different profiles. Stable report
+   and evidence schemas do not change.
+3. Independent read conformance: upstream RequestInfoFactory and authorization
    attributes from raw URLs, production RBAC decisions, concrete/SMT comparison
    and witness replay; retain the original named-get/preparation suites.
-3. Adapter acceptance and runnable examples for CLI/evidence, frozen MCP and the
-   approved-base Action, including preservation across verb and endpoint scope.
 
 Each commit receives clean-worktree build/regression checks. Reference tests
 include empty/literal/wildcard names, exact versus nonexact selectors, malformed

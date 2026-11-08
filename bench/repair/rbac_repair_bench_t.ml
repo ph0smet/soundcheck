@@ -18,6 +18,17 @@ let contract = Printf.sprintf {| {
   "change_scope":[{"subject":%S,"namespace":"payments","resource":"secrets","names":null}]
 } |} secret secret secret secret
 let spec = ok (K.Contract_spec.of_string contract)
+let read_contract = Printf.sprintf {| {
+  "schema_version":2,"kind":"kubernetes-rbac-access",
+  "context":{"schema_version":1,"snapshot_complete":true,
+    "identities":[{"username":%S,"groups":["operators"]}]},
+  "clauses":[
+    {"name":"required","kind":"must_allow","subject":%S,"verb":"list",
+     "namespace":"frontend","resource":"configmaps","names":null},
+    {"name":"forbidden","kind":"must_not_grant","subject":%S,"verb":"watch",
+     "namespace":null,"resource":"secrets","names":null}],
+  "change_scope":[{"subject":%S,"verb":"watch","namespace":null,"resource":"secrets","names":null}]
+} |} secret secret secret secret
 let task ?(id="task") ?(config="before.json") ?(contract="contract.json") () : Pilot.case =
   {id;config;contract;provenance=Pilot.Synthetic}
 let entry ?(task="task") ?(config="candidate.json") id =
@@ -40,8 +51,10 @@ let witness : Report.counterexample =
    sni=secret;source_ip=0l;headers=[secret,secret];object_request=model.object_request;
    identity_groups=Some [secret];granting_rules=[secret];note=secret}
 let report ?(unsupported=false) ?(property=K.Contract_spec.kind) spec result : Report.t =
+  let version = K.Contract_spec.version spec in
   {result;property_name=property;property_description=secret;
-   assurance=Some (if unsupported then K.Assurance.assessment ~reason:secret () else K.Assurance.assessment ());
+   assurance=Some (if unsupported then K.Assurance.assessment ~version ~reason:secret ()
+                  else K.Assurance.assessment ~version ());
    clause=None;frozen_spec=Some (K.Contract_spec.frozen_spec spec)}
 let trace ?(candidate_result=Report.Proved) execution : Evidence.comparison_trace =
   let plan=["inhabitance-1",Contract_verify.Inhabitance,Solve.Violated model;
@@ -206,6 +219,8 @@ let () =
   check "separate experimental RBAC kind" (field "kind" json=`String "submitted_rbac_repair_evaluation"
     && field "experimental_format_version" json=`Number "1");
   check "exact supported profile" (field "profile" json=`String "kubernetes-rbac-v1.34-get-v1");
+  check "schema1 task JSON shape unchanged" (match field "tasks" json with
+    | `A (`O fields::_) -> not (List.mem_assoc "profile" fields) | _ -> false);
   List.iter (fun (key,value) -> check ("aggregate " ^ key) (field key json=`Number value))
     ["scheduled_tasks","6";"submitted_attempts","15";"tasks_with_valid_repair","2";"tasks_with_errors","5"];
   List.iter (fun (key,value) -> check ("count " ^ key) (field key (field "attempt_counts" json)=`Number value))
@@ -272,4 +287,79 @@ let () =
     ~submission_root:"unused" suite attempts in
   check "candidate unknown reason binds to recorded result"
     ((List.hd (List.hd rows).attempts).failure=Some Report_mismatch);
+
+  let freeze_contract source = freeze ~read_suite:(fun path ->
+    Ok (if path="contract.json" then source else "baseline"))
+      ~suite_root:"unused" [task ()] in
+  let read_suite = freeze_contract read_contract in
+  let evaluate_suite suite evaluate =
+    let attempts=ok (parse_submissions suite (submissions [entry "read"])) in
+    run ~read_candidate:(fun _->Ok "candidate") ~evaluate
+      ~now:(fun ()->0.) ~submission_root:"unused" suite attempts in
+  let read_rows = evaluate_suite read_suite (fun frozen ~before:_ ~after:_ ->
+    check "read contract version frozen before dispatch" (K.Contract_spec.version frozen=2);
+    comparison frozen "valid") in
+  let first_attempt rows = List.hd (List.hd rows).attempts in
+  check "v2 read-profile comparison accepted" (exit_code read_rows=0
+    && (first_attempt read_rows).repair_result=Some "valid_repair");
+  let json=K.Input.parse (to_json read_rows) in
+  check "all-v2 summary selects format2 and trusted profile"
+    (field "experimental_format_version" json=`Number "2"
+      && field "profile" json=`String K.Assurance.read_profile_id
+      && (match field "tasks" json with `A [task]->field "profile" task=`String K.Assurance.read_profile_id | _->false));
+  let with_profile profile (report:Report.t) =
+    {report with assurance=Option.map (fun (assurance:Report.assurance)->
+      {assurance with profile}) report.assurance} in
+  let map_reports transform (comparison:K.Verify.comparison) =
+    {comparison with report=transform comparison.report;
+      candidate_report=Option.map transform comparison.candidate_report} in
+  let profile_forgeries = [
+    "both stages downgraded",map_reports (with_profile K.Assurance.profile_id);
+    "candidate profile downgraded",(fun (r:K.Verify.comparison)->
+      {r with candidate_report=Option.map (with_profile K.Assurance.profile_id) r.candidate_report});
+    "final profile downgraded",(fun (r:K.Verify.comparison)->
+      {r with report=with_profile K.Assurance.profile_id r.report});
+    "both stages use unrelated profile",map_reports (with_profile "untrusted-profile");
+    "frozen contract identity downgraded",map_reports (fun report->
+      {report with frozen_spec=Some (K.Contract_spec.frozen_spec spec)});
+  ] in
+  List.iter (fun (label,forge)->
+    let rows=evaluate_suite read_suite (fun frozen ~before:_ ~after:_->
+      forge (comparison frozen "valid")) in
+    check ("v2 " ^ label ^ " fails closed")
+      ((first_attempt rows).failure=Some Report_mismatch
+        && (first_attempt rows).repair_result=None && exit_code rows=1
+        && (List.hd rows).profile=Some K.Assurance.read_profile_id)) profile_forgeries;
+  List.iter (fun mode ->
+    let rows=evaluate_suite read_suite (fun frozen ~before:_ ~after:_->comparison frozen mode) in
+    check ("v2 uncertainty retained " ^ mode)
+      ((first_attempt rows).failure=None && (first_attempt rows).repair_result=Some "unknown"
+        && exit_code rows=3)) ["unsupported";"candidate-unknown";"preservation-unknown"];
+  let rows=evaluate_suite read_suite (fun frozen ~before:_ ~after:_->
+    map_reports (with_profile K.Assurance.profile_id) (comparison frozen "unsupported")) in
+  check "unsupported v2 result cannot downgrade profile"
+    ((first_attempt rows).failure=Some Report_mismatch && exit_code rows=1);
+  let rows=evaluate_suite (freeze_contract contract) (fun frozen ~before:_ ~after:_->
+    map_reports (with_profile K.Assurance.read_profile_id) (comparison frozen "valid")) in
+  check "schema1 result cannot adopt broader profile"
+    ((first_attempt rows).failure=Some Report_mismatch && exit_code rows=1);
+  let mixed=freeze ~read_suite:(fun path->Ok (match path with
+      | "contract.json"->contract | "read.json"->read_contract | _->"invalid"))
+    ~suite_root:"unused" [task ();task ~id:"read" ~contract:"read.json" ();
+      task ~id:"invalid" ~contract:"invalid.json" ()] in
+  let rows=run ~read_candidate:(fun _->Ok "candidate")
+    ~evaluate:(fun frozen ~before:_ ~after:_->comparison frozen "valid")
+    ~now:(fun ()->0.) ~submission_root:"unused" mixed
+    (ok (parse_submissions mixed (submissions [entry "a";entry ~task:"read" "b";entry ~task:"invalid" "c"]))) in
+  let json=K.Input.parse (to_json rows) in
+  check "mixed summary has no invented common profile"
+    (field "experimental_format_version" json=`Number "2" && field "profile" json=`Null);
+  check "mixed task profiles derive only from valid frozen contracts"
+    (match field "tasks" json with `A tasks->List.map (field "profile") tasks=
+      [`String K.Assurance.profile_id;`String K.Assurance.read_profile_id;`Null] | _->false);
+  check "submission failure retains frozen v2 profile"
+    (field "profile" (K.Input.parse (to_json (failed_tasks Submissions_invalid read_suite)))
+      =`String K.Assurance.read_profile_id);
+  check "fatal summaries retain legacy format" (let json=K.Input.parse (fatal_json "suite_invalid") in
+    field "experimental_format_version" json=`Number "1" && field "profile" json=`String K.Assurance.profile_id);
   Printf.printf "All %d RBAC submitted-repair unit checks passed.\n" !checks

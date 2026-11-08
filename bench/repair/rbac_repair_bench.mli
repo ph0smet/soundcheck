@@ -24,6 +24,7 @@ type attempt_row = {
 type task_row = {
   id : string;
   provenance : Pilot.provenance;
+  profile : string option;
   baseline_sha256 : string option;
   contract_sha256 : string option;
   frozen_contract_sha256 : string option;
@@ -67,7 +68,9 @@ val exit_code : task_row list -> int
 
 val to_json : task_row list -> string
 (** Minimized experimental summary: never contains raw reports, inputs,
-    witnesses, formulas, paths, canonical contracts or diagnostic text. *)
+    witnesses, formulas, paths, canonical contracts or diagnostic text.
+    A frozen v2 contract selects format 2, with per-task trusted profiles;
+    otherwise the existing format 1 summary is retained. *)
 
 val fatal_json : string -> string
 (** The argument must be an internal failure constant, not a diagnostic. *)

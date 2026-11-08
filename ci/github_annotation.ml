@@ -56,9 +56,18 @@ let counterexample (value : Report.counterexample) =
     | Some object_request ->
       let strings values =
         "[" ^ String.concat ", " (List.map (Printf.sprintf "%S") values) ^ "]" in
-      (Printf.sprintf "%s %s %s/%s in namespace %s" value.principal
-         value.action object_request.resource_kind object_request.name
-         object_request.namespace,
+      let request =
+        if value.action = "list" || value.action = "watch" then
+          let scope = if object_request.namespace = "" then "in all namespaces"
+            else "in namespace " ^ object_request.namespace in
+          let names = if object_request.name = "" then "with no exact-name restriction"
+            else "with effective name " ^ object_request.name in
+          Printf.sprintf "%s %s %s %s %s" value.principal value.action
+            object_request.resource_kind scope names
+        else Printf.sprintf "%s %s %s/%s in namespace %s" value.principal
+            value.action object_request.resource_kind object_request.name
+            object_request.namespace in
+      (request,
        (Option.to_list (Option.map (fun groups -> "identity groups " ^ strings groups)
                           value.identity_groups)) @
        ["granting rules " ^ strings value.granting_rules])
