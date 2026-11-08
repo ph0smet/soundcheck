@@ -159,6 +159,29 @@ jobs:
             test "$soundcheck_status" -eq 3
           fi
 
+      - name: Frozen Kubernetes RBAC contract
+        # Reuse the same Action build and pinned solver. This gate checks the
+        # approved access contract, not before/after repair preservation.
+        shell: bash
+        env:
+          SOUNDCHECK_CONNECTOR_INPUT: kubernetes-rbac
+          SOUNDCHECK_CONTRACT_INPUT: bench/kubernetes-rbac/contracts/frontend-access.json
+        run: |
+          set -euo pipefail
+          check_rbac_gate() {
+            local fixture="$1" expected="$2" status=0
+            SOUNDCHECK_CONFIG_INPUT="bench/kubernetes-rbac/fixtures/$fixture.json" \
+              bash scripts/verify-approved-contract.sh || status=$?
+            if [[ "$status" -ne "$expected" ]]; then
+              printf 'RBAC gate %s: expected exit %s, got %s\n' "$fixture" "$expected" "$status" >&2
+              exit 1
+            fi
+          }
+          check_rbac_gate 03-valid-repair 0
+          check_rbac_gate 01-unsafe 3
+          check_rbac_gate 02-delete-workload-grants 3
+          check_rbac_gate 18-aggregation-boundary 4
+
   frontend:
     # The web adapter's checks, plus a conformance run of its schema validators
     # against the real CLI so engine/frontend drift fails here.

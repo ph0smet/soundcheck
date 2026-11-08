@@ -269,8 +269,8 @@ to a counterexample without gaining an interface for changing the property.
 
 For the hard enforcement layer, use the
 [GitHub Action](../README.md#github-action) from a reviewed full commit SHA. Run
-it in a fresh trusted job before candidate code; the caller workflow, fixed
-contract path, and Action SHA must not be candidate-controlled. `uses: ./` is a
+it in a fresh trusted job before candidate code; the caller workflow, connector,
+fixed contract path, and Action SHA must not be candidate-controlled. `uses: ./` is a
 test mechanism, not an approval boundary. The adapter accepts only
 `pull_request` and non-forced, non-deleted protected-default-branch push events,
 reading the contract from the immutable event commit. Other events fail closed.
@@ -282,6 +282,9 @@ It also checks the solver version selected by its opam environment.
 Pinning Soundcheck by SHA still leaves the setup Action, system packages, and
 resolved opam dependencies transitively unpinned; review or lock those separately
 when the deployment requires it.
+
+These examples use Kong, the default connector. The [RBAC integration guide](kubernetes-rbac.md#frozen-mcp-workflow)
+covers frozen MCP comparison and the Action's explicit `kubernetes-rbac` selector.
 
 ## Troubleshooting
 

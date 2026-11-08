@@ -52,19 +52,25 @@ let clause = function
     [ Printf.sprintf "clause %s (%s)" value.name kind ]
 
 let counterexample (value : Report.counterexample) =
-  let request =
-    Printf.sprintf "%s %s %s" value.principal
-      (if value.action = "" then "<any-method>" else value.action)
-      value.path
-  in
-  let location =
-    [ Option.map (fun route -> "route " ^ route) value.route;
-      Option.map (fun service -> "service " ^ service) value.service;
-      Option.map (fun route -> "shadowed route " ^ route) value.shadowed_route;
-      Option.map
-        (fun service -> "shadowed service " ^ service)
-        value.shadowed_service ]
-    |> List.filter_map Fun.id
+  let request, location = match value.object_request with
+    | Some object_request ->
+      let strings values =
+        "[" ^ String.concat ", " (List.map (Printf.sprintf "%S") values) ^ "]" in
+      (Printf.sprintf "%s %s %s/%s in namespace %s" value.principal
+         value.action object_request.resource_kind object_request.name
+         object_request.namespace,
+       (Option.to_list (Option.map (fun groups -> "identity groups " ^ strings groups)
+                          value.identity_groups)) @
+       ["granting rules " ^ strings value.granting_rules])
+    | None ->
+      (Printf.sprintf "%s %s %s" value.principal
+         (if value.action = "" then "<any-method>" else value.action)
+         value.path,
+       [ Option.map (fun route -> "route " ^ route) value.route;
+         Option.map (fun service -> "service " ^ service) value.service;
+         Option.map (fun route -> "shadowed route " ^ route) value.shadowed_route;
+         Option.map (fun service -> "shadowed service " ^ service) value.shadowed_service ]
+       |> List.filter_map Fun.id)
   in
   String.concat "; " (request :: location @ [ value.note ])
 

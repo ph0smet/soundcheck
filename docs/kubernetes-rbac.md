@@ -115,8 +115,92 @@ Preservation uses a `must_preserve` clause with before/after RBAC decisions in
 its description. Only `proved` exits `0`; violation/unknown/vacuous/inconsistent
 exit `3`/`4`/`5`/`6`. I/O and usage failures exit `1` and `2`.
 
-RBAC exposes CLI and library workflows. MCP, the reusable Action and the web UI
-remain Kong-specific.
+Use `--format human`, `json` or `github`. GitHub annotations identify the exact
+typed object request, groups and granting rules; a preservation failure names
+the before/after decision change. An annotation retains the same exit code as
+the JSON result. Non-proof results and I/O failures are error annotations;
+only a proof is a notice.
+
+RBAC exposes CLI, library, frozen MCP and reusable Action workflows. The web UI
+remains Kong-specific.
+
+## Frozen MCP workflow
+
+Start the server with an independently reviewed contract. An optional baseline
+enables repair-preservation checks:
+
+```sh
+eval "$(opam env)"
+dune exec soundcheck -- mcp --connector kubernetes-rbac \
+  --contract bench/kubernetes-rbac/contracts/frontend-access.json \
+  --baseline bench/kubernetes-rbac/fixtures/01-unsafe.json
+```
+
+The contract and baseline files are read at startup and retained for the entire
+session. Editing or deleting those files later does not replace the loaded
+requirements or baseline. A baseline must be supported by the snapshot reader;
+it may violate the contract because it represents the configuration to repair.
+Restart the server after independently approving different startup inputs.
+
+Both tools accept exactly `{"config": "<candidate snapshot JSON>"}`:
+
+- `verify` checks the candidate's frozen access contract.
+- `compare` checks that contract and preservation outside the approved change
+  scope against the startup baseline. It is advertised only when a baseline was
+  supplied. Tool discovery includes its SHA-256 identity.
+
+Tool arguments cannot override the contract, identities, groups, change scope,
+baseline, solver or evidence destination. Each tool returns the ordinary report
+schema 10 as text and structured content. `violated` and `unknown` are verifier
+outcomes, not transport errors. Invalid tool arguments are JSON-RPC errors.
+The server accepts candidate bytes directly; it does not read candidate paths,
+run an agent, modify files or contact a Kubernetes cluster.
+
+The stdio adapter uses the existing `2024-11-05` MCP handshake: initialize, then
+`notifications/initialized`, followed by tool requests. It accepts strict UTF-8
+JSON objects, one per line, with string or decimal-integer request IDs and a
+16 MiB encoded-message limit. Duplicate keys and YAML syntax are rejected;
+escaped candidate bytes are preserved. Oversized frames are discarded through
+the next newline so a following valid message remains usable. Normal output
+contains protocol messages only. See the pinned [MCP lifecycle](https://modelcontextprotocol.io/specification/2024-11-05/basic/lifecycle)
+and [stdio transport](https://modelcontextprotocol.io/specification/2024-11-05/basic/transports).
+
+Keep the server executable, startup arguments, contract and baseline under
+operator control. Freezing tool arguments is not a sandbox for an agent that
+can replace or restart the verifier. `verify` alone establishes no preservation
+result; repair acceptance requires `compare` or the equivalent CLI check.
+
+## GitHub Action
+
+Select RBAC explicitly in the trusted caller workflow:
+
+```yaml
+steps:
+  - uses: actions/checkout@v4
+  - uses: ph0smet/soundcheck@<reviewed-full-commit-sha>
+    with:
+      connector: kubernetes-rbac
+      config: rbac-snapshot.json
+      contract: contracts/rbac-access.json
+```
+
+`config` is the candidate's complete desired snapshot, in the strict JSON
+format above. `contract` is a fixed repository-relative path resolved from the
+immutable PR base commit or protected-default-branch push commit. A candidate's
+edited contract cannot replace that approved blob. The selector defaults to
+`kong`; unknown or empty selectors fail before verification.
+
+The Action calls `rbac verify --format github`. It checks required and forbidden
+grants, but does **not** compare with a baseline or establish preservation outside
+the change scope. Use `rbac compare` separately with an operator-controlled
+baseline when accepting repairs; a candidate can satisfy its contract while
+changing unrelated permissions.
+
+Use a fresh trusted Ubuntu job and a reviewed full Action commit SHA. Protect
+the workflow, connector choice and contract path, and approve requirements
+separately. Required checks, branch protection and fresh-base reruns remain
+repository responsibilities. See the [Action trust boundary](../README.md#github-action)
+for supported events, runner requirements and dependency assumptions.
 
 ## Verification evidence
 
@@ -192,10 +276,35 @@ The same exclusive-write, manifest-last, exit-code and sensitivity rules apply.
 Schema-2 consumers must reject comparison bundles unless explicitly updated to
 understand both stages. No Kong comparison or web UI evidence support is implied.
 
+## Submitted-repair evaluation
+
+The experimental [RBAC repair evaluator](../bench/repair/RBAC.md) evaluates an
+ordered set of candidate files against an evaluator-owned suite:
+
+```sh
+eval "$(opam env)"
+dune exec bench/repair/rbac_main.exe -- \
+  bench/repair/rbac-examples/suite.yaml \
+  bench/repair/rbac-examples/submissions.yaml
+```
+
+Contracts, identity contexts, approved change scopes and exact baseline bytes
+are frozen before submission metadata is read. Each attempt invokes the same
+contract-plus-preservation comparison once. The summary binds input digests and
+records both stages, including an unavailable candidate stage when an unsupported
+snapshot prevents comparison planning. Unknowns and input/tool failures receive
+no acceptance credit, and missing tasks remain in the schedule.
+
+The seven included candidates are hand-authored synthetic controls: four fail
+the contract, one breaks an unrelated operator's permission, one is unsupported,
+and one is a valid repair. They validate evaluator behavior, not AI performance.
+The command emits a minimized experimental summary without raw configurations,
+witnesses, formulas or diagnostics. No agent or cluster is contacted.
+
 ## Validation
 
-Ordinary `dune test` runs parser, core, contract, preservation and CLI regressions
-without Go or network access. The [reference harness](../bench/kubernetes-rbac/conformance/README.md)
+Ordinary `dune test` runs parser, core, contract, preservation, CLI, MCP, Action
+gate and submitted-repair regressions without Go or network access. The [reference harness](../bench/kubernetes-rbac/conformance/README.md)
 compares concrete and production SMT decisions with Kubernetes' actual pinned
 authorizer, on original input bytes, and replays CLI witnesses. Finite agreement
 is implementation evidence, not proof of parser/encoder correctness or a live

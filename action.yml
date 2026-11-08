@@ -1,5 +1,5 @@
-name: Soundcheck verified Kong configuration
-description: Verify a Kong declarative configuration against an immutable Soundcheck contract
+name: Soundcheck verified security configuration
+description: Verify a Kong or Kubernetes RBAC configuration against an immutable Soundcheck contract
 author: Sourav Kumar
 
 branding:
@@ -7,8 +7,12 @@ branding:
   color: blue
 
 inputs:
+  connector:
+    description: Trusted workflow-selected connector, kong or kubernetes-rbac; RBAC verifies the contract only, without before/after preservation
+    required: false
+    default: kong
   config:
-    description: Path to the Kong declarative configuration, relative to the caller workspace
+    description: Path to the Kong declarative configuration or complete strict JSON RBAC snapshot, relative to the caller workspace
     required: true
   contract:
     description: Repository-relative path to the approved contract in the PR base commit or protected default-branch push commit
@@ -68,6 +72,7 @@ runs:
     - name: Verify frozen contract
       shell: bash
       env:
+        SOUNDCHECK_CONNECTOR_INPUT: ${{ inputs.connector }}
         SOUNDCHECK_CONFIG_INPUT: ${{ inputs.config }}
         SOUNDCHECK_CONTRACT_INPUT: ${{ inputs.contract }}
       run: |

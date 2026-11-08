@@ -35,13 +35,14 @@ let usage () =
     \  With --contract, verify the replacement and preserve decisions outside\n\
     \  the frozen contract scope.\n\
      \n\
-     usage: soundcheck rbac verify SNAPSHOT.json --contract CONTRACT.json [--format human|json] [--evidence-dir NEW_DIRECTORY]\n\
-     usage: soundcheck rbac compare BEFORE.json AFTER.json --contract CONTRACT.json [--format human|json] [--evidence-dir NEW_DIRECTORY]\n\
+     usage: soundcheck rbac verify SNAPSHOT.json --contract CONTRACT.json [--format human|json|github] [--evidence-dir NEW_DIRECTORY]\n\
+     usage: soundcheck rbac compare BEFORE.json AFTER.json --contract CONTRACT.json [--format human|json|github] [--evidence-dir NEW_DIRECTORY]\n\
     \  Verify static named-get RBAC requirements, or verify a repair and preserve other decisions.\n\
      usage: soundcheck profile kong|kubernetes-rbac [--format human|json]\n\
     \  Print the versioned connector assurance profile and exit.\n\
      \n\
-     usage: soundcheck mcp [--contract CONTRACT.yaml]\n\
+     usage: soundcheck mcp [--connector kong] [--contract CONTRACT.yaml]\n\
+     usage: soundcheck mcp --connector kubernetes-rbac --contract CONTRACT.json [--baseline SNAPSHOT.json]\n\
     \  With --contract, the MCP verify tool accepts config only and keeps the\n\
     \  human-confirmed specification immutable for the server lifetime.";
   exit 2
@@ -283,15 +284,36 @@ let run_verify file rest =
        exit (exit_code report.result))
 
 let run_mcp rest =
-  reject_evidence_dir rest;
-  match parse_contract_path rest with
-  | None -> Soundcheck_mcp.Server.run ()
-  | Some path ->
+  let rec options connector contract baseline = function
+    | [] -> Option.value ~default:"kong" connector,contract,baseline
+    | "--connector" :: ("kong"|"kubernetes-rbac" as value) :: tail when connector=None ->
+      options (Some value) contract baseline tail
+    | "--contract" :: value :: tail when contract=None && value<>"" && not (String.starts_with ~prefix:"--" value) ->
+      options connector (Some value) baseline tail
+    | "--baseline" :: value :: tail when baseline=None && value<>"" && not (String.starts_with ~prefix:"--" value) ->
+      options connector contract (Some value) tail
+    | _ -> usage () in
+  let connector,contract_path,baseline_path = options None None None rest in
+  match connector,contract_path,baseline_path with
+  | "kong",None,None -> Soundcheck_mcp.Server.run ()
+  | "kong",Some path,None ->
     (match Contract_spec.read_file path with
      | Error error ->
        Printf.eprintf "contract error: %s\n" error;
        exit 2
      | Ok contract -> Soundcheck_mcp.Server.run ~contract ())
+  | "kubernetes-rbac",Some path,baseline_path ->
+    let module K = Soundcheck_kubernetes_rbac in
+    (try
+      match K.Contract_spec.of_string (Rbac.read path) with
+      | Error reason -> Printf.eprintf "contract error: %s\n" reason;exit 2
+      | Ok contract ->
+        let baseline = Option.map Rbac.read baseline_path in
+        (match Soundcheck_mcp.Rbac_server.create ~contract ?baseline () with
+         | Error reason -> prerr_endline reason;exit 2
+         | Ok server -> Soundcheck_mcp.Rbac_server.run server)
+    with Sys_error reason -> prerr_endline reason;exit 1)
+  | _ -> usage ()
 
 let run_compare before_file after_file rest =
   reject_evidence_dir rest;

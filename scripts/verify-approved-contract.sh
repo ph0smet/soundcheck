@@ -2,8 +2,8 @@
 set -euo pipefail
 
 # Run only from a trusted, commit-pinned Action. The candidate repository owns
-# the config bytes, never this helper, verifier, event metadata, or contract
-# selection policy. Repository protection and separate contract approval are
+# the config bytes, never this helper, verifier, event metadata, connector, or
+# contract selection policy. Repository protection and separate contract approval are
 # deployment prerequisites; extracting a base blob does not establish them.
 fail() {
   printf '::error title=Soundcheck contract source::%s\n' "$1" >&2
@@ -32,6 +32,12 @@ valid_relative_path() {
 
 soundcheck_config_input="${SOUNDCHECK_CONFIG_INPUT:-}"
 soundcheck_contract_input="${SOUNDCHECK_CONTRACT_INPUT:-}"
+soundcheck_connector="${SOUNDCHECK_CONNECTOR_INPUT-kong}"
+case "$soundcheck_connector" in
+  kong) soundcheck_verify_command=(verify) ;;
+  kubernetes-rbac) soundcheck_verify_command=(rbac verify) ;;
+  *) fail 'connector must be kong or kubernetes-rbac, selected by the trusted workflow.' ;;
+esac
 valid_relative_path "$soundcheck_config_input" || fail 'config must be a normalized workspace-relative file path.'
 valid_relative_path "$soundcheck_contract_input" || fail 'contract must be a normalized repository-relative file path.'
 
@@ -140,5 +146,7 @@ git_repo cat-file blob "$soundcheck_blob" > "$soundcheck_contract_file" || fail 
 chmod 400 "$soundcheck_contract_file"
 printf 'Approved contract: %s:%s (blob %s)\n' \
   "$soundcheck_source_sha" "$soundcheck_contract_input" "$soundcheck_blob"
-"$soundcheck_verifier" verify "$soundcheck_config_path" \
+# RBAC verifies only the frozen access contract. There is no comparison or
+# before-snapshot input here, so this gate does not establish preservation.
+"$soundcheck_verifier" "${soundcheck_verify_command[@]}" "$soundcheck_config_path" \
   --contract "$soundcheck_contract_file" --format github

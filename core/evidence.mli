@@ -52,6 +52,15 @@ val comparison_schema_version : int
 (** Schema 3 identifies repair comparisons explicitly; verification bundles
     retain schema 2 and their existing serialization. *)
 
+val comparison_stages :
+  Report.t -> Report.t -> comparison_trace -> (unit, string) result
+(** Check that the final report, candidate report and recorded executions agree:
+    ordered candidate phases short-circuit at a decisive result, and only a
+    proved candidate may execute preservation. This pure protocol check never
+    runs a solver, interprets SMT text or revalidates a witness. It does not
+    establish plan completeness, frozen-contract identity or profile agreement;
+    callers must bind those separately. *)
+
 val create_comparison :
   before:string -> after:string -> profile:profile -> provenance:provenance ->
   report:Report.t -> candidate_report:Report.t option ->
