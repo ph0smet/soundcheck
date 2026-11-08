@@ -9,8 +9,10 @@ let description =
   "The frozen access requirements hold for named get requests within the static RBAC profile; absence of a grant is NoOpinion, not final API-server denial."
 
 let report ?clause ?unsupported spec result : Report.t =
-  {result;property_name=Contract_spec.kind;property_description=description;
-   assurance=Some (Assurance.assessment ?reason:unsupported ());clause;
+  {result;property_name=Contract_spec.kind;
+   property_description=(if Contract_spec.version spec = 1 then description else
+     "The frozen get/list/watch requirements hold within the static RBAC read profile; absence of a grant is NoOpinion, not final API-server denial.");
+   assurance=Some (Assurance.assessment ~version:(Contract_spec.version spec) ?reason:unsupported ());clause;
    frozen_spec=Some (Contract_spec.frozen_spec spec)}
 
 let invalid_contract reason : Report.t =
@@ -33,8 +35,15 @@ let counterexample spec policy ~note model : Report.counterexample =
 
 let request_description model =
   let coordinates = Option.get model.Solve.object_request in
-  Printf.sprintf "%S get core %s %S in namespace %S"
-    (Option.get model.principal_name) coordinates.resource_kind coordinates.name coordinates.namespace
+  if model.method_ = "get" then
+    Printf.sprintf "%S get core %s %S in namespace %S"
+      (Option.get model.principal_name) coordinates.resource_kind coordinates.name coordinates.namespace
+  else Printf.sprintf "%S %s core %s %s (%s)"
+    (Option.get model.principal_name) model.method_ coordinates.resource_kind
+    (if coordinates.namespace = "" then "at the all-namespace endpoint"
+     else Printf.sprintf "in namespace %S" coordinates.namespace)
+    (if coordinates.name = "" then "no effective exact-name restriction"
+     else Printf.sprintf "effective authorization name %S" coordinates.name)
 
 let contract_report_of_result spec policy = function
   | Contract_verify.Proved -> report spec Report.Proved
@@ -101,7 +110,9 @@ let compare_with_trace ?z3 spec ~before ~after =
             Report.Violated (counterexample spec after ~note model),
             Some {Report.name=id;description=note;kind=Report.Must_preserve} in
         {candidate with result;clause;property_name="rbac-repair-preservation";
-         property_description="The candidate satisfies the frozen access requirements and preserves every RBAC decision outside the approved change scope, within the fixed identity and named-get domain."},
+         property_description=(if Contract_spec.version spec = 1 then
+           "The candidate satisfies the frozen access requirements and preserves every RBAC decision outside the approved change scope, within the fixed identity and named-get domain."
+           else "The candidate satisfies the frozen access requirements and preserves every RBAC decision outside the approved change scope, within the fixed identity and get/list/watch domain.")},
         Contract_verify.Executed answer
       | _ -> candidate,Contract_verify.Not_executed in
     {report=final_report;candidate_report=Some candidate;

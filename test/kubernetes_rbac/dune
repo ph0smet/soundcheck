@@ -100,3 +100,8 @@
   ../../bench/kubernetes-rbac/contracts/frontend-access.json)
  (action
   (run %{exe:prepare_cli_t.exe} %{exe:../../cli/main.exe} ../../bench/kubernetes-rbac)))
+
+(test
+ (name read_access_t)
+ (modules read_access_t)
+ (libraries soundcheck_core soundcheck_kubernetes_rbac))

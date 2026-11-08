@@ -8,27 +8,36 @@ let dns_label =
 let dns_name = Regex.Concat [dns_label;Regex.Star (Regex.Concat [Regex.Lit ".";dns_label])]
 
 let domain spec =
-  Ir.And [Ir.Has_object_request;Ir.Method_is "get";
+  let namespace = Ir.And [Ir.Object_matches (Ir.Object_namespace,dns_label);
+                         Ir.Object_length_at_most (Ir.Object_namespace,63)] in
+  let name = Ir.And [Ir.Object_matches (Ir.Object_name,dns_name);
+                    Ir.Object_length_at_most (Ir.Object_name,253)] in
+  let named_get = Ir.And [Ir.Method_is "get";namespace;name] in
+  let requests = if Contract_spec.version spec = 1 then named_get else
+      Ir.Or [named_get;
+        Ir.And [Ir.Or [Ir.Method_is "list";Ir.Method_is "watch"];
+                Ir.Or [Ir.Object_is (Ir.Object_namespace,"");namespace];
+                Ir.Or [Ir.Object_is (Ir.Object_name,"");name]]] in
+  Ir.And [Ir.Has_object_request;requests;
     Ir.Or (List.map (fun (identity : Identity.identity) -> Ir.Principal_is identity.username)
       (Contract_spec.identities spec));
-    Ir.Object_matches (Ir.Object_namespace,dns_label);
-    Ir.Object_length_at_most (Ir.Object_namespace,63);
-    Ir.Object_matches (Ir.Object_name,dns_name);
-    Ir.Object_length_at_most (Ir.Object_name,253);
     Ir.Or [Ir.Object_is (Ir.Object_kind,"configmaps");Ir.Object_is (Ir.Object_kind,"secrets")]]
 
 let wildcard_or values value = List.mem "*" values || List.mem value values
 
 let rule_condition (rule : Snapshot.rule) =
-  if not (wildcard_or rule.verbs "get" && wildcard_or rule.api_groups "") then Ir.Or []
+  if not (wildcard_or rule.api_groups "") then Ir.Or []
   else Ir.And [
+      Ir.Or (List.filter_map (fun verb ->
+          if wildcard_or rule.verbs verb then Some (Ir.Method_is verb) else None)
+        ["get";"list";"watch"]);
       Ir.Or (List.filter_map (fun kind ->
           if wildcard_or rule.resources kind then Some (Ir.Object_is (Ir.Object_kind,kind)) else None)
         ["configmaps";"secrets"]);
       (match rule.resource_names with
        | [] -> Ir.True
        | names -> Ir.Or (List.filter_map (fun name ->
-           if Input.dns_subdomain name then Some (Ir.Object_is (Ir.Object_name,name)) else None) names))]
+           if name = "" || Input.dns_subdomain name then Some (Ir.Object_is (Ir.Object_name,name)) else None) names))]
 
 let grant_id binding index =
   Printf.sprintf "%s -> %s/rules/%d" (Snapshot.binding_label binding) (Snapshot.role_label binding) index

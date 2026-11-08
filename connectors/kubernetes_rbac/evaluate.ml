@@ -17,7 +17,7 @@ let requests spec source = protect (fun () ->
     if not (List.exists (fun (identity : Identity.identity) ->
         identity.username = username && identity.groups = groups) (Contract_spec.identities spec))
     then reject path "username and exact groups must match the frozen context";
-    require_equal path (string_field path "verb" fields) "get";
+    let verb = string_field path "verb" fields in
     require_equal path (string_field path "apiGroup" fields) "";
     require_equal path (string_field path "subresource" fields) "";
     (match field path "resourceRequest" fields with
@@ -27,9 +27,9 @@ let requests spec source = protect (fun () ->
        resource_kind=string_field path "resource" fields;
        name=string_field path "name" fields} in
     let request : Ir.request =
-      {principal=Ir.Authenticated username;action="get";resource="";context=[];
+      {principal=Ir.Authenticated username;action=verb;resource="";context=[];
        source=0l;host="";scheme="";sni="";object_request=Some coordinates} in
-    if not (Ir.matches (Lower.domain spec) request) then reject path "request is outside the named-get domain";
+    if not (Ir.matches (Lower.domain spec) request) then reject path "request is outside the contract's RBAC request domain";
     {id;request}))
 
 let decisions policy requests =
@@ -52,7 +52,7 @@ let matrix_smt policy requests =
   List.iter (fun row ->
       let principal = match row.request.principal with Ir.Authenticated name -> name | _ -> assert false in
       let coordinates = Option.get row.request.object_request in
-      let args = String.concat " " ["\"\"";"\"get\"";"false";"#x00000000";"\"\"";"\"\"";"\"\"";
+      let args = String.concat " " ["\"\"";Regex.smt_string row.request.action;"false";"#x00000000";"\"\"";"\"\"";"\"\"";
           Regex.smt_string principal;"true";Regex.smt_string coordinates.namespace;
           Regex.smt_string coordinates.resource_kind;Regex.smt_string coordinates.name] in
       Buffer.add_string buffer (Printf.sprintf "(simplify (domain %s))\n(simplify (allows %s))\n" args args)) requests;
