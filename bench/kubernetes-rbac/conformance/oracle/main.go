@@ -61,6 +61,10 @@ type inventory struct {
 }
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "--request-urls" {
+		requestURLFiles(os.Args[2:])
+		return
+	}
 	if len(os.Args) > 1 && os.Args[1] == "--compare-policies" {
 		comparePolicyFiles(os.Args[2:])
 		return

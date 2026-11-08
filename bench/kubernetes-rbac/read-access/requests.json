@@ -1,0 +1,2702 @@
+[
+  {
+    "id": "request-001",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "get",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "frontend",
+    "name": "settings",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-002",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "get",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "frontend",
+    "name": "token",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-003",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "get",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "frontend",
+    "name": "other",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-004",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "get",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "frontend",
+    "name": "settings",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-005",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "get",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "frontend",
+    "name": "token",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-006",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "get",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "frontend",
+    "name": "other",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-007",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "get",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "payments",
+    "name": "settings",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-008",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "get",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "payments",
+    "name": "token",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-009",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "get",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "payments",
+    "name": "other",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-010",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "get",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "payments",
+    "name": "settings",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-011",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "get",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "payments",
+    "name": "token",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-012",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "get",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "payments",
+    "name": "other",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-013",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "",
+    "name": "",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-014",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "",
+    "name": "settings",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-015",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "",
+    "name": "token",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-016",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "",
+    "name": "other",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-017",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "",
+    "name": "",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-018",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "",
+    "name": "settings",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-019",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "",
+    "name": "token",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-020",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "",
+    "name": "other",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-021",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "frontend",
+    "name": "",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-022",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "frontend",
+    "name": "settings",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-023",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "frontend",
+    "name": "token",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-024",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "frontend",
+    "name": "other",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-025",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "frontend",
+    "name": "",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-026",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "frontend",
+    "name": "settings",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-027",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "frontend",
+    "name": "token",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-028",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "frontend",
+    "name": "other",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-029",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "payments",
+    "name": "",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-030",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "payments",
+    "name": "settings",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-031",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "payments",
+    "name": "token",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-032",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "payments",
+    "name": "other",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-033",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "payments",
+    "name": "",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-034",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "payments",
+    "name": "settings",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-035",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "payments",
+    "name": "token",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-036",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "payments",
+    "name": "other",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-037",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "",
+    "name": "",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-038",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "",
+    "name": "settings",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-039",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "",
+    "name": "token",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-040",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "",
+    "name": "other",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-041",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "",
+    "name": "",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-042",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "",
+    "name": "settings",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-043",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "",
+    "name": "token",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-044",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "",
+    "name": "other",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-045",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "frontend",
+    "name": "",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-046",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "frontend",
+    "name": "settings",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-047",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "frontend",
+    "name": "token",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-048",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "frontend",
+    "name": "other",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-049",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "frontend",
+    "name": "",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-050",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "frontend",
+    "name": "settings",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-051",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "frontend",
+    "name": "token",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-052",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "frontend",
+    "name": "other",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-053",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "payments",
+    "name": "",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-054",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "payments",
+    "name": "settings",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-055",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "payments",
+    "name": "token",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-056",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "payments",
+    "name": "other",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-057",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "payments",
+    "name": "",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-058",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "payments",
+    "name": "settings",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-059",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "payments",
+    "name": "token",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-060",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "payments",
+    "name": "other",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-061",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "get",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "frontend",
+    "name": "settings",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-062",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "get",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "frontend",
+    "name": "token",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-063",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "get",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "frontend",
+    "name": "other",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-064",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "get",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "frontend",
+    "name": "settings",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-065",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "get",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "frontend",
+    "name": "token",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-066",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "get",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "frontend",
+    "name": "other",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-067",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "get",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "payments",
+    "name": "settings",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-068",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "get",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "payments",
+    "name": "token",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-069",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "get",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "payments",
+    "name": "other",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-070",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "get",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "payments",
+    "name": "settings",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-071",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "get",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "payments",
+    "name": "token",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-072",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "get",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "payments",
+    "name": "other",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-073",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "",
+    "name": "",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-074",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "",
+    "name": "settings",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-075",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "",
+    "name": "token",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-076",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "",
+    "name": "other",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-077",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "",
+    "name": "",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-078",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "",
+    "name": "settings",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-079",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "",
+    "name": "token",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-080",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "",
+    "name": "other",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-081",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "frontend",
+    "name": "",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-082",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "frontend",
+    "name": "settings",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-083",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "frontend",
+    "name": "token",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-084",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "frontend",
+    "name": "other",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-085",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "frontend",
+    "name": "",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-086",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "frontend",
+    "name": "settings",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-087",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "frontend",
+    "name": "token",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-088",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "frontend",
+    "name": "other",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-089",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "payments",
+    "name": "",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-090",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "payments",
+    "name": "settings",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-091",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "payments",
+    "name": "token",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-092",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "payments",
+    "name": "other",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-093",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "payments",
+    "name": "",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-094",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "payments",
+    "name": "settings",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-095",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "payments",
+    "name": "token",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-096",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "payments",
+    "name": "other",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-097",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "",
+    "name": "",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-098",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "",
+    "name": "settings",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-099",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "",
+    "name": "token",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-100",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "",
+    "name": "other",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-101",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "",
+    "name": "",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-102",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "",
+    "name": "settings",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-103",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "",
+    "name": "token",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-104",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "",
+    "name": "other",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-105",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "frontend",
+    "name": "",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-106",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "frontend",
+    "name": "settings",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-107",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "frontend",
+    "name": "token",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-108",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "frontend",
+    "name": "other",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-109",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "frontend",
+    "name": "",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-110",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "frontend",
+    "name": "settings",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-111",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "frontend",
+    "name": "token",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-112",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "frontend",
+    "name": "other",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-113",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "payments",
+    "name": "",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-114",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "payments",
+    "name": "settings",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-115",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "payments",
+    "name": "token",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-116",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "payments",
+    "name": "other",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-117",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "payments",
+    "name": "",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-118",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "payments",
+    "name": "settings",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-119",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "payments",
+    "name": "token",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-120",
+    "username": "ops-auditor",
+    "groups": [
+      "ops",
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "payments",
+    "name": "other",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-121",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "get",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "frontend",
+    "name": "settings",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-122",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "get",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "frontend",
+    "name": "token",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-123",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "get",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "frontend",
+    "name": "other",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-124",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "get",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "frontend",
+    "name": "settings",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-125",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "get",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "frontend",
+    "name": "token",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-126",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "get",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "frontend",
+    "name": "other",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-127",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "get",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "payments",
+    "name": "settings",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-128",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "get",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "payments",
+    "name": "token",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-129",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "get",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "payments",
+    "name": "other",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-130",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "get",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "payments",
+    "name": "settings",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-131",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "get",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "payments",
+    "name": "token",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-132",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "get",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "payments",
+    "name": "other",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-133",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "",
+    "name": "",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-134",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "",
+    "name": "settings",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-135",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "",
+    "name": "token",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-136",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "",
+    "name": "other",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-137",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "",
+    "name": "",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-138",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "",
+    "name": "settings",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-139",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "",
+    "name": "token",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-140",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "",
+    "name": "other",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-141",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "frontend",
+    "name": "",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-142",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "frontend",
+    "name": "settings",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-143",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "frontend",
+    "name": "token",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-144",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "frontend",
+    "name": "other",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-145",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "frontend",
+    "name": "",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-146",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "frontend",
+    "name": "settings",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-147",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "frontend",
+    "name": "token",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-148",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "frontend",
+    "name": "other",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-149",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "payments",
+    "name": "",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-150",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "payments",
+    "name": "settings",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-151",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "payments",
+    "name": "token",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-152",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "payments",
+    "name": "other",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-153",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "payments",
+    "name": "",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-154",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "payments",
+    "name": "settings",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-155",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "payments",
+    "name": "token",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-156",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "list",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "payments",
+    "name": "other",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-157",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "",
+    "name": "",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-158",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "",
+    "name": "settings",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-159",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "",
+    "name": "token",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-160",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "",
+    "name": "other",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-161",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "",
+    "name": "",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-162",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "",
+    "name": "settings",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-163",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "",
+    "name": "token",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-164",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "",
+    "name": "other",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-165",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "frontend",
+    "name": "",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-166",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "frontend",
+    "name": "settings",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-167",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "frontend",
+    "name": "token",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-168",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "frontend",
+    "name": "other",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-169",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "frontend",
+    "name": "",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-170",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "frontend",
+    "name": "settings",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-171",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "frontend",
+    "name": "token",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-172",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "frontend",
+    "name": "other",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-173",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "payments",
+    "name": "",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-174",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "payments",
+    "name": "settings",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-175",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "payments",
+    "name": "token",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-176",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "configmaps",
+    "namespace": "payments",
+    "name": "other",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-177",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "payments",
+    "name": "",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-178",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "payments",
+    "name": "settings",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-179",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "payments",
+    "name": "token",
+    "resourceRequest": true,
+    "subresource": ""
+  },
+  {
+    "id": "request-180",
+    "username": "alice",
+    "groups": [
+      "system:authenticated"
+    ],
+    "verb": "watch",
+    "apiGroup": "",
+    "resource": "secrets",
+    "namespace": "payments",
+    "name": "other",
+    "resourceRequest": true,
+    "subresource": ""
+  }
+]

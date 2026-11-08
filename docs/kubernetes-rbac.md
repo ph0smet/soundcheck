@@ -178,6 +178,12 @@ literal star and matches no supported object name. These rules follow the
 [pinned RBAC matching helpers](https://github.com/kubernetes/kubernetes/blob/v1.34.0/pkg/apis/rbac/v1/evaluation_helpers.go)
 and [request interpretation](https://github.com/kubernetes/apiserver/blob/v0.34.0/pkg/endpoints/request/requestinfo.go).
 
+A clause forbidding only a name-selected list/watch request is a requirement
+about that request class, not confidentiality of the named object's contents:
+an unnamed collection request may still return that object. To forbid all
+direct Secret read grants in a scope, cover `get`, `list` and `watch` with
+`names: null`, as the demo does.
+
 All-namespace collection requests require a ClusterRoleBinding grant. A
 RoleBinding to a ClusterRole still applies only in the RoleBinding's namespace;
 adding a `metadata.namespace` field selector to an all-namespace URL does not

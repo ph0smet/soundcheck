@@ -68,3 +68,25 @@ This proves static RBAC Allow/NoOpinion relative to the frozen context and
 complete snapshot. It does not prove API execution, object existence, response
 contents, watch stream behavior, admission, other authorizers, aggregation,
 mutation, impersonation or indirect Secret exposure. No live cluster is used.
+
+## Independent reference evidence
+
+The reference harness imports Kubernetes v1.34.0's production RBAC authorizer
+and v0.34.0's `RequestInfoFactory`. The raw-URL mode explicitly projects the
+parsed request fields into authorization attributes, following the pinned
+authorization adapter; it does not execute the full HTTP authorization filter.
+Existing module pins and checksums remain unchanged.
+
+The read corpus covers 18 synthetic snapshots and the five public workflow
+snapshots. The completed offline run passed 3,060 explicit-attribute comparisons,
+544 URL-derived comparisons, 663 request-attribute checks and seven explicit
+outside-domain rejections. It replayed 23 contract witnesses and four
+preservation-side requests, covering every supported verb, empty names,
+name-selected collections and all-namespace list/watch. The original named-get
+and preparation suites also passed with their existing expectations.
+
+These finite checks independently exercise the implementation and its declared
+boundary; they are not a proof of parser/encoder correctness for every input.
+The runner retains hashes, commands and replay artifacts, and verifies that
+inputs and binaries did not change during the run. See the
+[corpus boundary and reproduction instructions](../../bench/kubernetes-rbac/read-access/README.md).

@@ -1,0 +1,1211 @@
+[
+  {
+    "id": "named-get",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "method": "GET",
+    "url": "/api/v1/namespaces/payments/secrets/token",
+    "expected_attributes": {
+      "username": "system:serviceaccount:frontend:frontend-sa",
+      "groups": [
+        "system:serviceaccounts",
+        "system:serviceaccounts:frontend",
+        "system:authenticated"
+      ],
+      "verb": "get",
+      "apiGroup": "",
+      "apiVersion": "v1",
+      "resource": "secrets",
+      "namespace": "payments",
+      "name": "token",
+      "subresource": "",
+      "resourceRequest": true,
+      "path": "/api/v1/namespaces/payments/secrets/token"
+    },
+    "field_selector_error": false,
+    "label_selector_error": false,
+    "model_supported": true
+  },
+  {
+    "id": "named-get-watch-query",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "method": "GET",
+    "url": "/api/v1/namespaces/payments/secrets/token?watch=true",
+    "expected_attributes": {
+      "username": "system:serviceaccount:frontend:frontend-sa",
+      "groups": [
+        "system:serviceaccounts",
+        "system:serviceaccounts:frontend",
+        "system:authenticated"
+      ],
+      "verb": "get",
+      "apiGroup": "",
+      "apiVersion": "v1",
+      "resource": "secrets",
+      "namespace": "payments",
+      "name": "token",
+      "subresource": "",
+      "resourceRequest": true,
+      "path": "/api/v1/namespaces/payments/secrets/token"
+    },
+    "field_selector_error": false,
+    "label_selector_error": false,
+    "model_supported": true
+  },
+  {
+    "id": "head-named-get",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "method": "HEAD",
+    "url": "/api/v1/namespaces/payments/secrets/token",
+    "expected_attributes": {
+      "username": "system:serviceaccount:frontend:frontend-sa",
+      "groups": [
+        "system:serviceaccounts",
+        "system:serviceaccounts:frontend",
+        "system:authenticated"
+      ],
+      "verb": "get",
+      "apiGroup": "",
+      "apiVersion": "v1",
+      "resource": "secrets",
+      "namespace": "payments",
+      "name": "token",
+      "subresource": "",
+      "resourceRequest": true,
+      "path": "/api/v1/namespaces/payments/secrets/token"
+    },
+    "field_selector_error": false,
+    "label_selector_error": false,
+    "model_supported": true
+  },
+  {
+    "id": "plain-list",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "method": "GET",
+    "url": "/api/v1/namespaces/payments/secrets",
+    "expected_attributes": {
+      "username": "system:serviceaccount:frontend:frontend-sa",
+      "groups": [
+        "system:serviceaccounts",
+        "system:serviceaccounts:frontend",
+        "system:authenticated"
+      ],
+      "verb": "list",
+      "apiGroup": "",
+      "apiVersion": "v1",
+      "resource": "secrets",
+      "namespace": "payments",
+      "name": "",
+      "subresource": "",
+      "resourceRequest": true,
+      "path": "/api/v1/namespaces/payments/secrets"
+    },
+    "field_selector_error": false,
+    "label_selector_error": false,
+    "model_supported": true
+  },
+  {
+    "id": "selected-list",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "method": "GET",
+    "url": "/api/v1/namespaces/payments/secrets?fieldSelector=metadata.name%3Dtoken",
+    "expected_attributes": {
+      "username": "system:serviceaccount:frontend:frontend-sa",
+      "groups": [
+        "system:serviceaccounts",
+        "system:serviceaccounts:frontend",
+        "system:authenticated"
+      ],
+      "verb": "list",
+      "apiGroup": "",
+      "apiVersion": "v1",
+      "resource": "secrets",
+      "namespace": "payments",
+      "name": "token",
+      "subresource": "",
+      "resourceRequest": true,
+      "path": "/api/v1/namespaces/payments/secrets"
+    },
+    "field_selector_error": false,
+    "label_selector_error": false,
+    "model_supported": true
+  },
+  {
+    "id": "double-equals-list",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "method": "GET",
+    "url": "/api/v1/namespaces/payments/secrets?fieldSelector=metadata.name%3D%3Dtoken",
+    "expected_attributes": {
+      "username": "system:serviceaccount:frontend:frontend-sa",
+      "groups": [
+        "system:serviceaccounts",
+        "system:serviceaccounts:frontend",
+        "system:authenticated"
+      ],
+      "verb": "list",
+      "apiGroup": "",
+      "apiVersion": "v1",
+      "resource": "secrets",
+      "namespace": "payments",
+      "name": "token",
+      "subresource": "",
+      "resourceRequest": true,
+      "path": "/api/v1/namespaces/payments/secrets"
+    },
+    "field_selector_error": false,
+    "label_selector_error": false,
+    "model_supported": true
+  },
+  {
+    "id": "other-name-list",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "method": "GET",
+    "url": "/api/v1/namespaces/payments/secrets?fieldSelector=metadata.name%3Dother",
+    "expected_attributes": {
+      "username": "system:serviceaccount:frontend:frontend-sa",
+      "groups": [
+        "system:serviceaccounts",
+        "system:serviceaccounts:frontend",
+        "system:authenticated"
+      ],
+      "verb": "list",
+      "apiGroup": "",
+      "apiVersion": "v1",
+      "resource": "secrets",
+      "namespace": "payments",
+      "name": "other",
+      "subresource": "",
+      "resourceRequest": true,
+      "path": "/api/v1/namespaces/payments/secrets"
+    },
+    "field_selector_error": false,
+    "label_selector_error": false,
+    "model_supported": true
+  },
+  {
+    "id": "nonexact-selector",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "method": "GET",
+    "url": "/api/v1/namespaces/payments/secrets?fieldSelector=metadata.name%21%3Dtoken",
+    "expected_attributes": {
+      "username": "system:serviceaccount:frontend:frontend-sa",
+      "groups": [
+        "system:serviceaccounts",
+        "system:serviceaccounts:frontend",
+        "system:authenticated"
+      ],
+      "verb": "list",
+      "apiGroup": "",
+      "apiVersion": "v1",
+      "resource": "secrets",
+      "namespace": "payments",
+      "name": "",
+      "subresource": "",
+      "resourceRequest": true,
+      "path": "/api/v1/namespaces/payments/secrets"
+    },
+    "field_selector_error": false,
+    "label_selector_error": false,
+    "model_supported": true
+  },
+  {
+    "id": "empty-name-selector",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "method": "GET",
+    "url": "/api/v1/namespaces/payments/secrets?fieldSelector=metadata.name%3D",
+    "expected_attributes": {
+      "username": "system:serviceaccount:frontend:frontend-sa",
+      "groups": [
+        "system:serviceaccounts",
+        "system:serviceaccounts:frontend",
+        "system:authenticated"
+      ],
+      "verb": "list",
+      "apiGroup": "",
+      "apiVersion": "v1",
+      "resource": "secrets",
+      "namespace": "payments",
+      "name": "",
+      "subresource": "",
+      "resourceRequest": true,
+      "path": "/api/v1/namespaces/payments/secrets"
+    },
+    "field_selector_error": false,
+    "label_selector_error": false,
+    "model_supported": true
+  },
+  {
+    "id": "namespace-selector-does-not-change-scope",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "method": "GET",
+    "url": "/api/v1/namespaces/payments/secrets?fieldSelector=metadata.namespace%3Dfrontend",
+    "expected_attributes": {
+      "username": "system:serviceaccount:frontend:frontend-sa",
+      "groups": [
+        "system:serviceaccounts",
+        "system:serviceaccounts:frontend",
+        "system:authenticated"
+      ],
+      "verb": "list",
+      "apiGroup": "",
+      "apiVersion": "v1",
+      "resource": "secrets",
+      "namespace": "payments",
+      "name": "",
+      "subresource": "",
+      "resourceRequest": true,
+      "path": "/api/v1/namespaces/payments/secrets"
+    },
+    "field_selector_error": false,
+    "label_selector_error": false,
+    "model_supported": true
+  },
+  {
+    "id": "malformed-selector",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "method": "GET",
+    "url": "/api/v1/namespaces/payments/secrets?fieldSelector=metadata.name%3Dtoken%2Cbroken",
+    "expected_attributes": {
+      "username": "system:serviceaccount:frontend:frontend-sa",
+      "groups": [
+        "system:serviceaccounts",
+        "system:serviceaccounts:frontend",
+        "system:authenticated"
+      ],
+      "verb": "list",
+      "apiGroup": "",
+      "apiVersion": "v1",
+      "resource": "secrets",
+      "namespace": "payments",
+      "name": "",
+      "subresource": "",
+      "resourceRequest": true,
+      "path": "/api/v1/namespaces/payments/secrets"
+    },
+    "field_selector_error": true,
+    "label_selector_error": false,
+    "model_supported": true
+  },
+  {
+    "id": "malformed-limit",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "method": "GET",
+    "url": "/api/v1/namespaces/payments/secrets?limit=broken&fieldSelector=metadata.name%3Dtoken",
+    "expected_attributes": {
+      "username": "system:serviceaccount:frontend:frontend-sa",
+      "groups": [
+        "system:serviceaccounts",
+        "system:serviceaccounts:frontend",
+        "system:authenticated"
+      ],
+      "verb": "list",
+      "apiGroup": "",
+      "apiVersion": "v1",
+      "resource": "secrets",
+      "namespace": "payments",
+      "name": "",
+      "subresource": "",
+      "resourceRequest": true,
+      "path": "/api/v1/namespaces/payments/secrets"
+    },
+    "field_selector_error": false,
+    "label_selector_error": false,
+    "model_supported": true
+  },
+  {
+    "id": "malformed-timeout-watch",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "method": "GET",
+    "url": "/api/v1/namespaces/payments/secrets?watch=true&timeoutSeconds=broken&fieldSelector=metadata.name%3Dtoken",
+    "expected_attributes": {
+      "username": "system:serviceaccount:frontend:frontend-sa",
+      "groups": [
+        "system:serviceaccounts",
+        "system:serviceaccounts:frontend",
+        "system:authenticated"
+      ],
+      "verb": "watch",
+      "apiGroup": "",
+      "apiVersion": "v1",
+      "resource": "secrets",
+      "namespace": "payments",
+      "name": "",
+      "subresource": "",
+      "resourceRequest": true,
+      "path": "/api/v1/namespaces/payments/secrets"
+    },
+    "field_selector_error": false,
+    "label_selector_error": false,
+    "model_supported": true
+  },
+  {
+    "id": "first-repeated-selector",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "method": "GET",
+    "url": "/api/v1/namespaces/payments/secrets?fieldSelector=metadata.name%3Dtoken&fieldSelector=metadata.name%3Dother",
+    "expected_attributes": {
+      "username": "system:serviceaccount:frontend:frontend-sa",
+      "groups": [
+        "system:serviceaccounts",
+        "system:serviceaccounts:frontend",
+        "system:authenticated"
+      ],
+      "verb": "list",
+      "apiGroup": "",
+      "apiVersion": "v1",
+      "resource": "secrets",
+      "namespace": "payments",
+      "name": "token",
+      "subresource": "",
+      "resourceRequest": true,
+      "path": "/api/v1/namespaces/payments/secrets"
+    },
+    "field_selector_error": false,
+    "label_selector_error": false,
+    "model_supported": true
+  },
+  {
+    "id": "plain-watch",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "method": "GET",
+    "url": "/api/v1/namespaces/payments/secrets?watch=true",
+    "expected_attributes": {
+      "username": "system:serviceaccount:frontend:frontend-sa",
+      "groups": [
+        "system:serviceaccounts",
+        "system:serviceaccounts:frontend",
+        "system:authenticated"
+      ],
+      "verb": "watch",
+      "apiGroup": "",
+      "apiVersion": "v1",
+      "resource": "secrets",
+      "namespace": "payments",
+      "name": "",
+      "subresource": "",
+      "resourceRequest": true,
+      "path": "/api/v1/namespaces/payments/secrets"
+    },
+    "field_selector_error": false,
+    "label_selector_error": false,
+    "model_supported": true
+  },
+  {
+    "id": "watch-value-true",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "method": "GET",
+    "url": "/api/v1/namespaces/payments/secrets?watch=true&fieldSelector=metadata.name%3Dtoken",
+    "expected_attributes": {
+      "username": "system:serviceaccount:frontend:frontend-sa",
+      "groups": [
+        "system:serviceaccounts",
+        "system:serviceaccounts:frontend",
+        "system:authenticated"
+      ],
+      "verb": "watch",
+      "apiGroup": "",
+      "apiVersion": "v1",
+      "resource": "secrets",
+      "namespace": "payments",
+      "name": "token",
+      "subresource": "",
+      "resourceRequest": true,
+      "path": "/api/v1/namespaces/payments/secrets"
+    },
+    "field_selector_error": false,
+    "label_selector_error": false,
+    "model_supported": true
+  },
+  {
+    "id": "watch-value-1",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "method": "GET",
+    "url": "/api/v1/namespaces/payments/secrets?watch=1&fieldSelector=metadata.name%3Dtoken",
+    "expected_attributes": {
+      "username": "system:serviceaccount:frontend:frontend-sa",
+      "groups": [
+        "system:serviceaccounts",
+        "system:serviceaccounts:frontend",
+        "system:authenticated"
+      ],
+      "verb": "watch",
+      "apiGroup": "",
+      "apiVersion": "v1",
+      "resource": "secrets",
+      "namespace": "payments",
+      "name": "token",
+      "subresource": "",
+      "resourceRequest": true,
+      "path": "/api/v1/namespaces/payments/secrets"
+    },
+    "field_selector_error": false,
+    "label_selector_error": false,
+    "model_supported": true
+  },
+  {
+    "id": "watch-value-garbage",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "method": "GET",
+    "url": "/api/v1/namespaces/payments/secrets?watch=garbage&fieldSelector=metadata.name%3Dtoken",
+    "expected_attributes": {
+      "username": "system:serviceaccount:frontend:frontend-sa",
+      "groups": [
+        "system:serviceaccounts",
+        "system:serviceaccounts:frontend",
+        "system:authenticated"
+      ],
+      "verb": "watch",
+      "apiGroup": "",
+      "apiVersion": "v1",
+      "resource": "secrets",
+      "namespace": "payments",
+      "name": "token",
+      "subresource": "",
+      "resourceRequest": true,
+      "path": "/api/v1/namespaces/payments/secrets"
+    },
+    "field_selector_error": false,
+    "label_selector_error": false,
+    "model_supported": true
+  },
+  {
+    "id": "watch-value-empty",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "method": "GET",
+    "url": "/api/v1/namespaces/payments/secrets?watch=&fieldSelector=metadata.name%3Dtoken",
+    "expected_attributes": {
+      "username": "system:serviceaccount:frontend:frontend-sa",
+      "groups": [
+        "system:serviceaccounts",
+        "system:serviceaccounts:frontend",
+        "system:authenticated"
+      ],
+      "verb": "watch",
+      "apiGroup": "",
+      "apiVersion": "v1",
+      "resource": "secrets",
+      "namespace": "payments",
+      "name": "token",
+      "subresource": "",
+      "resourceRequest": true,
+      "path": "/api/v1/namespaces/payments/secrets"
+    },
+    "field_selector_error": false,
+    "label_selector_error": false,
+    "model_supported": true
+  },
+  {
+    "id": "watch-value-f",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "method": "GET",
+    "url": "/api/v1/namespaces/payments/secrets?watch=f&fieldSelector=metadata.name%3Dtoken",
+    "expected_attributes": {
+      "username": "system:serviceaccount:frontend:frontend-sa",
+      "groups": [
+        "system:serviceaccounts",
+        "system:serviceaccounts:frontend",
+        "system:authenticated"
+      ],
+      "verb": "watch",
+      "apiGroup": "",
+      "apiVersion": "v1",
+      "resource": "secrets",
+      "namespace": "payments",
+      "name": "token",
+      "subresource": "",
+      "resourceRequest": true,
+      "path": "/api/v1/namespaces/payments/secrets"
+    },
+    "field_selector_error": false,
+    "label_selector_error": false,
+    "model_supported": true
+  },
+  {
+    "id": "watch-value-false",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "method": "GET",
+    "url": "/api/v1/namespaces/payments/secrets?watch=false&fieldSelector=metadata.name%3Dtoken",
+    "expected_attributes": {
+      "username": "system:serviceaccount:frontend:frontend-sa",
+      "groups": [
+        "system:serviceaccounts",
+        "system:serviceaccounts:frontend",
+        "system:authenticated"
+      ],
+      "verb": "list",
+      "apiGroup": "",
+      "apiVersion": "v1",
+      "resource": "secrets",
+      "namespace": "payments",
+      "name": "token",
+      "subresource": "",
+      "resourceRequest": true,
+      "path": "/api/v1/namespaces/payments/secrets"
+    },
+    "field_selector_error": false,
+    "label_selector_error": false,
+    "model_supported": true
+  },
+  {
+    "id": "watch-value-0",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "method": "GET",
+    "url": "/api/v1/namespaces/payments/secrets?watch=0&fieldSelector=metadata.name%3Dtoken",
+    "expected_attributes": {
+      "username": "system:serviceaccount:frontend:frontend-sa",
+      "groups": [
+        "system:serviceaccounts",
+        "system:serviceaccounts:frontend",
+        "system:authenticated"
+      ],
+      "verb": "list",
+      "apiGroup": "",
+      "apiVersion": "v1",
+      "resource": "secrets",
+      "namespace": "payments",
+      "name": "token",
+      "subresource": "",
+      "resourceRequest": true,
+      "path": "/api/v1/namespaces/payments/secrets"
+    },
+    "field_selector_error": false,
+    "label_selector_error": false,
+    "model_supported": true
+  },
+  {
+    "id": "legacy-watch-ignores-selector",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "method": "GET",
+    "url": "/api/v1/watch/namespaces/payments/secrets?fieldSelector=metadata.name%3Dtoken",
+    "expected_attributes": {
+      "username": "system:serviceaccount:frontend:frontend-sa",
+      "groups": [
+        "system:serviceaccounts",
+        "system:serviceaccounts:frontend",
+        "system:authenticated"
+      ],
+      "verb": "watch",
+      "apiGroup": "",
+      "apiVersion": "v1",
+      "resource": "secrets",
+      "namespace": "payments",
+      "name": "",
+      "subresource": "",
+      "resourceRequest": true,
+      "path": "/api/v1/watch/namespaces/payments/secrets"
+    },
+    "field_selector_error": false,
+    "label_selector_error": false,
+    "model_supported": true
+  },
+  {
+    "id": "legacy-named-watch",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "method": "GET",
+    "url": "/api/v1/watch/namespaces/payments/secrets/token?fieldSelector=metadata.name%3Dother",
+    "expected_attributes": {
+      "username": "system:serviceaccount:frontend:frontend-sa",
+      "groups": [
+        "system:serviceaccounts",
+        "system:serviceaccounts:frontend",
+        "system:authenticated"
+      ],
+      "verb": "watch",
+      "apiGroup": "",
+      "apiVersion": "v1",
+      "resource": "secrets",
+      "namespace": "payments",
+      "name": "token",
+      "subresource": "",
+      "resourceRequest": true,
+      "path": "/api/v1/watch/namespaces/payments/secrets/token"
+    },
+    "field_selector_error": false,
+    "label_selector_error": false,
+    "model_supported": true
+  },
+  {
+    "id": "all-namespace-list",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "method": "GET",
+    "url": "/api/v1/secrets",
+    "expected_attributes": {
+      "username": "system:serviceaccount:frontend:frontend-sa",
+      "groups": [
+        "system:serviceaccounts",
+        "system:serviceaccounts:frontend",
+        "system:authenticated"
+      ],
+      "verb": "list",
+      "apiGroup": "",
+      "apiVersion": "v1",
+      "resource": "secrets",
+      "namespace": "",
+      "name": "",
+      "subresource": "",
+      "resourceRequest": true,
+      "path": "/api/v1/secrets"
+    },
+    "field_selector_error": false,
+    "label_selector_error": false,
+    "model_supported": true
+  },
+  {
+    "id": "all-namespace-selected-watch",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "method": "GET",
+    "url": "/api/v1/secrets?watch=true&fieldSelector=metadata.name%3Dtoken",
+    "expected_attributes": {
+      "username": "system:serviceaccount:frontend:frontend-sa",
+      "groups": [
+        "system:serviceaccounts",
+        "system:serviceaccounts:frontend",
+        "system:authenticated"
+      ],
+      "verb": "watch",
+      "apiGroup": "",
+      "apiVersion": "v1",
+      "resource": "secrets",
+      "namespace": "",
+      "name": "token",
+      "subresource": "",
+      "resourceRequest": true,
+      "path": "/api/v1/secrets"
+    },
+    "field_selector_error": false,
+    "label_selector_error": false,
+    "model_supported": true
+  },
+  {
+    "id": "all-namespace-namespace-selector",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "method": "GET",
+    "url": "/api/v1/secrets?fieldSelector=metadata.namespace%3Dpayments%2Cmetadata.name%3Dtoken",
+    "expected_attributes": {
+      "username": "system:serviceaccount:frontend:frontend-sa",
+      "groups": [
+        "system:serviceaccounts",
+        "system:serviceaccounts:frontend",
+        "system:authenticated"
+      ],
+      "verb": "list",
+      "apiGroup": "",
+      "apiVersion": "v1",
+      "resource": "secrets",
+      "namespace": "",
+      "name": "token",
+      "subresource": "",
+      "resourceRequest": true,
+      "path": "/api/v1/secrets"
+    },
+    "field_selector_error": false,
+    "label_selector_error": false,
+    "model_supported": true
+  },
+  {
+    "id": "path-invalid-selected-name",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "method": "GET",
+    "url": "/api/v1/namespaces/payments/secrets?fieldSelector=metadata.name%3Da%2Fb",
+    "expected_attributes": {
+      "username": "system:serviceaccount:frontend:frontend-sa",
+      "groups": [
+        "system:serviceaccounts",
+        "system:serviceaccounts:frontend",
+        "system:authenticated"
+      ],
+      "verb": "list",
+      "apiGroup": "",
+      "apiVersion": "v1",
+      "resource": "secrets",
+      "namespace": "payments",
+      "name": "",
+      "subresource": "",
+      "resourceRequest": true,
+      "path": "/api/v1/namespaces/payments/secrets"
+    },
+    "field_selector_error": false,
+    "label_selector_error": false,
+    "model_supported": true
+  },
+  {
+    "id": "label-selector-not-name-selector",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "method": "GET",
+    "url": "/api/v1/namespaces/payments/secrets?labelSelector=metadata.name%3Dtoken",
+    "expected_attributes": {
+      "username": "system:serviceaccount:frontend:frontend-sa",
+      "groups": [
+        "system:serviceaccounts",
+        "system:serviceaccounts:frontend",
+        "system:authenticated"
+      ],
+      "verb": "list",
+      "apiGroup": "",
+      "apiVersion": "v1",
+      "resource": "secrets",
+      "namespace": "payments",
+      "name": "",
+      "subresource": "",
+      "resourceRequest": true,
+      "path": "/api/v1/namespaces/payments/secrets"
+    },
+    "field_selector_error": false,
+    "label_selector_error": false,
+    "model_supported": true
+  },
+  {
+    "id": "malformed-label-selector-clears-name",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "method": "GET",
+    "url": "/api/v1/namespaces/payments/secrets?labelSelector=%21%21&fieldSelector=metadata.name%3Dtoken",
+    "expected_attributes": {
+      "username": "system:serviceaccount:frontend:frontend-sa",
+      "groups": [
+        "system:serviceaccounts",
+        "system:serviceaccounts:frontend",
+        "system:authenticated"
+      ],
+      "verb": "list",
+      "apiGroup": "",
+      "apiVersion": "v1",
+      "resource": "secrets",
+      "namespace": "payments",
+      "name": "",
+      "subresource": "",
+      "resourceRequest": true,
+      "path": "/api/v1/namespaces/payments/secrets"
+    },
+    "field_selector_error": false,
+    "label_selector_error": true,
+    "model_supported": true
+  },
+  {
+    "id": "frontend-configmap-list",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "method": "GET",
+    "url": "/api/v1/namespaces/frontend/configmaps",
+    "expected_attributes": {
+      "username": "system:serviceaccount:frontend:frontend-sa",
+      "groups": [
+        "system:serviceaccounts",
+        "system:serviceaccounts:frontend",
+        "system:authenticated"
+      ],
+      "verb": "list",
+      "apiGroup": "",
+      "apiVersion": "v1",
+      "resource": "configmaps",
+      "namespace": "frontend",
+      "name": "",
+      "subresource": "",
+      "resourceRequest": true,
+      "path": "/api/v1/namespaces/frontend/configmaps"
+    },
+    "field_selector_error": false,
+    "label_selector_error": false,
+    "model_supported": true
+  },
+  {
+    "id": "frontend-configmap-watch",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "method": "GET",
+    "url": "/api/v1/namespaces/frontend/configmaps?watch=true&fieldSelector=metadata.name%3Dsettings",
+    "expected_attributes": {
+      "username": "system:serviceaccount:frontend:frontend-sa",
+      "groups": [
+        "system:serviceaccounts",
+        "system:serviceaccounts:frontend",
+        "system:authenticated"
+      ],
+      "verb": "watch",
+      "apiGroup": "",
+      "apiVersion": "v1",
+      "resource": "configmaps",
+      "namespace": "frontend",
+      "name": "settings",
+      "subresource": "",
+      "resourceRequest": true,
+      "path": "/api/v1/namespaces/frontend/configmaps"
+    },
+    "field_selector_error": false,
+    "label_selector_error": false,
+    "model_supported": true
+  },
+  {
+    "id": "outside-star-name",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "method": "GET",
+    "url": "/api/v1/namespaces/payments/secrets?fieldSelector=metadata.name%3D%2A",
+    "expected_attributes": {
+      "username": "system:serviceaccount:frontend:frontend-sa",
+      "groups": [
+        "system:serviceaccounts",
+        "system:serviceaccounts:frontend",
+        "system:authenticated"
+      ],
+      "verb": "list",
+      "apiGroup": "",
+      "apiVersion": "v1",
+      "resource": "secrets",
+      "namespace": "payments",
+      "name": "*",
+      "subresource": "",
+      "resourceRequest": true,
+      "path": "/api/v1/namespaces/payments/secrets"
+    },
+    "field_selector_error": false,
+    "label_selector_error": false,
+    "model_supported": false
+  },
+  {
+    "id": "outside-uppercase-name",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "method": "GET",
+    "url": "/api/v1/namespaces/payments/secrets?fieldSelector=metadata.name%3DToken",
+    "expected_attributes": {
+      "username": "system:serviceaccount:frontend:frontend-sa",
+      "groups": [
+        "system:serviceaccounts",
+        "system:serviceaccounts:frontend",
+        "system:authenticated"
+      ],
+      "verb": "list",
+      "apiGroup": "",
+      "apiVersion": "v1",
+      "resource": "secrets",
+      "namespace": "payments",
+      "name": "Token",
+      "subresource": "",
+      "resourceRequest": true,
+      "path": "/api/v1/namespaces/payments/secrets"
+    },
+    "field_selector_error": false,
+    "label_selector_error": false,
+    "model_supported": false
+  },
+  {
+    "id": "outside-get-all-namespace",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "method": "GET",
+    "url": "/api/v1/secrets/token",
+    "expected_attributes": {
+      "username": "system:serviceaccount:frontend:frontend-sa",
+      "groups": [
+        "system:serviceaccounts",
+        "system:serviceaccounts:frontend",
+        "system:authenticated"
+      ],
+      "verb": "get",
+      "apiGroup": "",
+      "apiVersion": "v1",
+      "resource": "secrets",
+      "namespace": "",
+      "name": "token",
+      "subresource": "",
+      "resourceRequest": true,
+      "path": "/api/v1/secrets/token"
+    },
+    "field_selector_error": false,
+    "label_selector_error": false,
+    "model_supported": false
+  },
+  {
+    "id": "outside-subresource",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "method": "GET",
+    "url": "/api/v1/namespaces/payments/secrets/token/status",
+    "expected_attributes": {
+      "username": "system:serviceaccount:frontend:frontend-sa",
+      "groups": [
+        "system:serviceaccounts",
+        "system:serviceaccounts:frontend",
+        "system:authenticated"
+      ],
+      "verb": "get",
+      "apiGroup": "",
+      "apiVersion": "v1",
+      "resource": "secrets",
+      "namespace": "payments",
+      "name": "token",
+      "subresource": "status",
+      "resourceRequest": true,
+      "path": "/api/v1/namespaces/payments/secrets/token/status"
+    },
+    "field_selector_error": false,
+    "label_selector_error": false,
+    "model_supported": false
+  },
+  {
+    "id": "outside-resource",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "method": "GET",
+    "url": "/api/v1/namespaces/payments/pods/token",
+    "expected_attributes": {
+      "username": "system:serviceaccount:frontend:frontend-sa",
+      "groups": [
+        "system:serviceaccounts",
+        "system:serviceaccounts:frontend",
+        "system:authenticated"
+      ],
+      "verb": "get",
+      "apiGroup": "",
+      "apiVersion": "v1",
+      "resource": "pods",
+      "namespace": "payments",
+      "name": "token",
+      "subresource": "",
+      "resourceRequest": true,
+      "path": "/api/v1/namespaces/payments/pods/token"
+    },
+    "field_selector_error": false,
+    "label_selector_error": false,
+    "model_supported": false
+  },
+  {
+    "id": "outside-api-group",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "method": "GET",
+    "url": "/apis/example.test/v1/namespaces/payments/secrets/token",
+    "expected_attributes": {
+      "username": "system:serviceaccount:frontend:frontend-sa",
+      "groups": [
+        "system:serviceaccounts",
+        "system:serviceaccounts:frontend",
+        "system:authenticated"
+      ],
+      "verb": "get",
+      "apiGroup": "example.test",
+      "apiVersion": "v1",
+      "resource": "secrets",
+      "namespace": "payments",
+      "name": "token",
+      "subresource": "",
+      "resourceRequest": true,
+      "path": "/apis/example.test/v1/namespaces/payments/secrets/token"
+    },
+    "field_selector_error": false,
+    "label_selector_error": false,
+    "model_supported": false
+  },
+  {
+    "id": "outside-write",
+    "username": "system:serviceaccount:frontend:frontend-sa",
+    "groups": [
+      "system:serviceaccounts",
+      "system:serviceaccounts:frontend",
+      "system:authenticated"
+    ],
+    "method": "DELETE",
+    "url": "/api/v1/namespaces/payments/secrets/token",
+    "expected_attributes": {
+      "username": "system:serviceaccount:frontend:frontend-sa",
+      "groups": [
+        "system:serviceaccounts",
+        "system:serviceaccounts:frontend",
+        "system:authenticated"
+      ],
+      "verb": "delete",
+      "apiGroup": "",
+      "apiVersion": "v1",
+      "resource": "secrets",
+      "namespace": "payments",
+      "name": "token",
+      "subresource": "",
+      "resourceRequest": true,
+      "path": "/api/v1/namespaces/payments/secrets/token"
+    },
+    "field_selector_error": false,
+    "label_selector_error": false,
+    "model_supported": false
+  }
+]
