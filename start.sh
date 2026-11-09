@@ -210,9 +210,10 @@ docker_build() {
   done
 }
 
-# Polls the UI until it answers; $1 is a command that fails once the server died.
+# Polls the UI until it answers; $1 fails once the server died. Optional $2
+# confirms that startup metadata is ready before reporting success.
 wait_until_ready() {
-  local alive_check="$1" url="http://localhost:$PORT" status second=0 live=0
+  local alive_check="$1" ready_check="${2:-true}" url="http://localhost:$PORT" status second=0 live=0
   [ -t 1 ] && live=1
   for second in $(seq 1 "$READY_TIMEOUT"); do
     if ! $alive_check; then
@@ -220,6 +221,7 @@ wait_until_ready() {
       return 1
     fi
     if status="$(curl -fsS "$url/api/engine" 2>/dev/null)"; then
+      if ! $ready_check; then sleep 1; continue; fi
       [ "$live" = 1 ] && printf '\r\033[K'
       info "Soundcheck is running at $url"
       case "$status" in
@@ -387,26 +389,32 @@ fi
 step "Starting the web app (next $([ "$NEXT_MODE" = prod ] && echo start || echo dev)) on port $PORT"
 export SOUNDCHECK_REPO="$(native_path "$ROOT")"
 nohup "$NODE" "$NEXT" "${ARGS[@]}" >"$LOG_FILE" 2>&1 &
-PID=$!
-if [ "$WINDOWS" = 1 ]; then
-  # Windows tools (tasklist, taskkill, stop.sh) need the Windows PID. Git Bash
-  # publishes it a moment after the launch, so wait for it rather than record
-  # the Git Bash PID, which those tools would treat as already gone.
-  for _ in $(seq 1 50); do
-    [ -r "/proc/$PID/winpid" ] && break
-    sleep 0.1
-  done
-  [ -r "/proc/$PID/winpid" ] || fail "could not determine the Windows PID of the web app (Git Bash pid $PID)."
-  PID="$(cat "/proc/$PID/winpid")"
-fi
-echo "$PID" >"$PID_FILE"
+LAUNCH_PID=$!
+PID=""
+record_launch_pid() {
+  local current
+  if ! current="$(process_native_pid "$LAUNCH_PID")"; then
+    # A mapping can be temporarily unavailable during exec. Do not reuse a
+    # predecessor's Windows PID for stop.sh or failure cleanup.
+    PID=""
+    rm -f "$PID_FILE"
+    return 1
+  fi
+  PID="$current"
+  echo "$PID" >"$PID_FILE"
+}
+record_launch_pid || true
 echo "$RUN_MODE" >"$RUN_DIR/mode"
 echo "$PORT" >"$RUN_DIR/frontend.port"
 
-native_alive() { pid_alive "$PID"; }
+native_alive() {
+  # Use the stable shell/MSYS identity for liveness, including across exec.
+  kill -0 "$LAUNCH_PID" 2>/dev/null || return 1
+  record_launch_pid || true
+}
 
 step "Waiting for the web UI"
-if wait_until_ready native_alive; then
+if wait_until_ready native_alive record_launch_pid; then
   finished "Soundcheck is up"
   [ "$RUN_MODE" = dev ] && echo "    live: edits under frontend/ reload instantly; rerun ./start.sh --dev to refresh the engine"
   echo "    pid:  $PID"
@@ -416,7 +424,7 @@ if wait_until_ready native_alive; then
 fi
 tail -n 30 "$LOG_FILE" >&2 || true
 # Stop what this run started before forgetting it, so no orphan keeps the port.
-if owned "$PID"; then
+if record_launch_pid && owned "$PID"; then
   info "Stopping the web app that failed to start (pid $PID)"
   kill_tree "$PID"
 fi

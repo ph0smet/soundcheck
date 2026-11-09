@@ -20,6 +20,7 @@ export SOUNDCHECK_RUN_DIR="$SCRATCH/run" SOUNDCHECK_NO_PAUSE=1 NO_COLOR=1
 mkdir -p "$SOUNDCHECK_RUN_DIR" "$SCRATCH/bin"
 PORT="${SOUNDCHECK_TEST_PORT:-4109}"
 failures=0
+failed_checks=()
 started=()
 
 # Docker stub: logs every call and reports every container as not running.
@@ -40,7 +41,11 @@ cleanup() {
 trap cleanup EXIT
 
 check() {
-  if eval "$2"; then printf 'ok    %s\n' "$1"; else printf 'FAIL  %s\n' "$1"; failures=$((failures + 1)); fi
+  if eval "$2"; then printf 'ok    %s\n' "$1"; else
+    printf 'FAIL  %s\n' "$1"
+    failed_checks+=("$1")
+    failures=$((failures + 1))
+  fi
 }
 
 # The PID other tools see: the Windows PID under Git Bash.
@@ -49,6 +54,16 @@ os_pid() {
 }
 
 native_path() { if [ "$WINDOWS" = 1 ]; then cygpath -w "$1"; else printf '%s' "$1"; fi; }
+
+wait_for_pid_file() {
+  local pid
+  for _ in $(seq 1 100); do
+    pid="$(cat "$1" 2>/dev/null || true)"
+    case "$pid" in '' | 0 | *[!0-9]*) ;; *) printf '%s\n' "$pid"; return 0 ;; esac
+    sleep 0.1
+  done
+  return 1
+}
 
 wait_for_port() {
   for _ in $(seq 1 20); do curl -sf -o /dev/null "http://127.0.0.1:$1/" && return 0; sleep 0.5; done
@@ -124,32 +139,48 @@ if [ "$WINDOWS" = 0 ]; then
 fi
 
 # 3. A start that never becomes ready must stop what it launched before
-#    forgetting it. The mock "node" stays alive but never serves anything.
-cat >"$SCRATCH/fake-node" <<'EOF'
-#!/usr/bin/env bash
-sleep 300 &
-wait
+#    forgetting it. Delay exec to expose Windows PID changes during launch.
+#    The final Node process reports its own native PID and never serves HTTP.
+cat >"$SCRATCH/fake-node.js" <<'EOF'
+require("fs").writeFileSync(process.env.SOUNDCHECK_TEST_PID_FILE, String(process.pid));
+setInterval(() => {}, 1000);
 EOF
+{
+  echo '#!/usr/bin/env bash'
+  echo 'sleep 1'
+  printf 'exec %q %q "$@"\n' "$(command -v node)" "$(native_path "$SCRATCH/fake-node.js")"
+} >"$SCRATCH/fake-node"
 chmod +x "$SCRATCH/fake-node"
 mkdir -p "$ROOT/frontend/node_modules"
 [ -f "$ROOT/frontend/node_modules/.soundcheck-installed" ] || touch "$ROOT/frontend/node_modules/.soundcheck-installed"
-SOUNDCHECK_NODE="$SCRATCH/fake-node" SOUNDCHECK_READY_TIMEOUT=3 \
+# Leave time for the delayed exec on busy Windows runners before timing out.
+SOUNDCHECK_NODE="$SCRATCH/fake-node" SOUNDCHECK_READY_TIMEOUT=8 \
+  SOUNDCHECK_TEST_PID_FILE="$(native_path "$SCRATCH/failed-start.pid")" \
   bash "$ROOT/start.sh" --native --skip-engine --port "$((PORT + 1))" >"$SCRATCH/start.log" 2>&1
 status=$?
+# Wait even after an early launcher exit: the old PID race could return while
+# the delayed mock was still starting. Register the real process for teardown.
+launched="$(wait_for_pid_file "$SCRATCH/failed-start.pid")"
+[ -n "$launched" ] && started+=("$launched")
 check "start.sh fails when the web app never becomes ready" "[ $status -ne 0 ]"
 check "start.sh reports the failure" "grep -q 'did not become ready' '$SCRATCH/start.log'"
 check "start.sh stopped the web app it launched" "grep -q 'Stopping the web app that failed to start' '$SCRATCH/start.log'"
-launched="$(sed -n 's/.*Stopping the web app that failed to start (pid \([0-9]*\)).*/\1/p' "$SCRATCH/start.log")"
-check "the launched process is gone" "[ -n '$launched' ] && ! pid_alive '$launched'"
+check "cleanup used the mock's independently reported native PID" \
+  "[ -n '$launched' ] && grep -q 'Stopping the web app that failed to start (pid $launched)' '$SCRATCH/start.log'"
+check "the actual launched process is gone" "[ -n '$launched' ] && ! pid_alive '$launched'"
 check "start.sh removed its PID file" "[ ! -f '$SOUNDCHECK_RUN_DIR/frontend.pid' ]"
 
 # 4. And stop.sh does stop a web app this checkout launched: ownership must not
 #    simply always say no. The mock carries the absolute Next.js path, as start.sh passes it.
 next_path="$(native_path "$ROOT/frontend/node_modules/next/dist/bin/next")"
-"$SCRATCH/fake-node" "$next_path" dev -H 127.0.0.1 -p "$((PORT + 2))" >/dev/null 2>&1 &
-OURS="$(os_pid $!)"
+SOUNDCHECK_TEST_PID_FILE="$(native_path "$SCRATCH/owned.pid")" \
+  "$SCRATCH/fake-node" "$next_path" dev -H 127.0.0.1 -p "$((PORT + 2))" >/dev/null 2>&1 &
+OURS="$(wait_for_pid_file "$SCRATCH/owned.pid")"
+if [ -z "$OURS" ]; then
+  printf 'Could not obtain the owned mock server PID.\n' >&2
+  exit 1
+fi
 started+=("$OURS")
-sleep 1
 check "a launcher-started web app is recognised as Soundcheck" "owned $OURS"
 echo "$OURS" >"$SOUNDCHECK_RUN_DIR/frontend.pid"
 bash "$ROOT/stop.sh" >"$SCRATCH/stop3.log" 2>&1
@@ -227,8 +258,13 @@ fi
 check "stop.sh went through the docker stub" "grep -q '^inspect .*soundcheck-web' '$SCRATCH/docker.log'"
 
 if [ "$failures" -ne 0 ]; then
-  printf '\n%d check(s) failed. start.sh output:\n' "$failures"
-  cat "$SCRATCH/start.log"
+  printf '\n%d check(s) failed:\n' "$failures"
+  printf 'FAIL  %s\n' "${failed_checks[@]}"
+  for log in "$SCRATCH"/*.log "$SOUNDCHECK_RUN_DIR/frontend.log"; do
+    [ -f "$log" ] || continue
+    printf '\n--- %s ---\n' "$(basename "$log")"
+    tail -n 40 "$log"
+  done
   exit 1
 fi
 printf '\nAll launcher checks passed.\n'

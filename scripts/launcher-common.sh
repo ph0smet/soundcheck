@@ -22,6 +22,19 @@ pid_alive() {
   fi
 }
 
+# A shell/MSYS PID survives exec, but its native Windows PID may change during
+# the nohup/interpreter/Node handoff. Resolve it when needed, never cache the
+# first /proc entry as the identity of the eventual application.
+process_native_pid() {
+  local pid="$1"
+  case "$pid" in '' | 0 | *[!0-9]*) return 1 ;; esac
+  if [ "$WINDOWS" = 1 ]; then
+    pid="$(cat "/proc/$pid/winpid" 2>/dev/null)" || return 1
+  fi
+  case "$pid" in '' | 0 | *[!0-9]*) return 1 ;; esac
+  printf '%s\n' "$pid"
+}
+
 # Lower-cased with forward slashes on Windows, where paths are case-insensitive.
 normalize_path() {
   if [ "$WINDOWS" = 1 ]; then tr 'A-Z\\' 'a-z/'; else cat; fi
