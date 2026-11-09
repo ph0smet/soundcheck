@@ -19,17 +19,21 @@ type t = {
 
 let kind = "kubernetes-rbac-access"
 let scope_fields version =
-  ["subject";"namespace";"resource";"names"] @ if version = 2 then ["verb"] else []
+  ["subject";"namespace";"resource";"names"] @ if version >= 2 then ["verb"] else []
+
+let collection_verb verb = verb = "list" || verb = "watch"
 
 let parse_scope version identities path fields =
   let subject = string_field path "subject" fields in
   if not (List.exists (fun (i : Identity.identity) -> i.username = subject) identities) then
     reject path "subject must name one of the frozen context identities";
   let verb = if version = 1 then "get" else string_field path "verb" fields in
-  if not (List.mem verb ["get";"list";"watch"]) then
-    reject path "verb must be get, list or watch";
+  let verbs = if version = 3 then ["get";"list";"watch";"update";"patch";"delete"]
+    else ["get";"list";"watch"] in
+  if not (List.mem verb verbs) then
+    reject path ("verb must be one of " ^ String.concat ", " verbs);
   let ns = match field path "namespace" fields with
-    | `Null when version = 2 && verb <> "get" -> ""
+    | `Null when version >= 2 && collection_verb verb -> ""
     | `String ns -> namespace (path ^ ".namespace") ns
     | _ -> reject path "namespace must be a DNS label; only list/watch permit null for the all-namespace endpoint" in
   let resource = string_field path "resource" fields in
@@ -51,8 +55,8 @@ let parse_value value =
   let path = "contract" in
   let fields = obj path ["schema_version";"kind";"context";"clauses";"change_scope"] value in
   let version = match field path "schema_version" fields with
-   | `Number "1" -> 1 | `Number "2" -> 2
-   | _ -> reject path "schema_version must be integer 1 or 2" in
+   | `Number "1" -> 1 | `Number "2" -> 2 | `Number "3" -> 3
+   | _ -> reject path "schema_version must be integer 1, 2 or 3" in
   require_equal (path ^ ".kind") (string_field path "kind" fields) kind;
   let identities = Identity.parse_context (field path "context" fields)
     |> List.sort (fun (a : Identity.identity) b -> String.compare a.username b.username) in
@@ -104,14 +108,16 @@ let description clause =
     (if clause.scope.namespace = "" then "at the all-namespace endpoint"
      else Printf.sprintf "in namespace %S" clause.scope.namespace)
     (match clause.scope.names with
-     | None when clause.scope.verb <> "get" -> "empty or any valid effective authorization name"
+     | None when collection_verb clause.scope.verb -> "empty or any valid effective authorization name"
      | None -> "all valid names"
-     | Some names -> (if clause.scope.verb = "get" then "" else "effective authorization name: ")
+     | Some names -> (if collection_verb clause.scope.verb then "effective authorization name: " else "")
        ^ String.concat ", " (List.map (Printf.sprintf "%S") names))
 
 let to_contract spec : Contract.t =
-  {name=kind;description=(if spec.version = 1 then "Frozen named-get RBAC access requirements"
-                        else "Frozen get/list/watch RBAC access requirements");
+  {name=kind;description=(match spec.version with
+     | 1 -> "Frozen named-get RBAC access requirements"
+     | 2 -> "Frozen get/list/watch RBAC access requirements"
+     | _ -> "Frozen read and named-write RBAC access requirements");
    clauses=List.map (fun clause ->
        let make = match clause.kind with
          | Must_allow -> Contract.must_allow
@@ -120,10 +126,10 @@ let to_contract spec : Contract.t =
 
 let scope_json version scope =
   ["subject",`String scope.subject;
-   "namespace",(if version = 2 && scope.namespace = "" then `Null else `String scope.namespace);
+   "namespace",(if version >= 2 && scope.namespace = "" then `Null else `String scope.namespace);
    "resource",`String scope.resource;
    "names",(match scope.names with None -> `Null | Some xs -> `A (List.map (fun s -> `String s) xs))]
-  @ if version = 2 then ["verb",`String scope.verb] else []
+  @ if version >= 2 then ["verb",`String scope.verb] else []
 
 let canonical spec =
   json (`O ["schema_version",`Number (string_of_int spec.version);"kind",`String kind;

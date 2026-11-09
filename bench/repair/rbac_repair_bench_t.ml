@@ -29,6 +29,17 @@ let read_contract = Printf.sprintf {| {
      "namespace":null,"resource":"secrets","names":null}],
   "change_scope":[{"subject":%S,"verb":"watch","namespace":null,"resource":"secrets","names":null}]
 } |} secret secret secret secret
+let write_contract = Printf.sprintf {| {
+  "schema_version":3,"kind":"kubernetes-rbac-access",
+  "context":{"schema_version":1,"snapshot_complete":true,
+    "identities":[{"username":%S,"groups":["operators"]}]},
+  "clauses":[
+    {"name":"required","kind":"must_allow","subject":%S,"verb":"update",
+     "namespace":"frontend","resource":"configmaps","names":["settings"]},
+    {"name":"forbidden","kind":"must_not_grant","subject":%S,"verb":"delete",
+     "namespace":"payments","resource":"secrets","names":null}],
+  "change_scope":[{"subject":%S,"verb":"delete","namespace":"payments","resource":"secrets","names":null}]
+} |} secret secret secret secret
 let task ?(id="task") ?(config="before.json") ?(contract="contract.json") () : Pilot.case =
   {id;config;contract;provenance=Pilot.Synthetic}
 let entry ?(task="task") ?(config="candidate.json") id =
@@ -362,4 +373,67 @@ let () =
       =`String K.Assurance.read_profile_id);
   check "fatal summaries retain legacy format" (let json=K.Input.parse (fatal_json "suite_invalid") in
     field "experimental_format_version" json=`Number "1" && field "profile" json=`String K.Assurance.profile_id);
+  let write_suite = freeze_contract write_contract in
+  let write_rows = evaluate_suite write_suite (fun frozen ~before:_ ~after:_ ->
+    check "write contract version frozen before dispatch" (K.Contract_spec.version frozen=3);
+    comparison frozen "valid") in
+  let json=K.Input.parse (to_json write_rows) in
+  check "all-v3 summary selects format2 and trusted write profile"
+    (exit_code write_rows=0 && field "experimental_format_version" json=`Number "2"
+      && field "profile" json=`String K.Assurance.write_profile_id
+      && (match field "tasks" json with `A [task]->field "profile" task=`String K.Assurance.write_profile_id | _->false));
+  List.iter (fun profile ->
+    List.iter (fun (label,forge) ->
+      let rows=evaluate_suite write_suite (fun frozen ~before:_ ~after:_->forge (comparison frozen "valid")) in
+      check ("v3 rejects " ^ label ^ " " ^ profile)
+        ((first_attempt rows).failure=Some Report_mismatch && (first_attempt rows).repair_result=None
+          && exit_code rows=1 && (List.hd rows).profile=Some K.Assurance.write_profile_id))
+      ["both stage profiles",map_reports (with_profile profile);
+       "candidate profile",(fun (r:K.Verify.comparison)->
+         {r with candidate_report=Option.map (with_profile profile) r.candidate_report});
+       "final profile",(fun (r:K.Verify.comparison)->{r with report=with_profile profile r.report})])
+    [K.Assurance.profile_id;K.Assurance.read_profile_id;"untrusted-write-profile"];
+  List.iter (fun old_source ->
+    let old_spec=ok (K.Contract_spec.of_string old_source) in
+    let rows=evaluate_suite write_suite (fun frozen ~before:_ ~after:_->
+      map_reports (fun report->{report with frozen_spec=Some (K.Contract_spec.frozen_spec old_spec)})
+        (comparison frozen "valid")) in
+    check "write result cannot substitute an older frozen contract"
+      ((first_attempt rows).failure=Some Report_mismatch && exit_code rows=1)) [contract;read_contract];
+  List.iter (fun mode ->
+    let rows=evaluate_suite write_suite (fun frozen ~before:_ ~after:_->comparison frozen mode) in
+    check ("v3 uncertainty retained " ^ mode)
+      ((first_attempt rows).failure=None && (first_attempt rows).repair_result=Some "unknown"
+        && exit_code rows=3 && field "profile" (K.Input.parse (to_json rows))=`String K.Assurance.write_profile_id))
+    ["unsupported";"candidate-unknown";"preservation-unknown"];
+  let downgraded=evaluate_suite write_suite (fun frozen ~before:_ ~after:_->
+    map_reports (with_profile K.Assurance.read_profile_id) (comparison frozen "unsupported")) in
+  check "unsupported v3 result cannot downgrade its profile"
+    ((first_attempt downgraded).failure=Some Report_mismatch && exit_code downgraded=1);
+  List.iter (fun old_source ->
+    let rows=evaluate_suite (freeze_contract old_source) (fun frozen ~before:_ ~after:_->
+      map_reports (with_profile K.Assurance.write_profile_id) (comparison frozen "valid")) in
+    check "older contracts cannot adopt the write profile"
+      ((first_attempt rows).failure=Some Report_mismatch && exit_code rows=1)) [contract;read_contract];
+  let mixed=freeze ~read_suite:(fun path->Ok (match path with
+      | "contract.json"->contract | "read.json"->read_contract | "write.json"->write_contract | _->"invalid"))
+    ~suite_root:"unused" [task ();task ~id:"read" ~contract:"read.json" ();
+      task ~id:"write" ~contract:"write.json" ();task ~id:"invalid" ~contract:"invalid.json" ()] in
+  let rows=run ~read_candidate:(fun _->Ok "candidate")
+    ~evaluate:(fun frozen ~before:_ ~after:_->comparison frozen "valid") ~now:(fun ()->0.)
+    ~submission_root:"unused" mixed (ok (parse_submissions mixed
+      (submissions [entry "a";entry ~task:"read" "b";entry ~task:"write" "c";entry ~task:"invalid" "d"]))) in
+  let json=K.Input.parse (to_json rows) in
+  check "mixed v1/v2/v3 summary retains format2 without a common profile"
+    (field "experimental_format_version" json=`Number "2" && field "profile" json=`Null);
+  check "mixed tasks retain each frozen profile and invalid null"
+    (match field "tasks" json with `A tasks->List.map (field "profile") tasks=
+      [`String K.Assurance.profile_id;`String K.Assurance.read_profile_id;`String K.Assurance.write_profile_id;`Null] | _->false);
+  let v1_and_v3=[List.hd rows;List.nth rows 2] in
+  check "format2 does not depend on a schema2 task being present"
+    (let json=K.Input.parse (to_json v1_and_v3) in
+     field "experimental_format_version" json=`Number "2" && field "profile" json=`Null);
+  check "submission failure retains frozen v3 profile"
+    (let json=K.Input.parse (to_json (failed_tasks Submissions_invalid write_suite)) in
+     field "experimental_format_version" json=`Number "2" && field "profile" json=`String K.Assurance.write_profile_id);
   Printf.printf "All %d RBAC submitted-repair unit checks passed.\n" !checks

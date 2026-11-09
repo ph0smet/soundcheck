@@ -9,7 +9,7 @@ let usage () =
      Input is a complete desired RBAC snapshot in one strict JSON Kubernetes v1/List.\n\
      The contract freezes identities, groups, access requirements and approved change scope.\n\
      Preparation emits a supported snapshot, not a verification result or completeness proof.\n\
-     Use soundcheck profile kubernetes-rbac --contract-version 1|2 for the exact model and assumptions.";
+     Use soundcheck profile kubernetes-rbac --contract-version 1|2|3 for the exact model and assumptions.";
   exit 2
 
 let options args =

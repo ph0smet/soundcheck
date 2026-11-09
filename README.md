@@ -36,7 +36,8 @@ frozen verification interface keeps the requirement fixed.
 
 Today, Soundcheck verifies **decK-style Kong OSS 3.9.3 configurations** under the
 `traditional` and `traditional_compatible` HTTP routers, and **static Kubernetes
-RBAC snapshots** in a bounded named-`get` profile. Kong is the first connector;
+RBAC snapshots** with bounded read and named-write authorization profiles for
+ConfigMaps and Secrets. Kong is the first connector;
 RBAC adds individual identities, resource permissions, and repair preservation
 to the shared verification core. The verifier is AI-model agnostic.
 
@@ -152,7 +153,7 @@ or CI job.
 
 | Capability | Current support |
 | --- | --- |
-| Targets | Kong OSS 3.9.3 decK YAML; static Kubernetes RBAC JSON Lists, with versioned v1.34.0 `get`/`list`/`watch` profiles |
+| Targets | Kong OSS 3.9.3 decK YAML; static Kubernetes RBAC JSON Lists, with versioned v1.34.0 read and named-write profiles for ConfigMaps/Secrets |
 | Verification | Six Kong property templates, three Kong frozen contract kinds, and paired RBAC access contracts |
 | Verdicts | `proved`, `violated`, `vacuous`, `inconsistent`, or `unknown` |
 | Comparisons | Kong decision/routing equivalence; RBAC decision preservation outside a frozen change scope |
@@ -483,10 +484,13 @@ profile feature to pinned Kong source, lowering ownership, regressions, availabl
 target samples, and explicit gaps. It is evidence bookkeeping, not a public
 result schema, a coverage percentage, or a completeness certificate.
 
-The RBAC profile is `kubernetes-rbac-v1.34-get-v1`. Inspect it with
-`soundcheck profile kubernetes-rbac`, and review the
-[RBAC boundaries](docs/kubernetes-rbac.md#supported-profile) before interpreting
-a proof. It does not inherit Kong's HTTP or authentication assumptions.
+RBAC contracts select one of three profiles: named `get` (schema 1),
+`get`/`list`/`watch` (schema 2), or those reads plus named
+`update`/`patch`/`delete` (schema 3). Inspect the default with
+`soundcheck profile kubernetes-rbac`, or add `--contract-version 2` or `3`.
+Review the [RBAC boundaries](docs/kubernetes-rbac.md#supported-profiles) before
+interpreting a proof. Write verification concerns the initial RBAC grant, not
+successful mutation or preserved object contents.
 
 ## Testing
 
