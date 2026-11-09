@@ -59,6 +59,24 @@ and rejection of collection deletion and other outside-domain requests. Only
 supported named requests can become accepted witnesses. Each commit receives
 clean-worktree build and full regression checks.
 
+## Independent reference evidence
+
+The pinned Kubernetes v1.34.0 authorizer and v0.34.0 request parser were run on
+17 synthetic snapshots plus the five public workflow snapshots. Supported cases
+passed 4,608 explicit-attribute decision comparisons, 304 URL-derived decision
+comparisons and 576 URL attribute checks. Seventeen outside-domain request
+cases were rejected. Two positive named-get controls established matching
+identity/attributes under old contracts before six v1/v2 write rejections.
+Twenty-four contract and six preservation-side requests were replayed through
+upstream URL parsing/authorization, explicit attributes, concrete evaluation
+and the production SMT encoding. Original named-get, preparation and read suites
+retained their expectations and passed. No module pins changed.
+
+These finite checks support the declared implementation boundary; they do not
+prove universal parser/encoder correctness or establish deployment usefulness.
+The [write corpus](../../bench/kubernetes-rbac/write-access/README.md) documents
+the independent comparison, retained artifacts and reproduction command.
+
 ## Deployment evaluation follow-up
 
 Keep real inputs and results private and separate from the synthetic corpus.

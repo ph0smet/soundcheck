@@ -15,6 +15,11 @@ for get/list/watch and compares raw request targets through Kubernetes'
 `RequestInfoFactory`, an explicit authorization-attribute value projection, and
 the production RBAC authorizer. It has its own counts and witness artifacts.
 
+The [named-write corpus](../write-access/README.md) separately checks v3 contracts
+for named update/patch/delete alongside the read domain. Its URL cases distinguish
+the initial write request from collection deletion, subresources, and additional
+authorization checks needed by some operations. Old suites stay unchanged.
+
 Run from the repository root:
 
 ```sh
@@ -88,8 +93,10 @@ preparations, typed-policy comparisons, four-way request comparisons, witness
 replays through both inputs, and deliberately corrupted preparation controls.
 Read access has its own `read-access/results.json`, including raw URL extraction,
 three-way decision comparisons, outside-domain checks and witness replays. The
-combined command exits nonzero if any suite fails. The original matrix's
-`complete:true` alone does not establish preparation or read-access conformance.
+named-write suite records the corresponding v3 checks and old-version controls
+in `write-access/results.json`. The combined command exits nonzero if any suite
+fails. The original matrix's `complete:true` alone does not establish preparation,
+read-access or named-write conformance.
 
 ## Reference adapter and provenance
 
@@ -145,10 +152,12 @@ and [RBAC validation](https://github.com/kubernetes/kubernetes/blob/v1.34.0/pkg/
 
 The original suite is a fixed-snapshot authorization comparison for named `get`
 requests on core ConfigMaps and Secrets. The separate v2 suite adds list/watch
-and namespace/all-namespace collection attributes. Snapshot completeness and authentication identity
-are external assumptions, not facts discovered by the oracle. The harness does
-not model API discovery, object existence, live controllers, aggregation convergence, admission/escalation
-checks, bootstrap bindings, or a composed authorization chain.
+and namespace/all-namespace collection attributes; v3 adds named writes.
+Snapshot completeness and authentication identity are external assumptions,
+not facts discovered by the oracle. The harness does not model API discovery,
+object existence, write effects, live controllers, aggregation convergence,
+admission/escalation or additional operation-specific checks, bootstrap bindings,
+or a composed authorization chain.
 
 RBAC `NoOpinion` means no RBAC grant for the request; it is not a final API-server
 denial. Missing role references may appear in upstream's reason string with an
@@ -162,4 +171,5 @@ Runner acceptance tests can be run without Go or Z3:
 python3 bench/kubernetes-rbac/conformance/test_runner.py
 python3 bench/kubernetes-rbac/conformance/test_preparation_runner.py
 python3 bench/kubernetes-rbac/conformance/test_read_access_runner.py
+python3 bench/kubernetes-rbac/conformance/test_write_access_runner.py
 ```
