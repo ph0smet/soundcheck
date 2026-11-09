@@ -213,6 +213,10 @@ receipt `target_profile` is not the profile selected for a later verification.
 
 ## Named write-access contracts (schema 3)
 
+The [runnable named-write repair demo](../bench/kubernetes-rbac/workflows/write-access/README.md)
+includes an incomplete repair, required manager writes and an unrelated
+Secret-rotation regression caught only by repair comparison.
+
 Schema 3 retains the schema-2 fields and adds `update`, `patch` and `delete` to
 the allowed verbs. It selects `kubernetes-rbac-v1.34-read-write-v1`. Existing
 schema-1/2 contracts and profiles keep their meaning; selecting schema 3 is a

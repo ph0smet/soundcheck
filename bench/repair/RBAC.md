@@ -60,7 +60,9 @@ file checks are not a race-resistant sandbox or a contract-approval mechanism.
 The frozen contract selects the profile. Schema 1 retains
 `kubernetes-rbac-v1.34-get-v1` and named `get`; schema 2 selects
 `kubernetes-rbac-v1.34-read-v1` and `get/list/watch`, including namespaced and
-all-namespace collection authorization. Both use complete static desired RBAC
+all-namespace collection authorization. Schema 3 selects
+`kubernetes-rbac-v1.34-read-write-v1`, adding named `update`, `patch` and `delete`.
+All use complete static desired RBAC
 snapshots in strict JSON, fixed trusted usernames/groups, and core ConfigMaps
 and Secrets. Preservation covers that profile's fixed domain outside the
 contract's `change_scope`. Both returned stages must match the frozen contract
@@ -70,8 +72,11 @@ The supplied examples remain schema 1.
 An omitted binding is assumed absent from the complete desired snapshot. Applying
 a partial manifest does not remove an existing live binding. Authentication,
 admission, object existence, aggregation controllers and escalation paths remain
-outside both profiles. Schema 2 models effective authorization attributes, not
-raw selector parsing, response contents or watch events. `NoOpinion` means RBAC
+outside these profiles. Schema 2 and 3 model effective authorization attributes,
+not raw selector parsing, response contents or watch events. Schema 3 does not
+model operation success, request bodies or effects; apply can need additional
+create authorization, and special deletion paths can require other permissions.
+`NoOpinion` means RBAC
 supplied no grant, not a final API-server denial. See the
 [connector guide](../../docs/kubernetes-rbac.md).
 
@@ -91,11 +96,16 @@ incoherent returned results have explicit fixed failure codes.
 ## Minimized summary
 
 The distinct experimental format is `kind: submitted_rbac_repair_evaluation`.
-Suites without a successfully frozen schema 2 contract retain format 1,
-including existing fatal summaries. Any frozen schema 2 task selects format 2:
+Suites containing only schema-1 or invalid/unreadable contracts retain format 1,
+including existing fatal summaries. Any successfully frozen newer contract
+(schema 2 or 3) selects format 2:
 each task includes its trusted `profile` (null for an invalid/unreadable contract),
 and the top-level `profile` is the sole known profile or null for mixed profiles.
 The existing Kong format and report/evidence schemas are unchanged.
+The [named-write workflow](../kubernetes-rbac/workflows/write-access/README.md)
+provides schema-3 controls for partial fixes, required manager writes and a
+secret-rotator regression; its fixed contract can be used in an operator-owned
+suite with the same candidate-only submission format.
 Its fields include:
 
 - Every scheduled task, provenance, ordered attempts and first valid ordinal.

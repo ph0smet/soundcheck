@@ -121,3 +121,18 @@
  (deps ../../scripts/verify-approved-contract.sh)
  (action
   (run %{exe:read_adapters_t.exe} %{exe:../../cli/main.exe} ../../scripts/verify-approved-contract.sh)))
+(executable
+ (name write_adapters_t)
+ (modules write_adapters_t)
+ (libraries soundcheck_core soundcheck_kubernetes_rbac unix))
+
+(rule
+ (alias runtest)
+ (deps
+  (source_tree ../../bench/kubernetes-rbac/workflows/write-access)
+  ../../scripts/verify-approved-contract.sh)
+ (action
+  (run %{exe:write_adapters_t.exe} %{exe:../../cli/main.exe}
+   %{exe:../../bench/repair/rbac_main.exe}
+   ../../bench/kubernetes-rbac/workflows/write-access
+   ../../scripts/verify-approved-contract.sh)))
