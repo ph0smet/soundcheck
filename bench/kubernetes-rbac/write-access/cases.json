@@ -1,0 +1,121 @@
+{
+  "01-unsafe": {
+    "sha256": "943744ae6a119b9f8ebaa96ab5b1d8278af202b0e8b1c0d1bc7e5a6ce82eda8e",
+    "supported": true,
+    "expected_contract": "violated",
+    "expected_clause": "payments-update-not-granted",
+    "expected_preservation": "not_reached"
+  },
+  "02-update-only-fix": {
+    "sha256": "71f1881862345a8f5d681d7fc956fc6de28c1e634ce197bdc11b63623453097f",
+    "supported": true,
+    "expected_contract": "violated",
+    "expected_clause": "payments-patch-not-granted",
+    "expected_preservation": "not_reached"
+  },
+  "03-update-patch-fix": {
+    "sha256": "bc2267f056fbde47145da0fbecc26908521a7e87eacebdd0482d35f4ba87289a",
+    "supported": true,
+    "expected_contract": "violated",
+    "expected_clause": "payments-delete-not-granted",
+    "expected_preservation": "not_reached"
+  },
+  "04-repaired": {
+    "sha256": "fc3f7038ee9cbfa2454ddacc652ca1abcf98f92e816a510db60478b01846dfd9",
+    "supported": true,
+    "expected_contract": "proved",
+    "expected_clause": null,
+    "expected_preservation": "preserved"
+  },
+  "05-operator-write-regression": {
+    "sha256": "363279e0365c75691e84a408571700a834b5a1d61017ed2613a62a18f6d6aeab",
+    "supported": true,
+    "expected_contract": "proved",
+    "expected_clause": null,
+    "expected_preservation": "changed"
+  },
+  "06-read-regression": {
+    "sha256": "f1151daafbadbb3b5f4df4ce5f052ab071439fd0432cc1415c920103829e02ea",
+    "supported": true,
+    "expected_contract": "proved",
+    "expected_clause": null,
+    "expected_preservation": "changed"
+  },
+  "07-required-update-lost": {
+    "sha256": "401a55757b8c5dcafb28f212e10059c6986af437df65720d0f1df1a6f5ccf164",
+    "supported": true,
+    "expected_contract": "violated",
+    "expected_clause": "frontend-update-required",
+    "expected_preservation": "not_reached"
+  },
+  "08-required-patch-lost": {
+    "sha256": "b1e159990d8199770ea9fcb54c6af38060de604ce7e6c06844492ad50791f1b6",
+    "supported": true,
+    "expected_contract": "violated",
+    "expected_clause": "frontend-patch-required",
+    "expected_preservation": "not_reached"
+  },
+  "09-required-delete-lost": {
+    "sha256": "27f88421d01939f5fdff857078ff1da244595523a0c90a72b4041fed6de960b2",
+    "supported": true,
+    "expected_contract": "violated",
+    "expected_clause": "frontend-delete-required",
+    "expected_preservation": "not_reached"
+  },
+  "10-remaining-group-cluster-grant": {
+    "sha256": "b2e80c6abd4bf7b4d9cbae6b0fe861d0274aacb9b8a394f6e55aa781e3d6560f",
+    "supported": true,
+    "expected_contract": "violated",
+    "expected_clause": "payments-patch-not-granted",
+    "expected_preservation": "not_reached"
+  },
+  "11-literal-star-name": {
+    "sha256": "a067a58416630a7f3d46d6faad87a5b5b3a3efd4a59fd16f36389553f002bac8",
+    "supported": true,
+    "expected_contract": "proved",
+    "expected_clause": null,
+    "expected_preservation": "preserved"
+  },
+  "12-empty-name": {
+    "sha256": "90cab5a7e782020ba92bdd762fc7d32357b037147d0bdb999ecce86cfb9f93cb",
+    "supported": true,
+    "expected_contract": "proved",
+    "expected_clause": null,
+    "expected_preservation": "preserved"
+  },
+  "13-wildcard-verb": {
+    "sha256": "389c08682691813c26e1810ced40b79b04ec63fa95cc227d80b98dd2db980bd8",
+    "supported": true,
+    "expected_contract": "violated",
+    "expected_clause": "payments-update-not-granted",
+    "expected_preservation": "not_reached"
+  },
+  "14-named-patch-leak": {
+    "sha256": "0e174f0bbb4bd9bf89aa85290675b2c73bac772791c6ab0ca260e30ea887106b",
+    "supported": true,
+    "expected_contract": "violated",
+    "expected_clause": "payments-patch-not-granted",
+    "expected_preservation": "not_reached"
+  },
+  "15-aggregation-boundary": {
+    "sha256": "949273af6af18ffc26c88531c1940aeb2c7106f2aef8bec9c3b51412fe6b39f7",
+    "supported": false,
+    "expected_contract": "unknown",
+    "expected_clause": null,
+    "expected_preservation": null
+  },
+  "16-subresource-only-grant": {
+    "sha256": "3cdffb76514c6f418d6aa2e1281bbdf20354be5dcada774bdfd26f958aceb391",
+    "supported": true,
+    "expected_contract": "proved",
+    "expected_clause": null,
+    "expected_preservation": "preserved"
+  },
+  "17-outside-operation-grants": {
+    "sha256": "c59d27d2007445b37ef0de3642a077bfec1d914d9e338336ce95447ea5de0a9e",
+    "supported": true,
+    "expected_contract": "proved",
+    "expected_clause": null,
+    "expected_preservation": "preserved"
+  }
+}

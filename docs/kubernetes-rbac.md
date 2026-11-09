@@ -1,8 +1,9 @@
 # Kubernetes RBAC
 
-Soundcheck checks paired access requirements and repair preservation for a
+Soundcheck checks paired access requirements and repair preservation within
 bounded static RBAC profiles. Contract schema 1 checks named `get`; schema 2
-checks `get`, `list` and `watch` for core ConfigMaps and Secrets. CLI and library workflows share the decision IR,
+adds `list` and `watch`; schema 3 adds named `update`, `patch` and `delete` for
+core ConfigMaps and Secrets. CLI and library workflows share the decision IR,
 encoder, Z3 backend and witness validation with the Kong connector.
 
 ## Try the workflow
@@ -210,6 +211,53 @@ no effective exact-name restriction, not necessarily no selectors in an HTTP
 request. Preparation still checks the shared snapshot format; its original
 receipt `target_profile` is not the profile selected for a later verification.
 
+## Named write-access contracts (schema 3)
+
+The [runnable named-write repair demo](../bench/kubernetes-rbac/workflows/write-access/README.md)
+includes an incomplete repair, required manager writes and an unrelated
+Secret-rotation regression caught only by repair comparison.
+
+Schema 3 retains the schema-2 fields and adds `update`, `patch` and `delete` to
+the allowed verbs. It selects `kubernetes-rbac-v1.34-read-write-v1`. Existing
+schema-1/2 contracts and profiles keep their meaning; selecting schema 3 is a
+separate requirement change, not an automatic upgrade.
+
+Each write requires a nonempty DNS-valid namespace and object name. In a write
+clause or change scope, `names: null` selects every supported named request;
+`names: ["settings"]` selects exactly that name. `namespace: null` is invalid
+for these verbs. It still selects the all-namespace endpoint for list/watch.
+The contract has no name-complement selector: requiring `settings` while
+forbidding `names: null` for the same subject/verb/resource/namespace is
+inconsistent, rather than a way to express "settings only".
+
+An app can be required to read its ConfigMaps while being forbidden to update,
+patch or delete them. A separate identity can retain a required named write.
+Each forbidden operation needs its own clause: removing `update` does not remove
+`patch` or `delete`. Preservation covers **all six supported verbs**, including
+verbs absent from the access clauses. An approved update change cannot silently
+remove another identity's patch permission or the app's collection reads.
+
+The [pinned request parser](https://github.com/kubernetes/apiserver/blob/v0.34.0/pkg/endpoints/request/requestinfo.go)
+maps ordinary named PUT/PATCH/DELETE requests to update/patch/delete. Their
+authorization name comes from the URL path, not a selector or body. RBAC matches
+`resourceNames` literally: `[]` is unrestricted, whereas `[""]` and `["*"]`
+grant no supported named write. Top-level create and collection deletion are
+outside this profile; adding a name selector does not turn collection DELETE
+into a supported named delete.
+
+The proof concerns the **initial request's RBAC grant**, not successful mutation,
+changed fields or object contents. Request bodies, object existence,
+preconditions, admission and extra operation-specific authorization remain
+outside it. For example, server-side-apply PATCH can additionally require
+[create authorization](https://github.com/kubernetes/apiserver/blob/v0.34.0/pkg/endpoints/handlers/patch.go),
+and malformed-object deletion can additionally require
+[unsafe-delete authorization](https://github.com/kubernetes/apiserver/blob/v0.34.0/pkg/endpoints/handlers/delete.go).
+Preserving authorization decisions does not preserve stored object contents.
+
+```sh
+dune exec soundcheck -- profile kubernetes-rbac --contract-version 3 --format json
+```
+
 ## Supported profiles
 
 `kubernetes-rbac-v1.34-get-v1` references Kubernetes v1.34.0 and supports:
@@ -234,6 +282,11 @@ nonempty namespace and name. List/watch additionally permit empty effective
 namespace and/or name. Other verbs, resources, API groups, subresources and
 nonempty names outside the DNS bounds are outside the request domain.
 
+`kubernetes-rbac-v1.34-read-write-v1` retains the read domain and adds named
+update/patch/delete for those same resources. The snapshot and identity boundary
+is unchanged. Other write verbs, resources, API groups and subresources remain
+outside the request domain.
+
 All supplied objects are checked, including unbound roles and unrelated
 bindings. Malformed input, unknown fields, duplicate identities, missing
 references, aggregation rules and nonResourceURLs return `unknown`. Escaped
@@ -248,15 +301,16 @@ the state that was verified.
 
 **No grant is not final denial.** The decision is RBAC `Allow` versus
 `NoOpinion`. Other authorizers, authentication, impersonation, admission, object
-existence, aggregation/reconciliation controllers, mutation and escalation
-checks are outside both models. Schema-1 restrictions on `get` do not rule out
+existence, aggregation/reconciliation controllers, mutation effects and escalation
+checks are outside these models. Schema-1 restrictions on `get` do not rule out
 Secret exposure through `list` or `watch`. Schema 2 can cover those direct read
 grants, but pod creation and other indirect exposure paths remain outside it.
 
 Preservation ranges over all supported valid namespace/name strings for the
 frozen identities, not just namespaces present in the input. Schema 2 includes
-the all-namespace collection endpoint. Both exclude identities, verbs,
-resources and control planes outside their selected profile.
+the all-namespace collection endpoint; schema 3 also includes named writes.
+All exclude identities, verbs, resources and control planes outside their
+selected profile.
 
 ## Output and integrations
 

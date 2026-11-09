@@ -69,7 +69,7 @@ val exit_code : task_row list -> int
 val to_json : task_row list -> string
 (** Minimized experimental summary: never contains raw reports, inputs,
     witnesses, formulas, paths, canonical contracts or diagnostic text.
-    A frozen v2 contract selects format 2, with per-task trusted profiles;
+    A frozen non-v1 contract selects format 2, with per-task trusted profiles;
     otherwise the existing format 1 summary is retained. *)
 
 val fatal_json : string -> string

@@ -1,0 +1,145 @@
+{
+  "schema_version": 3,
+  "kind": "kubernetes-rbac-access",
+  "context": {
+    "schema_version": 1,
+    "snapshot_complete": true,
+    "identities": [
+      {
+        "username": "system:serviceaccount:frontend:frontend-sa",
+        "groups": [
+          "system:serviceaccounts",
+          "system:serviceaccounts:frontend",
+          "system:authenticated"
+        ]
+      },
+      {
+        "username": "ops-auditor",
+        "groups": [
+          "ops",
+          "system:authenticated"
+        ]
+      },
+      {
+        "username": "alice",
+        "groups": [
+          "system:authenticated"
+        ]
+      }
+    ]
+  },
+  "clauses": [
+    {
+      "name": "frontend-get-required",
+      "kind": "must_allow",
+      "subject": "system:serviceaccount:frontend:frontend-sa",
+      "verb": "get",
+      "namespace": "frontend",
+      "resource": "configmaps",
+      "names": [
+        "settings"
+      ]
+    },
+    {
+      "name": "frontend-list-required",
+      "kind": "must_allow",
+      "subject": "system:serviceaccount:frontend:frontend-sa",
+      "verb": "list",
+      "namespace": "frontend",
+      "resource": "configmaps",
+      "names": null
+    },
+    {
+      "name": "frontend-watch-required",
+      "kind": "must_allow",
+      "subject": "system:serviceaccount:frontend:frontend-sa",
+      "verb": "watch",
+      "namespace": "frontend",
+      "resource": "configmaps",
+      "names": null
+    },
+    {
+      "name": "frontend-update-required",
+      "kind": "must_allow",
+      "subject": "system:serviceaccount:frontend:frontend-sa",
+      "verb": "update",
+      "namespace": "frontend",
+      "resource": "configmaps",
+      "names": [
+        "settings"
+      ]
+    },
+    {
+      "name": "frontend-patch-required",
+      "kind": "must_allow",
+      "subject": "system:serviceaccount:frontend:frontend-sa",
+      "verb": "patch",
+      "namespace": "frontend",
+      "resource": "configmaps",
+      "names": [
+        "settings"
+      ]
+    },
+    {
+      "name": "frontend-delete-required",
+      "kind": "must_allow",
+      "subject": "system:serviceaccount:frontend:frontend-sa",
+      "verb": "delete",
+      "namespace": "frontend",
+      "resource": "configmaps",
+      "names": [
+        "obsolete"
+      ]
+    },
+    {
+      "name": "payments-update-not-granted",
+      "kind": "must_not_grant",
+      "subject": "system:serviceaccount:frontend:frontend-sa",
+      "verb": "update",
+      "namespace": "payments",
+      "resource": "secrets",
+      "names": null
+    },
+    {
+      "name": "payments-patch-not-granted",
+      "kind": "must_not_grant",
+      "subject": "system:serviceaccount:frontend:frontend-sa",
+      "verb": "patch",
+      "namespace": "payments",
+      "resource": "secrets",
+      "names": null
+    },
+    {
+      "name": "payments-delete-not-granted",
+      "kind": "must_not_grant",
+      "subject": "system:serviceaccount:frontend:frontend-sa",
+      "verb": "delete",
+      "namespace": "payments",
+      "resource": "secrets",
+      "names": null
+    }
+  ],
+  "change_scope": [
+    {
+      "subject": "system:serviceaccount:frontend:frontend-sa",
+      "verb": "update",
+      "namespace": "payments",
+      "resource": "secrets",
+      "names": null
+    },
+    {
+      "subject": "system:serviceaccount:frontend:frontend-sa",
+      "verb": "patch",
+      "namespace": "payments",
+      "resource": "secrets",
+      "names": null
+    },
+    {
+      "subject": "system:serviceaccount:frontend:frontend-sa",
+      "verb": "delete",
+      "namespace": "payments",
+      "resource": "secrets",
+      "names": null
+    }
+  ]
+}

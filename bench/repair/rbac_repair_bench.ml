@@ -211,7 +211,7 @@ let header version profile = ["experimental_format_version",integer version;
 let to_json tasks =
   let profiles = List.filter_map (fun (task : task_row) -> task.profile) tasks
     |> List.sort_uniq String.compare in
-  let version = if List.mem K.Assurance.read_profile_id profiles then 2 else 1 in
+  let version = if List.exists ((<>) K.Assurance.profile_id) profiles then 2 else 1 in
   let profile = if version = 1 then Some K.Assurance.profile_id
     else match profiles with [profile] -> Some profile | _ -> None in
   let attempts = List.concat_map (fun (task : task_row) -> task.attempts) tasks in
