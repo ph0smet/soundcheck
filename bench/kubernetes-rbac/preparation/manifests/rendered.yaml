@@ -1,0 +1,57 @@
+# Synthetic rendered bundle, not an export from a deployed cluster.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: frontend-sa
+  namespace: frontend
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleList
+items:
+  - metadata:
+      name: config-reader
+      generation: 9007199254740993
+      creationTimestamp: 2026-11-10T10:11:12Z
+      annotations:
+        example.com/note: >-
+          Keep the access requirement
+          fixed while editing.
+        example.com/quantity: 100m
+        example.com/version: 1.2.3
+        example.com/quoted-bool: "on"
+    rules:
+      - apiGroups: [""]
+        resources: [configmaps]
+        verbs: [get]
+  - metadata:
+      name: secret-reader
+    rules:
+      - apiGroups: [""]
+        resources: [secrets]
+        verbs: [get]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBindingList
+items:
+  - metadata:
+      name: frontend-config
+    roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: config-reader}
+    subjects: [{kind: ServiceAccount, name: frontend-sa}]
+  - metadata:
+      name: ops-config
+      namespace: ops
+    roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: config-reader}
+    subjects: [{apiGroup: rbac.authorization.k8s.io, kind: User, name: ops-auditor}]
+  - metadata:
+      name: frontend-extra
+      namespace: payments
+    roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: secret-reader}
+    subjects: [{kind: ServiceAccount, name: frontend-sa, namespace: frontend}]
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: settings
+  namespace: frontend
+data:
+  feature: "off"

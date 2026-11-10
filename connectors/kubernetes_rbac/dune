@@ -1,3 +1,3 @@
 (library
  (name soundcheck_kubernetes_rbac)
- (libraries soundcheck_core))
+ (libraries soundcheck_core yaml))

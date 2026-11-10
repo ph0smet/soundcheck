@@ -70,6 +70,16 @@ dune build bench/kubernetes-rbac/model_oracle.exe cli/main.exe
   --z3 "$soundcheck_z3" \
   --output "$soundcheck_build_dir/preparation/results.json"
 
+# Broader preparation must agree with decoding the original manifests through
+# Kubernetes, not merely with re-reading Soundcheck's normalized output.
+"$soundcheck_python" "$soundcheck_script_dir/run_manifests.py" \
+  --reference "$soundcheck_build_dir/reference-oracle" \
+  --model "$soundcheck_repo_root/_build/default/bench/kubernetes-rbac/model_oracle.exe" \
+  --soundcheck "$soundcheck_repo_root/_build/default/cli/main.exe" \
+  --module-metadata "$soundcheck_build_dir/kubernetes-module.json" \
+  --z3 "$soundcheck_z3" \
+  --output "$soundcheck_build_dir/manifests/results.json"
+
 # Contract v2 and the raw URL-to-attribute boundary have their own fixture
 # inventory and counters; legacy named-get/preparation results stay unchanged.
 "$soundcheck_python" "$soundcheck_script_dir/run_read_access.py" \
