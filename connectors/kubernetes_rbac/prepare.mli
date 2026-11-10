@@ -40,3 +40,18 @@ val manifest_receipt_json : manifest -> string
     defaulting context, source-to-output inventory, list wrappers, excluded
     objects, empty documents and every added/removed field. Schema 1 and
     [of_string] remain unchanged. *)
+
+type fragment
+
+val fragment_of_manifest : format:Manifest_input.format -> ?namespace:string -> ?rbac_only:bool ->
+  string -> (fragment, string) result
+(** Normalized, structurally validated source for explicit inventory assembly.
+    References may be unresolved. This is NOT a closed [Snapshot.t] or a
+    standalone prepared snapshot; the union must pass the strict snapshot reader.
+    [of_manifest] and [of_string] retain their closed-inventory requirement. *)
+
+val fragment_items : fragment -> Strict_json.value list
+val fragment_source_paths : fragment -> string list
+val fragment_provenance : fragment -> Strict_json.value
+(** Source hash/settings, transformations and local object indices. No snapshot
+    identity or verification/completeness claim is attached to a fragment. *)

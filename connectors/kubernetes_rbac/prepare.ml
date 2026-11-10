@@ -153,8 +153,11 @@ let receipt_json value = json (`O (receipt_fields value))
 type manifest = { prepared : t; excluded_count : int; provenance : (string * Strict_json.value) list }
 let manifest_snapshot value = value.prepared
 let manifest_excluded_count value = value.excluded_count
+type fragment = { manifest : manifest; items : Strict_json.value list; source_paths : string list }
+let fragment_items value = value.items
+let fragment_source_paths value = value.source_paths
 
-let of_manifest ~format ?namespace:namespace_context ?(rbac_only=false) source = protect (fun () ->
+let fragment_of_manifest ~format ?namespace:namespace_context ?(rbac_only=false) source = protect (fun () ->
   Option.iter (fun value -> ignore (namespace "namespace context" value)) namespace_context;
   (* Parse every document before projecting anything, including excluded objects. *)
   let documents = Manifest_input.parse format source in
@@ -213,8 +216,8 @@ let of_manifest ~format ?namespace:namespace_context ?(rbac_only=false) source =
            | _ -> metadata)
         | _ -> metadata in
       let value = `O (set "metadata" metadata fields) in
-      (* The unchanged snapshot reader validates all selected objects together,
-         including unbound roles, duplicate identities and unresolved roles. *)
+      (* Fragment validation checks all selected objects, including unbound
+         roles and duplicates. The final snapshot must also resolve every ref. *)
       retained := `O ["source_path",`String path;"snapshot_index",`Number (string_of_int !count)] :: !retained;
       incr count;
       items := value :: !items
@@ -231,19 +234,43 @@ let of_manifest ~format ?namespace:namespace_context ?(rbac_only=false) source =
     match value with None -> empty := `String path :: !empty | Some value -> collect path value) documents;
   if !count = 0 then reject "input" "no RBAC objects selected";
   let snapshot = json (`O ["apiVersion",`String "v1";"kind",`String "List";"items",`A (List.rev !items)]) ^ "\n" in
-  (match Snapshot.of_string snapshot with Ok _ -> () | Error reason -> reject "prepared snapshot" reason);
+  (* A fragment may refer to roles in another explicit source. Everything else,
+     including unsupported rules and duplicate identities, remains strict. *)
+  (match Snapshot.unresolved_references snapshot with Ok _ -> () | Error reason -> reject "prepared snapshot" reason);
   let prepared = {snapshot;input_sha256=Soundcheck_core.Sha256.string source;
     snapshot_sha256=Soundcheck_core.Sha256.string snapshot;
     input_bytes=String.length source;snapshot_bytes=String.length snapshot;
     object_count= !count;removed_fields=List.sort_uniq String.compare !removed} in
-  {prepared;excluded_count=List.length !excluded;provenance=[
+  let manifest = {prepared;excluded_count=List.length !excluded;provenance=[
     "input_format",`String (Manifest_input.format_name format);
     "document_count",`Number (string_of_int (List.length documents));
     "selection",`String (if rbac_only then "rbac-only" else "all");
     "namespace_context",(match namespace_context with None -> `Null | Some value -> `String value);
     "empty_documents",`A (List.rev !empty);"list_wrappers",`A (List.rev !wrappers);
     "retained_objects",`A (List.rev !retained);"excluded_objects",`A (List.rev !excluded);
-    "defaulted_fields",`A (List.rev !defaults)]})
+    "defaulted_fields",`A (List.rev !defaults)]} in
+  let source_paths = List.rev !retained |> List.map (function
+    | `O fields -> (match List.assoc "source_path" fields with `String path -> path | _ -> assert false)
+    | _ -> assert false) in
+  {manifest;items=List.rev !items;source_paths})
+
+let of_manifest ~format ?namespace ?rbac_only source =
+  match fragment_of_manifest ~format ?namespace ?rbac_only source with
+  | Error reason -> Error reason
+  | Ok fragment ->
+    (match Snapshot.of_string fragment.manifest.prepared.snapshot with
+     | Error reason -> Error ("prepared snapshot: " ^ reason)
+     | Ok _ -> Ok fragment.manifest)
+
+let fragment_provenance value =
+  let prepared = value.manifest.prepared in
+  `O (["input",`O ["sha256",`String prepared.input_sha256;"bytes",`Number (string_of_int prepared.input_bytes)];
+    "object_count",`Number (string_of_int prepared.object_count);
+    "removed_fields",`A (List.map (fun path -> `String path) prepared.removed_fields)]
+    @ List.map (fun (key,field_value) ->
+      if key<>"retained_objects" then key,field_value else
+      key,`A (List.mapi (fun index path -> `O ["source_path",`String path;
+        "object_index",`Number (string_of_int index)]) value.source_paths)) value.manifest.provenance)
 
 let manifest_receipt_json value =
   let fields = receipt_fields value.prepared in

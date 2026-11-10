@@ -18,6 +18,13 @@ type binding = {
 }
 type bound_grant = { binding : binding; bound_rules : rule list }
 type t
+type missing_reference = { binding_index : int; binding_label : string; role_label : string }
+
+val unresolved_references : string -> (missing_reference list, string) result
+(** Validate the entire strict inventory, including unsupported rules and duplicate
+    identities, then enumerate every missing reference. This does not construct
+    a verified/closed [t]; [of_string] continues to reject missing roles. *)
+
 val of_string : string -> (t, string) result
 val grants : t -> bound_grant list
 val binding_label : binding -> string

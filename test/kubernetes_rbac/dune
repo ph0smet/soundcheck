@@ -98,6 +98,11 @@
  (modules manifest_prepare_t)
  (libraries soundcheck_core soundcheck_kubernetes_rbac))
 
+(test
+ (name inventory_t)
+ (modules inventory_t)
+ (libraries soundcheck_core soundcheck_kubernetes_rbac))
+
 (rule
  (alias runtest)
  (deps
