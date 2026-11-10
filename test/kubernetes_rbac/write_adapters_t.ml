@@ -45,6 +45,10 @@ let run ?env binary args =
 
 (* Keep v3 acceptance separate from the unchanged v1/v2 workflows. *)
 let profile_v3 = "kubernetes-rbac-v1.34-read-write-v1"
+let profile_v4 = "kubernetes-rbac-v1.34-scoped-read-write-v1"
+let profile_for_version = function
+  | 1 -> "kubernetes-rbac-v1.34-get-v1" | 2 -> "kubernetes-rbac-v1.34-read-v1"
+  | 3 -> profile_v3 | 4 -> profile_v4 | _ -> failwith "unexpected contract version"
 let assert_report ~version ~spec outcome report =
   check "report schema remains 10" (field "schema_version" report=`Number "10");
   check "expected verdict" (string "result" report=outcome);
@@ -53,7 +57,7 @@ let assert_report ~version ~spec outcome report =
     (field "schema_version" frozen=`Number (string_of_int version)
      && string "canonical" frozen=K.Contract_spec.canonical spec);
   check "contract-selected profile" (string "profile" (field "assurance" report)=
-    (match version with 1->"kubernetes-rbac-v1.34-get-v1" | 2->"kubernetes-rbac-v1.34-read-v1" | _->profile_v3))
+    profile_for_version version)
 let replace key value = function
   | `O fields -> `O (List.map (fun (name,old)->name,if name=key then value else old) fields)
   | _ -> failwith "object expected"
@@ -68,13 +72,25 @@ let without_role_verbs source role verbs =
 let legacy_contract version source =
   let value=I.parse source in
   let required=List.hd (array "clauses" value) in
+  (* The v4 adapter fixture uses singleton includes and unrestricted complements.
+     Its downgrade must remain a valid, weaker v1/v2 contract, not just corrupt
+     JSON that the frozen adapters would also ignore. *)
+  let required=match field "namespace" required with
+    | `O ["include",`A [(`String _ as namespace)]] -> replace "namespace" namespace required
+    | _ -> required in
+  let required=match field "names" required with
+    | `O fields when List.assoc_opt "exclude" fields=Some (`A []) -> replace "names" `Null required
+    | _ -> required in
   let forbidden=required |> replace "name" (`String "legacy-secret-read-not-granted")
     |> replace "kind" (`String "must_not_grant") |> replace "namespace" (`String "payments")
     |> replace "resource" (`String "secrets") |> replace "names" `Null in
   let clauses=List.map (fun clause->if version=1 then match clause with
     | `O fields -> `O (List.remove_assoc "verb" fields) | _->assert false else clause) [required;forbidden] in
-  value |> replace "schema_version" (`Number (string_of_int version))
-    |> replace "clauses" (`A clauses) |> replace "change_scope" (`A []) |> I.json
+  let source=value |> replace "schema_version" (`Number (string_of_int version))
+    |> replace "clauses" (`A clauses) |> replace "change_scope" (`A []) |> I.json in
+  check "tampered downgrade remains a valid older contract"
+    (K.Contract_spec.version (ok (K.Contract_spec.of_string source))=version);
+  source
 
 let witness_request witness : Ir.request =
   let object_ = field "object_request" witness in
@@ -125,6 +141,7 @@ let saved_model value : Solve.model =
    scheme=string "scheme" value;sni=string "sni" value;
    headers=List.map (fun item -> string "name" item,string "value" item) (array "headers" value)}
 let assert_evidence directory spec ?before ~after stdout =
+  let version=K.Contract_spec.version spec in
   let artifact metadata =
     let value = read (Filename.concat directory (string "path" metadata)) in
     check "evidence artifact checksum" (string "sha256" metadata=Sha256.string value);value in
@@ -141,14 +158,14 @@ let assert_evidence directory spec ?before ~after stdout =
      input "before" before (field "before" (field "inputs" manifest));
      input "after" after (field "after" (field "inputs" manifest));
      let candidate = I.parse (artifact (field "candidate_report" manifest)) in
-     assert_report ~version:3 ~spec "proved" candidate);
+     assert_report ~version ~spec "proved" candidate);
   check "evidence report is exactly the same invocation's stdout" (artifact (field "report" manifest)=stdout);
-  check "canonical v3 contract is retained" (artifact (field "contract" manifest)=K.Contract_spec.canonical spec ^ "\n");
+  check "canonical contract is retained" (artifact (field "contract" manifest)=K.Contract_spec.canonical spec ^ "\n");
   let profile = field "assurance_profile" manifest in
-  check "evidence references the read-write profile" (string "id" profile=profile_v3);
+  check "evidence references the selected read-write profile" (string "id" profile=profile_for_version version);
   check "evidence includes the full selected profile"
-    (artifact (field "artifact" profile)=K.Assurance.profile_json ~version:3 () ^ "\n");
-  check "supported v3 plan is complete" (string "status" (field "obligation_plan" manifest)="complete");
+    (artifact (field "artifact" profile)=K.Assurance.profile_json ~version () ^ "\n");
+  check "supported plan is complete" (string "status" (field "obligation_plan" manifest)="complete");
   let policy source = K.Lower.policy spec (ok (K.Snapshot.of_string source)) in
   let after_policy = policy after in
   let clauses = K.Contract_spec.to_contract spec in
@@ -285,6 +302,7 @@ let cli_checks directory binary demo =
   spec,contract_source,baseline,partial,repaired,regression
 
 let mcp_checks directory binary spec source baseline partial repaired regression =
+  let version=K.Contract_spec.version spec in
   let contract_path=Filename.concat directory "mcp-contract.json" and baseline_path=Filename.concat directory "mcp-baseline.json" in
   write contract_path source;write baseline_path baseline;
   with_child directory binary ["mcp";"--connector";"kubernetes-rbac";"--contract";contract_path;"--baseline";baseline_path] (fun child ->
@@ -303,7 +321,7 @@ let mcp_checks directory binary spec source baseline partial repaired regression
         "arguments",`O ["config",`String candidate]])) in
       let report=field "structuredContent" result in
       check "MCP text equals structured write report" (I.parse (string "text" (List.hd (array "content" result)))=report);
-      assert_report ~version:3 ~spec expected report;
+      assert_report ~version ~spec expected report;
       assert_witness spec ?before:(if operation="compare" then Some baseline else None) ~after:candidate report;report in
     let uncorrected=call 3 "verify" partial "violated" in
     assert_coordinate uncorrected ~action:"patch" ~namespace:"frontend" ~name:None;
@@ -321,6 +339,7 @@ let mcp_checks directory binary spec source baseline partial repaired regression
     check "MCP write session exits cleanly" (status=Unix.WEXITED 0 && read child.error_path=""))
 
 let gate_checks directory binary helper source baseline partial repaired regression =
+  let version=K.Contract_spec.version (ok (K.Contract_spec.of_string source)) in
   let workspace=Filename.concat directory "workspace" and action=Filename.concat directory "trusted-action"
   and runner_temp=Filename.concat directory "runner-temp" in
   List.iter mkdir [workspace;action;runner_temp];
@@ -354,7 +373,8 @@ let gate_checks directory binary helper source baseline partial repaired regress
     let code,stdout,stderr=run ~env "bash" [script] in
     check ("approved-write Action " ^ mode ^ ": " ^ stderr) (code=expected && stderr="");
     List.iter (fun fragment->check ("Action retains " ^ fragment) (contains stdout fragment))
-      (["Approved contract: " ^ approved ^ ":contract.json";profile_v3;"\"schema_version\":3"] @ fragments);
+      (["Approved contract: " ^ approved ^ ":contract.json";profile_for_version version;
+        "\"schema_version\":" ^ string_of_int version] @ fragments);
     check "Action cleans approved inputs without rewriting candidate contract"
       (Sys.readdir runner_temp=[||] && read contract_path=weakened) in
   execute "verify" partial 3 ["must_not_grant";" patch configmaps/";"in namespace frontend"];
@@ -363,6 +383,7 @@ let gate_checks directory binary helper source baseline partial repaired regress
   execute "repair" repaired 0 ["rbac-repair-preservation proved"]
 
 let benchmark_checks directory binary source baseline partial repaired regression =
+  let profile=profile_for_version (K.Contract_spec.version (ok (K.Contract_spec.of_string source))) in
   let root=Filename.concat directory "benchmark" in mkdir root;
   List.iter (fun (name,bytes)->write (Filename.concat root name) bytes)
     ["contract.json",source;"baseline.json",baseline;"partial.json",partial;"regression.json",regression;"valid.json",repaired];
@@ -373,10 +394,10 @@ let benchmark_checks directory binary source baseline partial repaired regressio
   check ("write benchmark process: " ^ stderr) (code=0 && stderr="");
   let summary=I.parse stdout in
   check "schema3 benchmark uses existing format2 with write profile"
-    (field "experimental_format_version" summary=`Number "2" && string "profile" summary=profile_v3);
+    (field "experimental_format_version" summary=`Number "2" && string "profile" summary=profile);
   let task=List.hd (array "tasks" summary) in
   check "benchmark binds trusted profile and exact source bytes"
-    (string "profile" task=profile_v3 && string "baseline_sha256" task=Sha256.string baseline
+    (string "profile" task=profile && string "baseline_sha256" task=Sha256.string baseline
      && string "contract_sha256" task=Sha256.string source && field "first_valid_attempt" task=`Number "3");
   let attempts=array "attempts" task in
   check "benchmark distinguishes partial fix, preservation loss and valid repair"
@@ -387,6 +408,38 @@ let benchmark_checks directory binary source baseline partial repaired regressio
   check "summary does not expose named write witnesses or canonical contract"
     (not (contains stdout "signing-key") && not (contains stdout "config-manager") && not (contains stdout "change_scope"))
 
+let scoped_contract source =
+  let value=I.parse source in
+  let convert scope =
+    let names=match field "names" scope with
+      | `Null -> `O ["exclude",strings [];"include_empty",`Bool (List.mem (string "verb" scope) ["list";"watch"])]
+      | value -> value in
+    let namespace=match field "namespace" scope with
+      | `String value -> `O ["include",strings [value]] | value -> value in
+    scope |> replace "namespace" namespace |> replace "names" names in
+  value |> replace "schema_version" (`Number "4")
+    |> replace "clauses" (`A (List.map convert (array "clauses" value)))
+    |> replace "change_scope" (`A (List.map convert (array "change_scope" value))) |> I.json
+
+let scoped_cli_checks directory binary source baseline repaired regression =
+  let spec=ok (K.Contract_spec.of_string source) in
+  let contract=Filename.concat directory "contract.json" and before=Filename.concat directory "baseline.json" in
+  write contract source;write before baseline;
+  let code,stdout,stderr=run binary ["profile";"kubernetes-rbac";"--contract-version";"4";"--format";"json"] in
+  check "scope profile command binds version4" (code=0 && stderr="" &&
+    string "id" (I.parse stdout)=profile_v4 && field "contract_schema_version" (I.parse stdout)=`Number "4");
+  List.iter (fun (name,candidate,expected) ->
+    let after=Filename.concat directory (name ^ ".json") and evidence=Filename.concat directory (name ^ "-evidence") in
+    write after candidate;
+    let code,stdout,stderr=run binary ["rbac";"compare";before;after;"--contract";contract;
+      "--format";"json";"--evidence-dir";evidence] in
+    check ("v4 CLI comparison " ^ name) (code=(if expected="proved" then 0 else 3) && stderr="");
+    let report=I.parse stdout in assert_report ~version:4 ~spec expected report;
+    assert_witness spec ~before:baseline ~after:candidate report;
+    assert_evidence evidence spec ~before:baseline ~after:candidate stdout)
+    ["valid",repaired,"proved";"regression",regression,"violated"];
+  spec
+
 let () =
   if Array.length Sys.argv<>5 then failwith "expected CLI, benchmark binary, workflow directory and approved-contract helper";
   let binary=Sys.argv.(1) and benchmark=Sys.argv.(2) and demo=Sys.argv.(3) and helper=Sys.argv.(4) in
@@ -395,5 +448,11 @@ let () =
     let spec,source,baseline,partial,repaired,regression=cli_checks directory binary demo in
     mcp_checks directory binary spec source baseline partial repaired regression;
     gate_checks directory binary helper source baseline partial repaired regression;
-    benchmark_checks directory benchmark source baseline partial repaired regression);
+    benchmark_checks directory benchmark source baseline partial repaired regression;
+    let scoped=Filename.concat directory "scoped" in mkdir scoped;
+    let source=scoped_contract source in
+    let spec=scoped_cli_checks scoped binary source baseline repaired regression in
+    mcp_checks scoped binary spec source baseline partial repaired regression;
+    gate_checks scoped binary helper source baseline partial repaired regression;
+    benchmark_checks scoped benchmark source baseline partial repaired regression);
   Printf.printf "RBAC write adapters: %d checks passed\n" !checks

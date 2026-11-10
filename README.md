@@ -484,10 +484,12 @@ profile feature to pinned Kong source, lowering ownership, regressions, availabl
 target samples, and explicit gaps. It is evidence bookkeeping, not a public
 result schema, a coverage percentage, or a completeness certificate.
 
-RBAC contracts select one of three profiles: named `get` (schema 1),
+RBAC contracts select named `get` (schema 1),
 `get`/`list`/`watch` (schema 2), or those reads plus named
-`update`/`patch`/`delete` (schema 3). Inspect the default with
-`soundcheck profile kubernetes-rbac`, or add `--contract-version 2` or `3`.
+`update`/`patch`/`delete` (schema 3). Schema 4 adds namespace sets/complements
+and precise name selectors over the same authorization domain. Inspect the
+default with `soundcheck profile kubernetes-rbac`, or select a version with
+`--contract-version 2`, `3` or `4`.
 Review the [RBAC boundaries](docs/kubernetes-rbac.md#supported-profiles) before
 interpreting a proof. Write verification concerns the initial RBAC grant, not
 successful mutation or preserved object contents.

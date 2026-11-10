@@ -153,6 +153,11 @@ and [RBAC validation](https://github.com/kubernetes/kubernetes/blob/v1.34.0/pkg/
 The original suite is a fixed-snapshot authorization comparison for named `get`
 requests on core ConfigMaps and Secrets. The separate v2 suite adds list/watch
 and namespace/all-namespace collection attributes; v3 adds named writes.
+The separate v4 scope suite retains the v3 domain and checks namespace
+sets/complements, Cartesian namespace/name requirements, name complements,
+empty collection names and out-of-scope preservation. It compares concrete
+and SMT decisions with Kubernetes and replays clause/preservation witnesses.
+These are synthetic acceptance cases, not a public-deployment benchmark.
 Snapshot completeness and authentication identity are external assumptions,
 not facts discovered by the oracle. The harness does not model API discovery,
 object existence, write effects, live controllers, aggregation convergence,
