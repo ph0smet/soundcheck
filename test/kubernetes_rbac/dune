@@ -111,6 +111,11 @@
  (modules write_access_t)
  (libraries soundcheck_core soundcheck_kubernetes_rbac))
 
+(test
+ (name scopes_t)
+ (modules scopes_t)
+ (libraries soundcheck_core soundcheck_kubernetes_rbac))
+
 (executable
  (name read_adapters_t)
  (modules read_adapters_t)

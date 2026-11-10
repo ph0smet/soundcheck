@@ -3,7 +3,9 @@
 Soundcheck checks paired access requirements and repair preservation within
 bounded static RBAC profiles. Contract schema 1 checks named `get`; schema 2
 adds `list` and `watch`; schema 3 adds named `update`, `patch` and `delete` for
-core ConfigMaps and Secrets. CLI and library workflows share the decision IR,
+core ConfigMaps and Secrets. Schema 4 adds namespace sets/complements and
+precise effective-name selectors over that same request domain.
+CLI and library workflows share the decision IR,
 encoder, Z3 backend and witness validation with the Kong connector.
 
 ## Try the workflow
@@ -226,7 +228,7 @@ Each write requires a nonempty DNS-valid namespace and object name. In a write
 clause or change scope, `names: null` selects every supported named request;
 `names: ["settings"]` selects exactly that name. `namespace: null` is invalid
 for these verbs. It still selects the all-namespace endpoint for list/watch.
-The contract has no name-complement selector: requiring `settings` while
+Schema 3 has no name-complement selector: requiring `settings` while
 forbidding `names: null` for the same subject/verb/resource/namespace is
 inconsistent, rather than a way to express "settings only".
 
@@ -257,6 +259,63 @@ Preserving authorization decisions does not preserve stored object contents.
 ```sh
 dune exec soundcheck -- profile kubernetes-rbac --contract-version 3 --format json
 ```
+
+## Namespace and name selectors (schema 4)
+
+Schema 4 selects `kubernetes-rbac-v1.34-scoped-read-write-v1`. It retains the
+schema-3 authorization model and six verbs, and adds the following selectors
+to **both clauses and `change_scope`**. Existing literal/null selectors keep
+their meaning; schemas 1–3 reject the new syntax and retain their profiles.
+
+| Field and selector | Request class |
+| --- | --- |
+| `"namespace": {"include": ["team-a", "team-b"]}` | Every namespaced request in either listed namespace |
+| `"namespace": {"exclude": ["team-a", "team-b"]}` | Every valid nonempty namespace except those listed, including namespaces absent from the snapshot |
+| `"namespace": {"exclude": []}` | Every valid nonempty namespace |
+| `"namespace": null` | Only the all-namespace list/watch endpoint, as in schemas 2–3 |
+| `"names": {"empty": true}` | Only an empty effective authorization name; list/watch only |
+| `"names": {"exclude": ["settings"], "include_empty": false}` | Every valid nonempty name except `settings` |
+| `"names": {"exclude": ["settings"], "include_empty": true}` | That complement plus the empty effective name; list/watch only |
+
+For example, a `must_allow` clause can require Secret `get` on `settings`,
+while a `must_not_grant` clause uses the name complement to forbid other named
+Secret reads. A separate `must_not_grant` clause with `names: {"empty": true}`
+can prohibit unrestricted list/watch authorization while allowing a selected
+named collection request. These are authorization attributes, not guarantees
+about returned objects. An HTTP selector such as `metadata.name!=settings`
+is **not** the contract's name complement: it generally has no usable exact
+authorization name and therefore belongs to the empty-name request class.
+
+Namespace exclusions never include the all-namespace collection endpoint.
+Replacing a ClusterRoleBinding with RoleBindings may remove both access in
+other namespaces **and** all-namespace list/watch access. Approve the latter
+with separate `namespace: null` change scopes when intended. Otherwise repair
+comparison rejects that additional change even if the candidate's access
+clauses pass. It also preserves access inside the excluded namespace set and
+for other frozen identities, across all six verbs.
+
+Selectors combine by intersection: namespaces `["a", "b"]` and names
+`["x", "y"]` select all four combinations. `must_allow` requires every such
+request, not one matching pair. Overlapping allow/forbid selectors remain an
+inconsistent requirement.
+
+Namespace includes must be nonempty. Exclusion arrays may be empty. All literals
+must meet the existing DNS bounds; duplicates, mixed selector forms and unknown
+fields are rejected. `include_empty` is mandatory for a name complement and
+must be false for `get`, `update`, `patch` and `delete`. Empty string literals
+are not permitted inside selector arrays. Set values are sorted for the frozen
+identity, but equivalent alternative selector spellings need not have identical
+canonical bytes. Version changes remain explicit requirement changes.
+
+```sh
+dune exec soundcheck -- profile kubernetes-rbac --contract-version 4 --format json
+```
+
+CLI, frozen MCP, evidence bundles, the approved-base Action and the submitted
+repair evaluator use the contract-selected profile. Input preparation and the
+supported resource/rule inventory are unchanged. Synthetic acceptance tests
+replay concrete counterexamples through the pinned Kubernetes authorizer;
+finite reference checks do not independently prove universal selector coverage.
 
 ## Supported profiles
 
