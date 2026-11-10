@@ -21,3 +21,22 @@ val receipt_json : t -> string
 (** Version-1 preparation receipt, without a trailing newline. It binds exact
     input/output hashes and removed field paths, never a verification verdict.
     No raw metadata values or policy contents are copied into the receipt. *)
+
+type manifest
+
+val of_manifest : format:Manifest_input.format -> ?namespace:string -> ?rbac_only:bool ->
+  string -> (manifest, string) result
+(** Explicit broader preparation: a JSON object/List or bounded UTF-8 YAML
+    stream. Typed RBAC Lists infer both missing type fields together. Namespace
+    context fills only absent/empty Role/RoleBinding metadata namespaces.
+    Mixed bundles require [rbac_only]; every retained RBAC object is validated.
+    No objects selected is an error. No rendering or cluster access occurs. *)
+
+val manifest_snapshot : manifest -> t
+val manifest_excluded_count : manifest -> int
+
+val manifest_receipt_json : manifest -> string
+(** Schema 2 binds the same exact input/output identities plus source format,
+    defaulting context, source-to-output inventory, list wrappers, excluded
+    objects, empty documents and every added/removed field. Schema 1 and
+    [of_string] remain unchanged. *)

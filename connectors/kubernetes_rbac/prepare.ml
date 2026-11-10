@@ -92,8 +92,7 @@ let object_metadata removed path value =
       false
     end) fields)
 
-let list_metadata removed value =
-  let path = "manifest.metadata" in
+let list_metadata ?(path="manifest.metadata") removed value =
   let fields = obj path ["resourceVersion";"selfLink";"continue";"remainingItemCount"] value in
   List.iter (fun (key,value) ->
     let path = path ^ "." ^ key in
@@ -139,12 +138,114 @@ let of_string source = protect (fun () ->
    object_count=List.length items;
    removed_fields=List.sort_uniq String.compare !removed})
 
-let receipt_json value =
+let receipt_fields value =
   let identity digest bytes = `O ["sha256",`String digest;"bytes",`Number (string_of_int bytes)] in
-  json (`O ["schema_version",`Number "1";"kind",`String "rbac-snapshot-preparation";
+  ["schema_version",`Number "1";"kind",`String "rbac-snapshot-preparation";
     "target_profile",`String Assurance.profile_id;
     "input",identity value.input_sha256 value.input_bytes;
     "snapshot",identity value.snapshot_sha256 value.snapshot_bytes;
     "object_count",`Number (string_of_int value.object_count);
     "removed_fields",`A (List.map (fun path -> `String path) value.removed_fields);
-    "verification_performed",`Bool false;"completeness_established",`Bool false])
+    "verification_performed",`Bool false;"completeness_established",`Bool false]
+
+let receipt_json value = json (`O (receipt_fields value))
+
+type manifest = { prepared : t; excluded_count : int; provenance : (string * Strict_json.value) list }
+let manifest_snapshot value = value.prepared
+let manifest_excluded_count value = value.excluded_count
+
+let of_manifest ~format ?namespace:namespace_context ?(rbac_only=false) source = protect (fun () ->
+  Option.iter (fun value -> ignore (namespace "namespace context" value)) namespace_context;
+  (* Parse every document before projecting anything, including excluded objects. *)
+  let documents = Manifest_input.parse format source in
+  let removed = ref [] and defaults = ref [] and retained = ref [] in
+  let excluded = ref [] and wrappers = ref [] and empty = ref [] in
+  let items = ref [] and count = ref 0 in
+  let set key value fields =
+    if List.mem_assoc key fields then List.map (fun (k,v) -> k,if k=key then value else v) fields
+    else fields @ [key,value] in
+  let record_default path value =
+    defaults := `O ["path",`String path;"value",`String value] :: !defaults in
+  let kinds = ["Role";"RoleBinding";"ClusterRole";"ClusterRoleBinding"] in
+  let list_kinds = List.map (fun kind -> kind ^ "List") kinds in
+  let rec collect path ?inferred value =
+    let fields = match value with `O fields -> fields | _ -> reject path "expected Kubernetes object" in
+    let fields = match inferred with
+      | None -> fields
+      | Some kind ->
+        let absent key = match List.assoc_opt key fields with
+          | None | Some (`String "") -> true
+          | Some (`String _) -> false
+          | Some _ -> reject (path ^ "." ^ key) "expected string" in
+        let missing_kind = absent "kind" and missing_api = absent "apiVersion" in
+        if missing_kind && missing_api then begin
+          record_default (path ^ ".apiVersion") api_version;
+          record_default (path ^ ".kind") kind;
+          fields |> set "apiVersion" (`String api_version) |> set "kind" (`String kind)
+        end else begin
+          require_equal (path ^ ".kind") (string_field path "kind" fields) kind;
+          require_equal (path ^ ".apiVersion") (string_field path "apiVersion" fields) api_version;
+          fields
+        end in
+    let kind = string_field path "kind" fields |> nonempty (path ^ ".kind") in
+    let api = string_field path "apiVersion" fields |> nonempty (path ^ ".apiVersion") in
+    if kind = "List" || List.mem kind list_kinds then begin
+      let generic = kind = "List" in
+      require_equal (path ^ ".apiVersion") api (if generic then "v1" else api_version);
+      ignore (obj path ["apiVersion";"kind";"metadata";"items"] (`O fields));
+      Option.iter (fun metadata -> ignore (list_metadata ~path:(path ^ ".metadata") removed metadata))
+        (List.assoc_opt "metadata" fields);
+      let children = arr (path ^ ".items") (field path "items" fields) in
+      wrappers := `O ["path",`String path;"apiVersion",`String api;"kind",`String kind;
+        "item_count",`Number (string_of_int (List.length children))] :: !wrappers;
+      let inferred = if generic then None else Some (String.sub kind 0 (String.length kind - 4)) in
+      List.iteri (fun index child -> collect (Printf.sprintf "%s.items[%d]" path index) ?inferred child) children
+    end else if List.mem kind kinds then begin
+      require_equal (path ^ ".apiVersion") api api_version;
+      let metadata_path = path ^ ".metadata" in
+      let metadata = object_metadata removed metadata_path (field path "metadata" fields) in
+      let metadata = match metadata,namespace_context with
+        | `O fields,Some ns when kind="Role" || kind="RoleBinding" ->
+          (match List.assoc_opt "namespace" fields with
+           | None | Some (`String "") ->
+             record_default (metadata_path ^ ".namespace") ns;
+             `O (set "namespace" (`String ns) fields)
+           | _ -> metadata)
+        | _ -> metadata in
+      let value = `O (set "metadata" metadata fields) in
+      (* The unchanged snapshot reader validates all selected objects together,
+         including unbound roles, duplicate identities and unresolved roles. *)
+      retained := `O ["source_path",`String path;"snapshot_index",`Number (string_of_int !count)] :: !retained;
+      incr count;
+      items := value :: !items
+    end else if api = group || String.starts_with ~prefix:(group ^ "/") api then
+      reject path "unsupported RBAC kind (cannot exclude an RBAC object)"
+    else if String.ends_with ~suffix:"List" kind || List.mem_assoc "items" fields then
+      reject path "unsupported List/items wrapper (its contents cannot be excluded)"
+    else if not rbac_only then
+      reject path "non-RBAC object; use --rbac-only to explicitly select RBAC and record exclusions"
+    else excluded := `O ["source_path",`String path;"apiVersion",`String api;"kind",`String kind] :: !excluded
+  in
+  List.iteri (fun index value ->
+    let path = Printf.sprintf "documents[%d]" index in
+    match value with None -> empty := `String path :: !empty | Some value -> collect path value) documents;
+  if !count = 0 then reject "input" "no RBAC objects selected";
+  let snapshot = json (`O ["apiVersion",`String "v1";"kind",`String "List";"items",`A (List.rev !items)]) ^ "\n" in
+  (match Snapshot.of_string snapshot with Ok _ -> () | Error reason -> reject "prepared snapshot" reason);
+  let prepared = {snapshot;input_sha256=Soundcheck_core.Sha256.string source;
+    snapshot_sha256=Soundcheck_core.Sha256.string snapshot;
+    input_bytes=String.length source;snapshot_bytes=String.length snapshot;
+    object_count= !count;removed_fields=List.sort_uniq String.compare !removed} in
+  {prepared;excluded_count=List.length !excluded;provenance=[
+    "input_format",`String (Manifest_input.format_name format);
+    "document_count",`Number (string_of_int (List.length documents));
+    "selection",`String (if rbac_only then "rbac-only" else "all");
+    "namespace_context",(match namespace_context with None -> `Null | Some value -> `String value);
+    "empty_documents",`A (List.rev !empty);"list_wrappers",`A (List.rev !wrappers);
+    "retained_objects",`A (List.rev !retained);"excluded_objects",`A (List.rev !excluded);
+    "defaulted_fields",`A (List.rev !defaults)]})
+
+let manifest_receipt_json value =
+  let fields = receipt_fields value.prepared in
+  json (`O (List.map (fun (key,v) -> key,if key="schema_version" then `Number "2" else v) fields
+    @ value.provenance))

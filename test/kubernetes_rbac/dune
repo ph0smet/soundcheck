@@ -93,6 +93,11 @@
  (modules prepare_cli_t)
  (libraries soundcheck_core soundcheck_kubernetes_rbac unix))
 
+(test
+ (name manifest_prepare_t)
+ (modules manifest_prepare_t)
+ (libraries soundcheck_core soundcheck_kubernetes_rbac))
+
 (rule
  (alias runtest)
  (deps
