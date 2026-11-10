@@ -89,3 +89,12 @@ dune build bench/kubernetes-rbac/model_oracle.exe cli/main.exe
   --module-metadata "$soundcheck_build_dir/kubernetes-module.json" \
   --z3 "$soundcheck_z3" \
   --output "$soundcheck_build_dir/write-access/results.json"
+
+# V4 changes contract expressiveness, retaining the v3 authorization domain.
+"$soundcheck_python" "$soundcheck_script_dir/run_scopes.py" \
+  --reference "$soundcheck_build_dir/reference-oracle" \
+  --model "$soundcheck_repo_root/_build/default/bench/kubernetes-rbac/model_oracle.exe" \
+  --soundcheck "$soundcheck_repo_root/_build/default/cli/main.exe" \
+  --module-metadata "$soundcheck_build_dir/kubernetes-module.json" \
+  --z3 "$soundcheck_z3" \
+  --output "$soundcheck_build_dir/scopes/results.json"
