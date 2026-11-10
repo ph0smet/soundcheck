@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "kind": "kubernetes-rbac-inventory",
+  "sources": [
+    {
+      "id": "application",
+      "path": "application.yaml",
+      "sha256": "fc3c020f14545ca2d4d15cd50314bdcfa2a6ba85716dd866baca9a3acb1d735d",
+      "format": "yaml",
+      "source_type": "supplied"
+    },
+    {
+      "id": "bootstrap",
+      "path": "bootstrap-v1.34.0.json",
+      "sha256": "fa566661ddeb19f51f3741ae2feae374434b7363b6ac095e07a70aafe71f1097",
+      "format": "json",
+      "source_type": "bootstrap-reference",
+      "source_version": "v1.34.0"
+    }
+  ]
+}

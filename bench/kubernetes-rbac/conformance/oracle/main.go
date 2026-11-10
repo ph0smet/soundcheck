@@ -61,6 +61,10 @@ type inventory struct {
 }
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "--bootstrap-reference" {
+		bootstrapReferenceFiles(os.Args[2:])
+		return
+	}
 	if len(os.Args) > 1 && os.Args[1] == "--manifest-reference" {
 		manifestReferenceFiles(os.Args[2:])
 		return

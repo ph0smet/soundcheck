@@ -204,6 +204,12 @@ bundles, with namespace defaults and recorded RBAC selection. It preserves
 retained policy content; preparation success does not establish verification
 or snapshot completeness.
 
+[`rbac inventory`](docs/kubernetes-rbac.md#assemble-an-explicit-inventory) combines
+SHA-256-pinned local sources and reports every unresolved role reference.
+[`rbac inspect`](docs/kubernetes-rbac.md#review-frozen-identities) shows the frozen
+usernames, groups and subject-matching bindings before verification. Both keep
+inventory completeness and identity trust as explicit external assumptions.
+
 ## What Soundcheck establishes
 
 Schema validation checks a document's structure. Request tests exercise selected

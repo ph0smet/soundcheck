@@ -1,0 +1,66 @@
+{
+  "schema_version": 3,
+  "kind": "kubernetes-rbac-access",
+  "context": {
+    "schema_version": 1,
+    "snapshot_complete": true,
+    "identities": [
+      {
+        "username": "system:serviceaccount:demo:extension",
+        "groups": ["system:serviceaccounts", "system:serviceaccounts:demo", "system:authenticated"]
+      },
+      {
+        "username": "unrelated-user",
+        "groups": ["system:authenticated"]
+      }
+    ]
+  },
+  "clauses": [
+    {
+      "name": "authentication-config-required",
+      "kind": "must_allow",
+      "subject": "system:serviceaccount:demo:extension",
+      "verb": "get",
+      "namespace": "kube-system",
+      "resource": "configmaps",
+      "names": ["extension-apiserver-authentication"]
+    },
+    {
+      "name": "authentication-config-watch-required",
+      "kind": "must_allow",
+      "subject": "system:serviceaccount:demo:extension",
+      "verb": "watch",
+      "namespace": "kube-system",
+      "resource": "configmaps",
+      "names": ["extension-apiserver-authentication"]
+    },
+    {
+      "name": "secrets-not-granted",
+      "kind": "must_not_grant",
+      "subject": "system:serviceaccount:demo:extension",
+      "verb": "get",
+      "namespace": "kube-system",
+      "resource": "secrets",
+      "names": null
+    },
+    {
+      "name": "config-write-not-granted",
+      "kind": "must_not_grant",
+      "subject": "system:serviceaccount:demo:extension",
+      "verb": "update",
+      "namespace": "kube-system",
+      "resource": "configmaps",
+      "names": null
+    },
+    {
+      "name": "unrelated-user-not-granted",
+      "kind": "must_not_grant",
+      "subject": "unrelated-user",
+      "verb": "get",
+      "namespace": "kube-system",
+      "resource": "secrets",
+      "names": null
+    }
+  ],
+  "change_scope": []
+}

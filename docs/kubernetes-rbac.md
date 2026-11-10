@@ -191,6 +191,91 @@ legacy preparation command and its schema-1 receipts are unchanged. Verification
 comparison, MCP and CI still consume normalized JSON snapshots; these preparation
 options do not change frozen contracts or the authorization model.
 
+## Assemble an explicit inventory
+
+An application manifest can reference roles supplied elsewhere, such as a
+cluster's bootstrap policy. `rbac inventory` combines explicitly selected local
+sources into one strict snapshot. It does not fetch resources or fill missing
+roles automatically. The [synthetic example](../bench/kubernetes-rbac/inventory/README.md)
+supplies application bindings and an upstream-generated two-role Kubernetes
+v1.34.0 reference excerpt:
+
+```sh
+eval "$(opam env)"
+dune exec soundcheck -- rbac inventory \
+  bench/kubernetes-rbac/inventory/plan.json \
+  --receipt inventory-receipt.json > inventory.json
+dune exec soundcheck -- rbac inspect inventory.json \
+  --contract bench/kubernetes-rbac/inventory/contract.json
+dune exec soundcheck -- rbac verify inventory.json \
+  --contract bench/kubernetes-rbac/inventory/contract.json --format json
+```
+
+The strict JSON plan has `schema_version: 1`, `kind: "kubernetes-rbac-inventory"`
+and an ordered `sources` array. Each source requires:
+
+- `id`: a unique lowercase DNS label, at most 63 bytes.
+- `path`: a local regular file; relative paths use the plan's directory.
+- `sha256`: the exact source bytes' SHA-256, as 64 lowercase hexadecimal digits.
+- `format`: `json` or `yaml`, with the same bounded syntax as manifest preparation.
+- `source_type`: `supplied` or `bootstrap-reference`.
+
+Optional `namespace` and `rbac_only` apply the same explicit defaults/selection
+as manifest preparation. `source_version` is an optional caller-declared label;
+it is required for `bootstrap-reference`. Unknown fields and duplicate IDs
+reject. Plans contain 1–64 sources, at most 16 MiB combined source bytes; the
+existing parser, object and final snapshot limits still apply. Plan and source
+files must be regular files; symbolic-link inputs reject.
+
+Every source is read once, hashed and normalized from those same bytes. Partial
+fragments may have unresolved role references only during assembly. The union
+retains **every selected RBAC object**, including unrelated supplemental bindings
+and unbound roles. Duplicate object identities reject even when their contents
+are identical. Every role reference must resolve in the union, with all missing
+references reported by source location, binding and exact role identity. Ordinary
+preparation and verification still reject incomplete references.
+
+An optional **schema-1 inventory receipt**, kind `rbac-inventory-assembly`, binds
+the exact plan, ordered source identities/settings, per-source transformations,
+object origins and final snapshot. This is a distinct protocol from preparation
+receipts. Source-local retained objects use `object_index`; final objects use
+`snapshot_index` plus `source_id`, `source_path` and object identity. The receipt
+records caller-declared versions and `assumed_bootstrap_sources`; verification,
+authenticity and completeness flags are false. It uses the existing private,
+exclusive receipt creation rules. Receipt-write failure emits no stdout snapshot.
+Exit `0` means assembly succeeded, `2` invalid/unsupported input or usage, and `1`
+I/O failure. Neither inventory assembly nor inspection invokes the solver,
+kubectl, Helm or Kustomize.
+
+Pins detect different bytes; they do not authenticate a source. Review and
+protect the plan and source selection independently: successful reference
+resolution cannot discover omitted grants. A versioned upstream bootstrap
+excerpt is an **assumption about policy**, not a cluster export. Real clusters
+can retain extra permissions or customize/disable default-role reconciliation.
+Use actual authorized inventory when available; do not replace an exported role
+with a same-name default to make assembly pass. The example is not the complete
+bootstrap policy, which includes semantics still outside this profile.
+
+## Review frozen identities
+
+`rbac inspect SNAPSHOT.json --contract CONTRACT.json` reads the same strict
+snapshot and frozen contract as verification and emits a JSON review report.
+It shows each exact username and sorted group list, with matching binding/role
+identities, matching subjects and the role's rule count. These are
+`subject_matching_bindings`: an empty role or rules outside the modeled request
+domain can match a subject without authorizing a modeled request.
+
+The report binds raw snapshot/contract bytes and the canonical frozen contract.
+It does not infer groups from a ServiceAccount name or from bindings, authenticate
+users, inspect tokens, contact a cluster, evaluate authorization, or prove access.
+`snapshot_completeness_asserted_by_contract` records the existing contract
+assertion, while `completeness_established` remains false. User/group input must
+come from independently trusted identity context; review it before freezing the
+contract. Changing that context requires a separately reviewed contract, not an
+inspection override. Success exits `0`; invalid input exits `2`, I/O failure `1`.
+Reports contain usernames, groups, policy names and contract contents; handle
+them with the same care as those input artifacts.
+
 ## Frozen contract
 
 Start from the complete [example contract](../bench/kubernetes-rbac/contracts/frontend-access.json).
