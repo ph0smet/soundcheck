@@ -5,6 +5,8 @@ let usage () =
   prerr_endline
     "usage: soundcheck rbac prepare EXPORT.json [--receipt NEW_FILE]\n\
      usage: soundcheck rbac prepare MANIFEST --input-format json|yaml [--namespace NAME] [--rbac-only] [--receipt NEW_FILE]\n\
+     usage: soundcheck rbac inventory PLAN.json [--receipt NEW_FILE]\n\
+     usage: soundcheck rbac inspect SNAPSHOT.json --contract CONTRACT.json\n\
      usage: soundcheck rbac verify SNAPSHOT.json --contract CONTRACT.json [--format human|json|github] [--evidence-dir NEW_DIRECTORY]\n\
      usage: soundcheck rbac compare BEFORE.json AFTER.json --contract CONTRACT.json [--format human|json|github] [--evidence-dir NEW_DIRECTORY]\n\
      Verification/comparison input is a complete desired RBAC snapshot in one strict JSON Kubernetes v1/List.\n\
@@ -30,6 +32,14 @@ let read path =
       let size = in_channel_length channel in
       if size > 16 * 1024 * 1024 then raise (Sys_error (path ^ ": input exceeds 16 MiB"));
       really_input_string channel size)
+
+let write_receipt path receipt =
+  let descriptor = Unix.openfile path [Unix.O_WRONLY;Unix.O_CREAT;Unix.O_EXCL] 0o600 in
+  let channel = Unix.out_channel_of_descr descriptor in
+  Fun.protect ~finally:(fun () -> close_out_noerr channel) (fun () ->
+    output_string channel receipt;
+    output_char channel '\n';
+    close_out channel)
 
 let exit_code = function
   | Report.Proved -> 0 | Violated _ -> 3 | Unknown _ -> 4 | Vacuous -> 5 | Inconsistent _ -> 6
@@ -115,13 +125,7 @@ let run_prepare args =
     match result with
     | Error reason -> Printf.eprintf "preparation error: %s\n" reason;exit 2
     | Ok (prepared,receipt,excluded) ->
-      Option.iter (fun path ->
-        let descriptor = Unix.openfile path [Unix.O_WRONLY;Unix.O_CREAT;Unix.O_EXCL] 0o600 in
-        let channel = Unix.out_channel_of_descr descriptor in
-        Fun.protect ~finally:(fun () -> close_out_noerr channel) (fun () ->
-          output_string channel receipt;
-          output_char channel '\n';
-          close_out channel)) receipt_path;
+      Option.iter (fun path -> write_receipt path receipt) receipt_path;
       output_string stdout prepared.snapshot;
       flush stdout;
       Printf.eprintf "Prepared %d RBAC objects; removed %d metadata fields. No verification or completeness claim.\n"
@@ -133,6 +137,41 @@ let run_prepare args =
     Printf.eprintf "preparation I/O error: %s: %s (%s)\n" operation (Unix.error_message error) path;
     exit 1
 
+let run_offline_workflow operation args =
+  let argument value = value<>"" && not (String.starts_with ~prefix:"-" value) in
+  let regular path =
+    if (Unix.lstat path).Unix.st_kind <> Unix.S_REG then raise (Sys_error (path ^ ": expected regular file"));
+    read path in
+  try
+    let result = match operation,args with
+      | "inventory",path::rest when argument path ->
+        let receipt = match rest with
+          | [] -> None
+          | ["--receipt";path] when argument path -> Some path
+          | _ -> usage () in
+        let plan = regular path in
+        let directory = Filename.dirname path in
+        let load source_path = regular (if Filename.is_relative source_path then Filename.concat directory source_path else source_path) in
+        (match K.Inventory.assemble ~load plan with
+         | Error reason -> Error reason
+         | Ok inventory ->
+           Option.iter (fun path -> write_receipt path inventory.receipt) receipt;
+           output_string stdout inventory.snapshot;
+           flush stdout;
+           Printf.eprintf "Assembled %d RBAC objects from explicitly pinned sources. No verification or completeness claim.\n" inventory.object_count;
+           Ok ())
+      | "inspect",[snapshot;"--contract";contract] when argument snapshot && argument contract ->
+        (match K.Inspect.run ~snapshot:(regular snapshot) ~contract:(regular contract) with
+         | Error reason -> Error reason
+         | Ok report -> print_endline report;Ok ())
+      | _ -> usage () in
+    (match result with Ok () -> () | Error reason -> Printf.eprintf "%s error: %s\n" operation reason;exit 2)
+  with
+  | Sys_error reason -> Printf.eprintf "%s I/O error: %s\n" operation reason;exit 1
+  | Unix.Unix_error (error,action,path) ->
+    Printf.eprintf "%s I/O error: %s: %s (%s)\n" operation action (Unix.error_message error) path;exit 1
+
 let run = function
   | "prepare" :: args -> run_prepare args
+  | ("inventory" | "inspect" as operation) :: args -> run_offline_workflow operation args
   | args -> run_verification args
