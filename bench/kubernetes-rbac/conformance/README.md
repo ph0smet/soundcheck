@@ -10,6 +10,12 @@ original and prepared upstream typed policies must agree, the receipt must bind
 both exact byte sequences, and prepared connector/SMT decisions must match both
 upstream inputs. The original 29-case results and counts retain their meaning.
 
+Explicit [manifest preparation](../../../docs/kubernetes-rbac.md#prepare-rendered-manifests)
+has a separate suite. It decodes the **original** YAML/JSON through pinned
+Kubernetes conversion and unstructured List handling, then compares the prepared
+inventory, typed policies and authorization decisions. Its fixtures are synthetic;
+they are not the external public-config benchmark.
+
 The separate [read-access corpus](../read-access/README.md) checks v2 contracts
 for get/list/watch and compares raw request targets through Kubernetes'
 `RequestInfoFactory`, an explicit authorization-attribute value projection, and
@@ -96,7 +102,16 @@ three-way decision comparisons, outside-domain checks and witness replays. The
 named-write suite records the corresponding v3 checks and old-version controls
 in `write-access/results.json`. The combined command exits nonzero if any suite
 fails. The original matrix's `complete:true` alone does not establish preparation,
-read-access or named-write conformance.
+read-access, named-write or manifest-ingestion conformance.
+
+Manifest preparation records `manifests/results.json`: source/output hashes,
+schema-2 receipt audits, exact retained data after approved metadata removal,
+typed-policy comparisons, original/prepared/connector/SMT request comparisons
+and frozen-contract verdicts. Receipt corruption controls remove retained objects,
+defaults, removals and exclusions and must fail the audit. The original and
+prepared source files and tool binaries are checked for changes during the run.
+This suite does not add independent counterexample replay counts; those remain
+in the existing authorization suites.
 
 ## Reference adapter and provenance
 
@@ -132,6 +147,19 @@ are valid and their typed policies match; exit 1 means invalid input or differen
 typed policy; exit 2 means invocation/I/O failure. Invalid input has a null
 `policy_equal`, never a successful comparison. This mode does not change the
 existing `MANIFEST.json REQUESTS.json` response protocol.
+
+`rbac-oracle --manifest-reference json|yaml DEFAULT_NAMESPACE_OR_EMPTY SOURCE`
+uses the pinned `YAMLToJSONStrict` conversion and
+`UnstructuredJSONScheme` typed-List inference on original bytes. Its JSON result
+contains source identity, decoded document chunks and a projected RBAC List,
+including original metadata. The normal upstream typed decoder/validator then
+checks that inventory. The explicit namespace context fills only empty
+Role/RoleBinding metadata namespaces; subjects are untouched. This test adapter
+does not define Soundcheck's accepted subset: it can decode inputs Soundcheck
+conservatively rejects. In particular, Kubernetes's line reader can emit a
+comment preamble as a null chunk even though it is not a YAML document. Receipt
+path audits use fixtures with matching explicit document boundaries, and OCaml
+tests separately check preambles and empty-document accounting.
 
 Upstream is pinned to commit
 `f28b4c9efbca5c5c0af716d9f2d5702667ee8a45` (`v1.34.0`). Every staging replacement
