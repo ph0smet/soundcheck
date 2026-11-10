@@ -88,8 +88,9 @@ and numeric timezone offsets with hours below 24 and minutes below 60. Unknown
 or malformed metadata and populated lifecycle/managed-fields data are rejected.
 These checks follow the pinned [Kubernetes metadata types](https://github.com/kubernetes/apimachinery/blob/v0.34.0/pkg/apis/meta/v1/types.go).
 
-Input is one strict JSON `apiVersion: v1`, `kind: List`. YAML, typed lists such
-as `RoleList`, individual objects and concatenated documents are unsupported.
+Without `--input-format`, input remains one strict JSON `apiVersion: v1`,
+`kind: List`. Use the [explicit manifest mode](#prepare-rendered-manifests)
+below for YAML streams, typed Lists or individual objects.
 The 16 MiB input limit and all existing policy checks still apply, including
 aggregation rules, non-resource permissions, duplicate identities and unresolved
 references. An ordinary whole-cluster export may therefore remain unsupported.
@@ -118,6 +119,77 @@ last page. The command does not discover missing resources, selectors, namespace
 restrictions or cross-resource snapshot consistency. See the pinned
 [`kubectl` implementation](https://github.com/kubernetes/kubernetes/blob/v1.34.0/staging/src/k8s.io/kubectl/pkg/cmd/get/get.go)
 and [pagination semantics](https://v1-34.docs.kubernetes.io/docs/reference/using-api/api-concepts/#retrieving-large-results-sets-in-chunks).
+
+## Prepare rendered manifests
+
+Use `--input-format yaml` for a UTF-8 YAML stream, or `--input-format json`
+for a single strict JSON object or List. Feed already-rendered Helm/Kustomize
+output saved to a file; Soundcheck does not render templates or contact a cluster.
+
+```sh
+dune exec soundcheck -- rbac prepare \
+  bench/kubernetes-rbac/preparation/manifests/rendered.yaml \
+  --input-format yaml --namespace frontend --rbac-only \
+  --receipt /tmp/rendered-rbac-receipt.json > /tmp/rendered-rbac.json
+dune exec soundcheck -- rbac verify /tmp/rendered-rbac.json \
+  --contract bench/kubernetes-rbac/contracts/frontend-access.json --format json
+```
+
+This synthetic bundle contains five RBAC objects plus a ServiceAccount and
+ConfigMap. Preparation succeeds; verification still detects its unwanted Secret
+grant and exits `3`. The namespace context and contract are explicit inputs;
+neither is inferred from the accompanying ServiceAccount.
+
+- Individual RBAC objects, generic `v1/List` containers and RBAC v1 `RoleList`,
+  `RoleBindingList`, `ClusterRoleList`, `ClusterRoleBindingList` are accepted.
+  Supported Lists may nest. Typed Lists infer item `kind` and `apiVersion` only
+  when **both** are absent or empty strings; partial, null or conflicting type
+  metadata is rejected. Generic Lists require explicit child types.
+- `--namespace NAME` fills only absent/empty Role/RoleBinding metadata namespaces.
+  Explicit namespaces stay intact. This is a defaulting context, **not** a
+  confinement boundary or proof of deployment context. Choose the context intended
+  for deployment. Cluster-scoped objects and subject namespaces are not rewritten;
+  a ServiceAccount subject still inherits its RoleBinding's effective namespace
+  under existing RBAC semantics. ClusterRoleBinding ServiceAccounts need an
+  explicit namespace. User/Group and roleRef API groups still must be explicit.
+- Mixed bundles require `--rbac-only`. Every RBAC object is retained, including
+  unbound roles and unrelated bindings. Excluded objects are identified by source
+  location, API version and kind in the receipt. Their syntax and scalar fidelity
+  are checked, **not** their Kubernetes schemas or workload security. Unsupported
+  RBAC kinds/versions, unknown List wrappers and other objects with top-level
+  `items` cannot be silently excluded. Kubernetes's unstructured reader treats
+  `items` as a List even without a `List` kind suffix.
+- Pagination is checked on every accepted List. Duplicate identities, unresolved
+  references, unsupported rules and the metadata restrictions above still fail.
+  No selected RBAC objects is an error. A successful selection does not establish
+  that the bundle contains the complete relevant cluster inventory.
+
+YAML uses a deliberately bounded subset matching Kubernetes's YAML 1.1 scalar
+resolution. Quote intended strings such as `"on"`, `"no"` and `"123"`. Canonical
+decimal int64 values retain exact precision, including integers above 2^53;
+timestamps, resource quantities and dotted version strings remain text. Floats,
+noncanonical numeric spellings, out-of-range integers, tags, anchors, aliases,
+merge keys, non-string mapping keys, duplicate keys and NUL escapes are rejected
+throughout the source, including excluded documents. Use strict JSON input for
+numeric syntax outside this YAML subset; do not change a numeric field to a
+string merely to pass preparation. YAML is limited to 16 MiB, 128 nesting levels,
+4,096 documents and 250,000 nodes. Only genuinely empty/comment-only documents
+are skipped and accounted for; explicit `null` documents are rejected.
+
+Manifest mode emits a **schema-2 preparation receipt** when `--receipt` is supplied.
+It retains the schema-1 identity and assurance fields and adds input format,
+document count, selection mode, namespace context, source-to-snapshot object
+locations, List wrappers, excluded objects, empty documents and every defaulted
+field/value. Removed metadata paths refer to the original `documents[i]` and
+nested `.items[j]` locations. No policy values or removed metadata values are
+copied into the receipt. The same exclusive-file/private-permission rules apply.
+Keep the source, receipt and normalized snapshot together for review.
+
+The entire input must parse and the resulting inventory must pass the unchanged
+strict snapshot reader before a receipt or stdout snapshot is published. The
+legacy preparation command and its schema-1 receipts are unchanged. Verification,
+comparison, MCP and CI still consume normalized JSON snapshots; these preparation
+options do not change frozen contracts or the authorization model.
 
 ## Frozen contract
 
@@ -322,8 +394,9 @@ finite reference checks do not independently prove universal selector coverage.
 `kubernetes-rbac-v1.34-get-v1` references Kubernetes v1.34.0 and supports:
 
 - One strict JSON Kubernetes `v1/List` of RBAC v1 Roles, ClusterRoles,
-  RoleBindings and ClusterRoleBindings. JSON is also valid YAML; general YAML
-  syntax and multiple documents are not accepted.
+  RoleBindings and ClusterRoleBindings. Direct verification does not accept general
+  YAML syntax or multiple documents; [explicit preparation](#prepare-rendered-manifests)
+  can normalize supported manifests first.
 - Explicit object names/namespaces and validated labels/annotations. Direct
   verification rejects other metadata; [explicit preparation](#prepare-a-json-export)
   can remove only the supported bookkeeping fields before verification.

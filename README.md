@@ -198,8 +198,11 @@ that preserves ConfigMap watches and the operator's access.
 
 For otherwise-supported JSON exports, [`rbac prepare`](docs/kubernetes-rbac.md#prepare-a-json-export)
 removes validated bookkeeping metadata and can retain a receipt binding the
-original and prepared bytes. It preserves policy content; preparation success
-does not establish verification or snapshot completeness.
+original and prepared bytes. [Explicit manifest preparation](docs/kubernetes-rbac.md#prepare-rendered-manifests)
+also accepts bounded YAML streams, individual objects, typed Lists and rendered
+bundles, with namespace defaults and recorded RBAC selection. It preserves
+retained policy content; preparation success does not establish verification
+or snapshot completeness.
 
 ## What Soundcheck establishes
 

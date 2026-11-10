@@ -4,9 +4,10 @@ module K = Soundcheck_kubernetes_rbac
 let usage () =
   prerr_endline
     "usage: soundcheck rbac prepare EXPORT.json [--receipt NEW_FILE]\n\
+     usage: soundcheck rbac prepare MANIFEST --input-format json|yaml [--namespace NAME] [--rbac-only] [--receipt NEW_FILE]\n\
      usage: soundcheck rbac verify SNAPSHOT.json --contract CONTRACT.json [--format human|json|github] [--evidence-dir NEW_DIRECTORY]\n\
      usage: soundcheck rbac compare BEFORE.json AFTER.json --contract CONTRACT.json [--format human|json|github] [--evidence-dir NEW_DIRECTORY]\n\
-     Input is a complete desired RBAC snapshot in one strict JSON Kubernetes v1/List.\n\
+     Verification/comparison input is a complete desired RBAC snapshot in one strict JSON Kubernetes v1/List.\n\
      The contract freezes identities, groups, access requirements and approved change scope.\n\
      Preparation emits a supported snapshot, not a verification result or completeness proof.\n\
      Use soundcheck profile kubernetes-rbac --contract-version 1|2|3|4 for the exact model and assumptions.";
@@ -88,27 +89,44 @@ let run_verification args =
   exit (exit_code report.result)
 
 let run_prepare args =
-  let path,receipt_path = match args with
-    | [path] when path <> "" && not (String.starts_with ~prefix:"-" path) -> path,None
-    | [path;"--receipt";receipt] when path <> "" && receipt <> ""
-        && not (String.starts_with ~prefix:"-" path)
-        && not (String.starts_with ~prefix:"-" receipt) -> path,Some receipt
+  let argument value = value <> "" && not (String.starts_with ~prefix:"-" value) in
+  let path,rest = match args with path::rest when argument path -> path,rest | _ -> usage () in
+  let rec options format namespace rbac_only receipt = function
+    | [] ->
+      if format=None && (namespace<>None || rbac_only) then usage ();
+      format,namespace,rbac_only,receipt
+    | "--input-format" :: ("json"|"yaml" as value) :: rest when format=None ->
+      options (Some (if value="json" then K.Manifest_input.Json else Yaml)) namespace rbac_only receipt rest
+    | "--namespace" :: value :: rest when namespace=None && argument value ->
+      options format (Some value) rbac_only receipt rest
+    | "--rbac-only" :: rest when not rbac_only -> options format namespace true receipt rest
+    | "--receipt" :: value :: rest when receipt=None && argument value ->
+      options format namespace rbac_only (Some value) rest
     | _ -> usage () in
+  let format,namespace,rbac_only,receipt_path = options None None false None rest in
   try
-    match K.Prepare.of_string (read path) with
+    let source = read path in
+    let result = match format with
+      | None -> Result.map (fun value -> value,K.Prepare.receipt_json value,0)
+          (K.Prepare.of_string source)
+      | Some format -> Result.map (fun value -> K.Prepare.manifest_snapshot value,
+          K.Prepare.manifest_receipt_json value,K.Prepare.manifest_excluded_count value)
+          (K.Prepare.of_manifest ~format ?namespace ~rbac_only source) in
+    match result with
     | Error reason -> Printf.eprintf "preparation error: %s\n" reason;exit 2
-    | Ok prepared ->
+    | Ok (prepared,receipt,excluded) ->
       Option.iter (fun path ->
         let descriptor = Unix.openfile path [Unix.O_WRONLY;Unix.O_CREAT;Unix.O_EXCL] 0o600 in
         let channel = Unix.out_channel_of_descr descriptor in
         Fun.protect ~finally:(fun () -> close_out_noerr channel) (fun () ->
-          output_string channel (K.Prepare.receipt_json prepared);
+          output_string channel receipt;
           output_char channel '\n';
           close_out channel)) receipt_path;
       output_string stdout prepared.snapshot;
       flush stdout;
       Printf.eprintf "Prepared %d RBAC objects; removed %d metadata fields. No verification or completeness claim.\n"
-        prepared.object_count (List.length prepared.removed_fields)
+        prepared.object_count (List.length prepared.removed_fields);
+      if rbac_only then Printf.eprintf "Explicit RBAC-only selection excluded %d non-RBAC objects.\n" excluded
   with
   | Sys_error reason -> Printf.eprintf "preparation I/O error: %s\n" reason;exit 1
   | Unix.Unix_error (error,operation,path) ->

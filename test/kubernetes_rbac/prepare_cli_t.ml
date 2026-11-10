@@ -135,13 +135,53 @@ let () =
     let log = local "unexpected-command" in
     List.iter (fun name -> let path = Filename.concat fake_bin name in
       write path ("#!/bin/sh\nprintf 'invoked\\n' >> " ^ Filename.quote log ^ "\nexit 99\n");
-      Unix.chmod path 0o700) ["z3";"kubectl"];
+      Unix.chmod path 0o700) ["z3";"kubectl";"helm";"kustomize"];
     let old_path = Sys.getenv "PATH" in
     Fun.protect ~finally:(fun () -> Unix.putenv "PATH" old_path) (fun () ->
       Unix.putenv "PATH" fake_bin;
       let code,output,_ = run binary ["rbac";"prepare";input] in
       check "preparation needs no solver or cluster command" (code=0 && output=prepared.snapshot);
       check "no solver or kubectl process executed" (not (Sys.file_exists log)));
+    let manifest = local "rendered bundle.yaml" in
+    let items = array (field "items" (parse source)) in
+    let workload = {|apiVersion: apps/v1
+kind: Deployment
+metadata: {name: frontend}
+spec: {replicas: 2}
+|} in
+    let yaml = String.concat "\n---\n" (List.map K.Input.json items @ [workload]) in
+    write manifest yaml;
+    let args = ["rbac";"prepare";manifest;"--input-format";"yaml";"--rbac-only"] in
+    let receipt2 = local "manifest-receipt.json" in
+    let code,output,error = run binary (args @ ["--receipt";receipt2]) in
+    check "explicit YAML bundle prepares" (code=0);
+    check "RBAC selection reported on stderr" (contains error "excluded 1 non-RBAC objects");
+    let parsed = parse output in
+    check "all selected policy retained" (field "items" parsed=field "items" (parse prepared.snapshot));
+    let r = parse (read receipt2) in
+    check "manifest CLI schema 2" (field "schema_version" r=`Number "2");
+    check "manifest receipt binds input" (field "sha256" (field "input" r)=`String (Sha256.string yaml));
+    check "manifest receipt binds output" (field "sha256" (field "snapshot" r)=`String (Sha256.string output));
+    check "manifest receipt is private" ((Unix.stat receipt2).Unix.st_perm land 0o777=0o600);
+    no_output "existing schema 2 receipt" 1 (args @ ["--receipt";receipt2]);
+    no_output "manifest mode opt-in" 2 ["rbac";"prepare";manifest];
+    no_output "mixed manifests selection opt-in" 2 ["rbac";"prepare";manifest;"--input-format";"yaml"];
+    List.iteri (fun i options -> no_output (Printf.sprintf "manifest options %d" i) 2
+      (["rbac";"prepare";manifest] @ options))
+      [["--namespace";"frontend"];["--rbac-only"];["--input-format";"auto"];
+       ["--input-format";"yaml";"--input-format";"json"];
+       ["--input-format";"yaml";"--namespace";"a";"--namespace";"b"];
+       ["--input-format";"yaml";"--rbac-only";"--rbac-only"];
+       ["--input-format";"yaml";"--namespace";"UPPER"]];
+    let failed_receipt = local "failed-manifest-receipt.json" in
+    write manifest (yaml ^ "\n---\nvalue: [broken\n");
+    no_output "malformed later document" 2 (args @ ["--receipt";failed_receipt]);
+    check "later document failure creates no receipt" (not (Sys.file_exists failed_receipt));
+    write manifest yaml;
+    Fun.protect ~finally:(fun () -> Unix.putenv "PATH" old_path) (fun () ->
+      Unix.putenv "PATH" fake_bin;
+      let code,_,_ = run binary args in
+      check "manifest mode remains offline" (code=0 && not (Sys.file_exists log)));
     let normalized name =
       let source = enriched (read (fixture name)) in
       let export = local (name ^ "-export.json") in write export source;
