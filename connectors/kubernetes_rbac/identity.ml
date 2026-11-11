@@ -10,7 +10,7 @@ let parse_context value =
    | _ -> reject p "schema_version must be 1");
   (match field p "snapshot_complete" o with
    | `Bool true -> ()
-   | _ -> reject p "snapshot_complete must be true");
+   | _ -> reject (p ^ ".snapshot_complete") "must be true only for an independently established complete inventory; setting this assertion does not establish completeness");
   let seen = Hashtbl.create 8 in
   let identities = arr "context.identities" (field p "identities" o) in
   if identities = [] then reject p "identities must be nonempty";
@@ -22,7 +22,7 @@ let parse_context value =
          let groups = strings (p ^ ".groups") (field p "groups" o) in
          List.iter (fun g -> ignore (nonempty (p ^ ".groups") g)) groups;
          if List.length groups <> List.length (List.sort_uniq String.compare groups)
-         then reject p "duplicate group";
-         if Hashtbl.mem seen username then reject p "duplicate username";
+         then reject (p ^ ".groups") "duplicate group; supply each exact trusted group once";
+         if Hashtbl.mem seen username then reject (p ^ ".username") (Printf.sprintf "duplicate username %S" username);
          Hashtbl.add seen username ();
          { username; groups = List.sort String.compare groups })

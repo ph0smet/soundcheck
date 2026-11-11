@@ -7,11 +7,13 @@ let usage () =
      usage: soundcheck rbac prepare MANIFEST --input-format json|yaml [--namespace NAME] [--rbac-only] [--receipt NEW_FILE]\n\
      usage: soundcheck rbac inventory PLAN.json [--receipt NEW_FILE]\n\
      usage: soundcheck rbac inspect SNAPSHOT.json --contract CONTRACT.json\n\
+     usage: soundcheck rbac check-contract CONTRACT.json\n\
      usage: soundcheck rbac verify SNAPSHOT.json --contract CONTRACT.json [--format human|json|github] [--evidence-dir NEW_DIRECTORY]\n\
      usage: soundcheck rbac compare BEFORE.json AFTER.json --contract CONTRACT.json [--format human|json|github] [--evidence-dir NEW_DIRECTORY]\n\
      Verification/comparison input is a complete desired RBAC snapshot in one strict JSON Kubernetes v1/List.\n\
      The contract freezes identities, groups, access requirements and approved change scope.\n\
      Preparation emits a supported snapshot, not a verification result or completeness proof.\n\
+     check-contract reviews structure and declared intent only; exit 0 is not a verification gate.\n\
      Use soundcheck profile kubernetes-rbac --contract-version 1|2|3|4 for the exact model and assumptions.";
   exit 2
 
@@ -171,7 +173,21 @@ let run_offline_workflow operation args =
   | Unix.Unix_error (error,action,path) ->
     Printf.eprintf "%s I/O error: %s: %s (%s)\n" operation action (Unix.error_message error) path;exit 1
 
+let run_check_contract = function
+  | [path] when path<>"" && not (String.starts_with ~prefix:"-" path) ->
+    (try
+       if (Unix.lstat path).Unix.st_kind <> Unix.S_REG then raise (Sys_error (path ^ ": expected regular file"));
+       match K.Contract_review.run (read path) with
+       | Ok review -> print_string review
+       | Error reason -> Printf.eprintf "contract check error: %S\n" reason;exit 2
+     with
+     | Sys_error reason -> Printf.eprintf "contract check I/O error: %S\n" reason;exit 1
+     | Unix.Unix_error (error,action,path) ->
+       Printf.eprintf "contract check I/O error: %s: %S (%s)\n" action path (Unix.error_message error);exit 1)
+  | _ -> usage ()
+
 let run = function
   | "prepare" :: args -> run_prepare args
+  | "check-contract" :: args -> run_check_contract args
   | ("inventory" | "inspect" as operation) :: args -> run_offline_workflow operation args
   | args -> run_verification args

@@ -119,6 +119,8 @@ let parse_resource_object path value =
         [ "apiVersion"; "kind"; "metadata"; "subjects"; "roleRef" ]
     | _ -> reject path "only RBAC Roles and Bindings are supported"
   in
+  if kind="ClusterRole" && List.mem_assoc "aggregationRule" raw then
+    reject (path ^ ".aggregationRule") "unsupported aggregationRule: aggregation-controller semantics are outside this profile; do not remove this field or role to obtain a proof";
   let o = obj path allowed value in
   require_equal (path ^ ".apiVersion") (string_field path "apiVersion" o) api_version;
   let namespaced = kind = "Role" || kind = "RoleBinding" in
@@ -146,15 +148,20 @@ let parse_objects value =
     |> List.mapi (fun i -> parse_resource_object (Printf.sprintf "manifest.items[%d]" i)) in
   let seen = Hashtbl.create (List.length objects) in
   let roles = Hashtbl.create (List.length objects) in
-  List.iter
-    (fun resource_object ->
+  List.iteri
+    (fun index resource_object ->
       let key =
         match resource_object with
         | Role r -> (r.role_kind, r.role_namespace, r.role_name)
         | Binding b -> (b.binding_kind, b.binding_namespace, b.binding_name)
       in
-      if Hashtbl.mem seen key then reject p "duplicate RBAC object identity";
-      Hashtbl.add seen key ();
+      (match Hashtbl.find_opt seen key with
+       | None -> ()
+       | Some first ->
+         let kind,ns,name = key in
+         reject (Printf.sprintf "%s.items[%d]" p index)
+           (Printf.sprintf "duplicate RBAC object identity %s namespace=%S name=%S; first supplied at items[%d]" kind ns name first));
+      Hashtbl.add seen key index;
       match resource_object with
       | Role r -> Hashtbl.add roles key r.rules
       | Binding _ -> ())
@@ -174,7 +181,8 @@ let parse_manifest value =
   let objects,roles = parse_objects value in
   let missing = unresolved (objects,roles) in
   if missing <> [] then reject "manifest" ("unresolved roleRef: " ^ String.concat "; "
-    (List.map (fun r -> Printf.sprintf "items[%d] %s -> %s" r.binding_index r.binding_label r.role_label) missing));
+    (List.map (fun r -> Printf.sprintf "items[%d] %s -> %s" r.binding_index r.binding_label r.role_label) missing)
+    ^ ". Supply the exact omitted roles from reviewed sources, using rbac inventory for multiple sources; reference resolution alone does not establish completeness");
   List.filter_map
     (function
       | Role _ -> None

@@ -85,7 +85,8 @@ let assemble ~load plan = protect (fun () ->
   if missing<>[] then reject "inventory" ("unresolved roleRef:\n" ^ String.concat "\n"
     (List.map (fun (missing : Snapshot.missing_reference) ->
       let source,path = origins.(missing.binding_index) in
-      Printf.sprintf "  source %s %s: %s -> %s" source path missing.binding_label missing.role_label) missing));
+      Printf.sprintf "  source %s %s: %s -> %s" source path missing.binding_label missing.role_label) missing)
+    ^ "\nSupply the exact omitted roles from reviewed sources; do not remove bindings to hide missing references. Reference resolution alone does not establish completeness");
   (match Snapshot.of_string snapshot with Ok _ -> () | Error reason -> reject "assembled inventory" reason);
   let objects = List.mapi (fun index value ->
     let fields = match value with `O fields -> fields | _ -> assert false in
