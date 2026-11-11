@@ -52,6 +52,7 @@ export CGO_ENABLED=0
 "$soundcheck_python" "$soundcheck_script_dir/test_preparation_runner.py"
 "$soundcheck_python" "$soundcheck_script_dir/test_read_access_runner.py"
 "$soundcheck_python" "$soundcheck_script_dir/test_write_access_runner.py"
+"$soundcheck_python" "$soundcheck_script_dir/test_nonresource_runner.py"
 dune build bench/kubernetes-rbac/model_oracle.exe cli/main.exe
 "$soundcheck_python" "$soundcheck_script_dir/run.py" \
   --reference "$soundcheck_build_dir/reference-oracle" \
@@ -118,3 +119,13 @@ dune build bench/kubernetes-rbac/model_oracle.exe cli/main.exe
   --module-metadata "$soundcheck_build_dir/kubernetes-module.json" \
   --z3 "$soundcheck_z3" \
   --output "$soundcheck_build_dir/scopes/results.json"
+
+# URL rules coexist with resource rules without expanding the request domain.
+# Native URL controls distinguish resource preservation from full-policy equality.
+"$soundcheck_python" "$soundcheck_script_dir/run_nonresource.py" \
+  --reference "$soundcheck_build_dir/reference-oracle" \
+  --model "$soundcheck_repo_root/_build/default/bench/kubernetes-rbac/model_oracle.exe" \
+  --soundcheck "$soundcheck_repo_root/_build/default/cli/main.exe" \
+  --module-metadata "$soundcheck_build_dir/kubernetes-module.json" \
+  --z3 "$soundcheck_z3" \
+  --output "$soundcheck_build_dir/nonresource/results.json"
