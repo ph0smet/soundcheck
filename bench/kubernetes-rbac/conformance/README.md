@@ -77,7 +77,7 @@ hashes and passes those bytes directly to both implementations.
   decision. Record the SMT scripts, exact commands, output, and mismatches.
 - For expected unsupported cases, require the model and CLI to return unknown.
   Keep upstream API validity separate: a valid object may still be outside the
-  connector's profile, such as an aggregated ClusterRole.
+  connector's profile, such as stale aggregate rules or a dependency cycle.
 - Run `soundcheck rbac verify` and require the independently specified verdict,
   matching exit status, profile, and original frozen contract identity.
 - Validate each counterexample's identity, exact groups, request domain, and
@@ -197,7 +197,23 @@ is retained as `oracle/KUBERNETES-LICENSE`. The small Soundcheck adapter and
 harness use this repository's license. Relevant upstream sources are
 [the authorizer](https://github.com/kubernetes/kubernetes/blob/v1.34.0/plugin/pkg/auth/authorizer/rbac/rbac.go),
 [binding resolution](https://github.com/kubernetes/kubernetes/blob/v1.34.0/pkg/registry/rbac/validation/rule.go),
-and [RBAC validation](https://github.com/kubernetes/kubernetes/blob/v1.34.0/pkg/apis/rbac/validation/validation.go).
+[RBAC validation](https://github.com/kubernetes/kubernetes/blob/v1.34.0/pkg/apis/rbac/validation/validation.go),
+and [the aggregation controller](https://github.com/kubernetes/kubernetes/blob/v1.34.0/pkg/controller/clusterroleaggregation/clusterroleaggregation_controller.go).
+
+## Aggregate snapshots
+
+[`run_aggregation.py`](run_aggregation.py) adds a separately counted synthetic
+campaign for already-resolved aggregate ClusterRoles. It preserves source bytes,
+uses pinned predeclared expectations, and distinguishes malformed native input
+from API-valid snapshots rejected by Soundcheck's narrower boundary.
+
+Its `--aggregate-reference` oracle mode runs the production aggregation controller
+against an in-memory client/informer. Only a reference-only copy is sentinel-seeded
+to force a native update for each aggregate, including empty results. It records
+whether the fixed expected rule sets were reached, not a convergence or timing
+guarantee. Full policy retention, finite native/concrete/SMT request comparisons,
+contract witnesses, and approved-change preservation are checked separately.
+See the [input and evidence description](../aggregation/README.md).
 
 ## Boundaries
 
@@ -229,4 +245,5 @@ python3 bench/kubernetes-rbac/conformance/test_preparation_runner.py
 python3 bench/kubernetes-rbac/conformance/test_read_access_runner.py
 python3 bench/kubernetes-rbac/conformance/test_write_access_runner.py
 python3 bench/kubernetes-rbac/conformance/test_nonresource_runner.py
+python3 bench/kubernetes-rbac/conformance/test_aggregation_runner.py
 ```

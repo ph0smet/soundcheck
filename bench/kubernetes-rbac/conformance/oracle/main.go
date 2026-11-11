@@ -61,6 +61,10 @@ type inventory struct {
 }
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "--aggregate-reference" {
+		aggregationReferenceFiles(os.Args[2:])
+		return
+	}
 	if len(os.Args) > 1 && os.Args[1] == "--bootstrap-reference" {
 		bootstrapReferenceFiles(os.Args[2:])
 		return
