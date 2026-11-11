@@ -32,25 +32,33 @@ let scope_fields version =
 
 let collection_verb verb = verb = "list" || verb = "watch"
 
-let selector_values ~allow_empty ~valid path value =
+let selector_values ~allow_empty ~valid ~expected path value =
   let values = strings path value in
-  if (not allow_empty && values = []) || List.exists (fun value -> not (valid value)) values then
-    reject path "expected valid literal selector values";
-  if List.length values <> List.length (List.sort_uniq String.compare values) then
-    reject path "duplicate selector value";
+  if not allow_empty && values = [] then reject path "selector list must not be empty";
+  let seen = Hashtbl.create (List.length values) in
+  List.iteri (fun index value ->
+    let path = Printf.sprintf "%s[%d]" path index in
+    if not (valid value) then reject path (Printf.sprintf "%S is not %s" value expected);
+    if Hashtbl.mem seen value then reject path (Printf.sprintf "duplicate selector value %S" value);
+    Hashtbl.add seen value ()) values;
   List.sort String.compare values
 
 let parse_namespace version verb path = function
   | `Null when version >= 2 && collection_verb verb -> Exact_namespace ""
+  | `Null -> reject path "null denotes only the all-namespace list/watch endpoint (schema 2+), not every named namespace; choose the independently intended scope"
+  | `String "*" -> reject path "\"*\" is not a namespace wildcard; schema 4 supports reviewed include/exclude selectors over nonempty namespaces"
   | `String ns -> Exact_namespace (namespace path ns)
   | `O _ as value when version = 4 ->
     let fields = obj path ["include";"exclude"] value in
-    let values ~allow_empty value = selector_values ~allow_empty
-        ~valid:(fun value -> Result.is_ok (protect (fun () -> namespace path value))) path value in
+    let values key ~allow_empty value = selector_values ~allow_empty
+        ~valid:(fun value -> Result.is_ok (protect (fun () -> namespace path value)))
+        ~expected:"a DNS1123 namespace label; selector members are literals, not wildcards"
+        (path ^ "." ^ key) value in
     (match fields with
-     | ["include",value] -> Namespace_set (values ~allow_empty:false value)
-     | ["exclude",value] -> Outside_namespaces (values ~allow_empty:true value)
+     | ["include",value] -> Namespace_set (values "include" ~allow_empty:false value)
+     | ["exclude",value] -> Outside_namespaces (values "exclude" ~allow_empty:true value)
      | _ -> reject path "use exactly one namespace include or exclude selector")
+  | `O _ -> reject path "namespace include/exclude selectors require contract schema 4; a contract upgrade needs separate requirement review"
   | _ -> reject path "namespace must be a DNS label; only list/watch permit null for the all-namespace endpoint"
 
 let parse_names version verb path = function
@@ -59,30 +67,35 @@ let parse_names version verb path = function
     let fields = obj path ["empty";"exclude";"include_empty"] value in
     (match fields with
      | ["empty",`Bool true] when collection_verb verb -> Empty_name
+     | ["empty",_] -> reject (path ^ ".empty") "empty:true selects only the empty effective authorization name for list/watch; it cannot select named get/update/patch/delete requests"
      | _ when List.length fields = 2 && List.mem_assoc "exclude" fields && List.mem_assoc "include_empty" fields ->
        let excluded = selector_values ~allow_empty:true ~valid:dns_subdomain
+           ~expected:"a DNS1123 object name; exclusions are literal names, not wildcards"
            (path ^ ".exclude") (field path "exclude" fields) in
        let include_empty = match field path "include_empty" fields with
          | `Bool value when not value || collection_verb verb -> value
-         | _ -> reject path "include_empty must be boolean; only list/watch permit true" in
+         | _ -> reject (path ^ ".include_empty") "must be boolean; only list/watch permit true for empty effective authorization names" in
        Other_names {excluded;include_empty}
      | _ -> reject path "use empty:true for list/watch, or exclude with an explicit include_empty boolean")
+  | `O _ -> reject path "name selectors require contract schema 4; a contract upgrade needs separate requirement review"
+  | `A [] -> reject path "an empty list selects no names and is not accepted; names:null means all supported names, while schema-4 empty:true selects only empty list/watch authorization names; choose the intended scope"
   | value ->
-    Names (selector_values ~allow_empty:false ~valid:dns_subdomain path value)
+    Names (selector_values ~allow_empty:false ~valid:dns_subdomain
+      ~expected:"a DNS1123 object name; \"*\" is not a wildcard and \"\" is not a named request (use explicit reviewed name/collection selectors)" path value)
 
 let parse_scope version identities path fields =
   let subject = string_field path "subject" fields in
   if not (List.exists (fun (i : Identity.identity) -> i.username = subject) identities) then
-    reject path "subject must name one of the frozen context identities";
+    reject (path ^ ".subject") (Printf.sprintf "%S must exactly match a frozen context.identities[].username; review the caller identity independently, without inferring it or its groups from grants" subject);
   let verb = if version = 1 then "get" else string_field path "verb" fields in
   let verbs = if version >= 3 then ["get";"list";"watch";"update";"patch";"delete"]
     else ["get";"list";"watch"] in
   if not (List.mem verb verbs) then
-    reject path ("verb must be one of " ^ String.concat ", " verbs);
+    reject (path ^ ".verb") (Printf.sprintf "%S is outside contract schema %d; supported verbs: %s. Do not substitute a different operation to make the contract pass" verb version (String.concat ", " verbs));
   let ns = parse_namespace version verb (path ^ ".namespace") (field path "namespace" fields) in
   let resource = string_field path "resource" fields in
   if resource <> "configmaps" && resource <> "secrets" then
-    reject path "resource must be configmaps or secrets";
+    reject (path ^ ".resource") (Printf.sprintf "%S is outside the modeled resource domain; use core configmaps or secrets only, with no API-group prefix or subresource" resource);
   let names = parse_names version verb (path ^ ".names") (field path "names" fields) in
   {subject; verb; namespace=ns; resource; names}
 
@@ -166,24 +179,27 @@ let approved_changes spec = Ir.Or (List.map scope_condition spec.change_scope)
 
 let quoted values = String.concat ", " (List.map (Printf.sprintf "%S") values)
 
-let description clause =
-  Printf.sprintf "RBAC %s %s for %S on core %s %s (%s)"
-    (match clause.kind with Must_allow -> "must grant" | Must_not_grant -> "must not grant")
-    clause.scope.verb clause.scope.subject clause.scope.resource
-    (match clause.scope.namespace with
+let describe_scope scope =
+  Printf.sprintf "%s for %S on core %s %s (%s)"
+    scope.verb scope.subject scope.resource
+    (match scope.namespace with
      | Exact_namespace "" -> "at the all-namespace endpoint"
      | Exact_namespace value -> Printf.sprintf "in namespace %S" value
      | Namespace_set values -> "in namespaces " ^ quoted values
      | Outside_namespaces [] -> "in every valid nonempty namespace"
      | Outside_namespaces values -> "in every valid nonempty namespace except " ^ quoted values)
-    (match clause.scope.names with
-     | All_names when collection_verb clause.scope.verb -> "empty or any valid effective authorization name"
+    (match scope.names with
+     | All_names when collection_verb scope.verb -> "empty or any valid effective authorization name"
      | All_names -> "all valid names"
-     | Names names -> (if collection_verb clause.scope.verb then "effective authorization name: " else "") ^ quoted names
+     | Names names -> (if collection_verb scope.verb then "effective authorization name: " else "") ^ quoted names
      | Empty_name -> "empty effective authorization name only"
      | Other_names {excluded;include_empty} ->
        (if include_empty then "empty or any valid effective authorization name" else "any valid nonempty name")
        ^ (if excluded=[] then "" else " except " ^ quoted excluded))
+
+let description clause =
+  "RBAC " ^ (match clause.kind with Must_allow -> "must grant " | Must_not_grant -> "must not grant ")
+  ^ describe_scope clause.scope
 
 let to_contract spec : Contract.t =
   {name=kind;description=(match spec.version with

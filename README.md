@@ -505,6 +505,10 @@ successful mutation or preserved object contents.
 ClusterRoles may contain separate non-resource URL rules alongside resource
 rules. Those rules are retained, while URL access and URL-preservation claims
 remain outside RBAC verification.
+Use `soundcheck rbac check-contract CONTRACT.json` to review declared intent
+before choosing a candidate; it parses structure without verifying access.
+The [authoring walkthrough](bench/kubernetes-rbac/workflows/authoring/README.md)
+shows a scoped contract, trusted caller context, and repair-preservation controls.
 
 ## Testing
 

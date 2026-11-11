@@ -278,6 +278,11 @@ them with the same care as those input artifacts.
 
 ## Frozen contract
 
+For a requirements-first walkthrough, use the [schema-4 authoring example](../bench/kubernetes-rbac/workflows/authoring/README.md).
+It separates the workload's ServiceAccount namespace from target namespaces,
+supplies trusted identity groups explicitly, and pairs required ConfigMap reads
+with forbidden grants and an independently approved repair scope.
+
 Start from the complete [example contract](../bench/kubernetes-rbac/contracts/frontend-access.json).
 The original strict JSON contract (schema 1) requires:
 
@@ -300,6 +305,46 @@ Review and protect the contract and baseline independently of the candidate.
 The CLI accepts no identity/group/property/scope overrides. Reports carry the
 canonical frozen contract, including its context and approved change scope.
 This does not sandbox an agent that can replace those files or the verifier.
+
+### Check the contract before choosing a candidate
+
+```sh
+dune exec soundcheck -- rbac check-contract \
+  bench/kubernetes-rbac/workflows/authoring/contract.json
+```
+
+This read-only command uses the same strict contract reader as verification and
+prints a human-readable review of schemas 1–4: the selected profile, exact declared
+identities and groups, ordered clause meanings, approved changes, and separate
+SHA-256 hashes for the raw artifact and canonical frozen contract. Artifact counts
+are reported after normalization; they measure size, not human authoring effort.
+It takes only a contract file, has no overrides or JSON report format, and invokes
+neither a solver nor Kubernetes. It does not rewrite or generate requirements.
+
+**Exit 0 means structurally parsed, not verified.** An inconsistent contract can
+parse successfully. Inhabitation, consistency, access and repair
+preservation remain unchecked; use `rbac verify` and `rbac compare` for those
+solver-backed obligations. Keep those verification commands as CI gates.
+Invalid input/usage exits `2`, and I/O failure exits `1`. The input must be a
+regular file, at most 16 MiB. Review output includes identity names and groups.
+
+The descriptions make the following choices explicit:
+
+| Authoring choice | Meaning |
+| --- | --- |
+| `namespace: null` | Only the all-namespace list/watch endpoint, not every namespaced request |
+| Namespace `exclude` in schema 4 | Valid nonempty namespaces outside the set; the global collection endpoint is separate |
+| `names: null` | All names in that verb's supported domain, including the empty effective name for list/watch |
+| `names: {"empty": true}` | Only the empty effective list/watch authorization name; schema 4 |
+| `change_scope` | Requests allowed to change during a repair; candidate access requirements still apply there |
+
+Diagnostic errors identify the relevant field or selector member. Correct the
+artifact against independently reviewed intent; do not broaden a requirement,
+drop a group, substitute another verb, or flip `snapshot_complete` merely to make
+it parse. Missing role references name all affected bindings and targets; obtain
+the omitted roles from reviewed sources, using explicit inventory assembly when
+needed. Resolving references does not establish completeness. Unsupported
+aggregation-controller semantics must not be erased from input to obtain a proof.
 
 ## Read-access contracts (schema 2)
 

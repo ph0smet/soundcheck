@@ -1,0 +1,107 @@
+{
+  "schema_version": 4,
+  "kind": "kubernetes-rbac-access",
+  "context": {
+    "schema_version": 1,
+    "snapshot_complete": true,
+    "identities": [
+      {
+        "username": "system:serviceaccount:platform:config-reader",
+        "groups": [
+          "system:authenticated",
+          "system:serviceaccounts",
+          "system:serviceaccounts:platform"
+        ]
+      },
+      {
+        "username": "operator",
+        "groups": [
+          "operators",
+          "system:authenticated"
+        ]
+      }
+    ]
+  },
+  "clauses": [
+    {
+      "name": "settings-required",
+      "kind": "must_allow",
+      "subject": "system:serviceaccount:platform:config-reader",
+      "verb": "get",
+      "namespace": {
+        "include": [
+          "team-a",
+          "team-b"
+        ]
+      },
+      "resource": "configmaps",
+      "names": [
+        "settings"
+      ]
+    },
+    {
+      "name": "other-names-forbidden",
+      "kind": "must_not_grant",
+      "subject": "system:serviceaccount:platform:config-reader",
+      "verb": "get",
+      "namespace": {
+        "include": [
+          "team-a",
+          "team-b"
+        ]
+      },
+      "resource": "configmaps",
+      "names": {
+        "exclude": [
+          "settings"
+        ],
+        "include_empty": false
+      }
+    },
+    {
+      "name": "other-namespaces-forbidden",
+      "kind": "must_not_grant",
+      "subject": "system:serviceaccount:platform:config-reader",
+      "verb": "get",
+      "namespace": {
+        "exclude": [
+          "team-a",
+          "team-b"
+        ]
+      },
+      "resource": "configmaps",
+      "names": null
+    }
+  ],
+  "change_scope": [
+    {
+      "subject": "system:serviceaccount:platform:config-reader",
+      "verb": "get",
+      "namespace": {
+        "include": [
+          "team-a",
+          "team-b"
+        ]
+      },
+      "resource": "configmaps",
+      "names": {
+        "exclude": [
+          "settings"
+        ],
+        "include_empty": false
+      }
+    },
+    {
+      "subject": "system:serviceaccount:platform:config-reader",
+      "verb": "get",
+      "namespace": {
+        "exclude": [
+          "team-a",
+          "team-b"
+        ]
+      },
+      "resource": "configmaps",
+      "names": null
+    }
+  ]
+}
