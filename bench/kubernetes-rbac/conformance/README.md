@@ -16,6 +16,12 @@ Kubernetes conversion and unstructured List handling, then compares the prepared
 inventory, typed policies and authorization decisions. Its fixtures are synthetic;
 they are not the external public-config benchmark.
 
+The [inventory suite](../inventory/README.md) regenerates the explicit two-role
+bootstrap excerpt from pinned upstream policy, decodes each original source
+independently and compares the assembled union. It checks source receipts,
+retained supplemental grants, exact frozen identity groups and contract outcomes.
+It contacts no cluster and establishes no installed-state or completeness claim.
+
 The separate [read-access corpus](../read-access/README.md) checks v2 contracts
 for get/list/watch and compares raw request targets through Kubernetes'
 `RequestInfoFactory`, an explicit authorization-attribute value projection, and
@@ -112,6 +118,12 @@ defaults, removals and exclusions and must fail the audit. The original and
 prepared source files and tool binaries are checked for changes during the run.
 This suite does not add independent counterexample replay counts; those remain
 in the existing authorization suites.
+
+Inventory assembly records `inventory/results.json`: regenerated bootstrap bytes
+and provenance, source/output receipt audits, typed policy comparisons, finite
+native/original/prepared/connector/SMT decisions, contract witness replays and
+inspection reports. Missing sources, duplicate roles, changed pins and fabricated
+receipts must fail. Its counts remain separate from manifest preparation.
 
 ## Reference adapter and provenance
 

@@ -21,6 +21,20 @@ type binding = {
 type bound_grant = { binding : binding; bound_rules : rule list }
 type t = bound_grant list
 type resource_object = Role of role | Binding of binding
+type missing_reference = { binding_index : int; binding_label : string; role_label : string }
+
+let binding_label b =
+  if b.binding_kind = "RoleBinding" then
+    "RoleBinding/" ^ b.binding_namespace ^ "/" ^ b.binding_name
+  else "ClusterRoleBinding/" ^ b.binding_name
+
+let role_key b = match b.role_ref with
+  | Local_role name -> ("Role", b.binding_namespace, name)
+  | Cluster_role name -> ("ClusterRole", "", name)
+
+let role_label b = match b.role_ref with
+  | Local_role name -> "Role/" ^ b.binding_namespace ^ "/" ^ name
+  | Cluster_role name -> "ClusterRole/" ^ name
 
 let metadata path namespaced value =
   let o = obj path [ "name"; "namespace"; "labels"; "annotations" ] value in
@@ -107,7 +121,7 @@ let parse_resource_object path value =
       let role_ref = parse_role_ref (path ^ ".roleRef") kind (field path "roleRef" o) in
       Binding { binding_kind = kind; binding_namespace = ns; binding_name = name; subjects; role_ref }
 
-let parse_manifest value =
+let parse_objects value =
   let p = "manifest" in
   let o = obj p [ "apiVersion"; "kind"; "items"; "metadata" ] value in
   require_equal (p ^ ".apiVersion") (string_field p "apiVersion" o) "v1";
@@ -132,35 +146,35 @@ let parse_manifest value =
       | Role r -> Hashtbl.add roles key r.rules
       | Binding _ -> ())
     objects;
+  objects,roles
+
+let unresolved (objects,roles) =
+  List.mapi (fun binding_index -> function
+    | Role _ -> None
+    | Binding b when Hashtbl.mem roles (role_key b) -> None
+    | Binding b -> Some {binding_index;binding_label=binding_label b;role_label=role_label b}) objects
+  |> List.filter_map Fun.id
+
+let unresolved_references source = protect (fun () -> unresolved (parse_objects (parse source)))
+
+let parse_manifest value =
+  let objects,roles = parse_objects value in
+  let missing = unresolved (objects,roles) in
+  if missing <> [] then reject "manifest" ("unresolved roleRef: " ^ String.concat "; "
+    (List.map (fun r -> Printf.sprintf "items[%d] %s -> %s" r.binding_index r.binding_label r.role_label) missing));
   List.filter_map
     (function
       | Role _ -> None
       | Binding b ->
-          let key = match b.role_ref with
-            | Local_role name -> ("Role", b.binding_namespace, name)
-            | Cluster_role name -> ("ClusterRole", "", name)
-          in
-          let bound_rules = match Hashtbl.find_opt roles key with
-            | Some rules -> rules
-            | None -> reject p ("unresolved roleRef from " ^ b.binding_name)
-          in
+          let bound_rules = Hashtbl.find roles (role_key b) in
           Some { binding = b; bound_rules })
     objects
-
-let binding_label b =
-  if b.binding_kind = "RoleBinding" then
-    "RoleBinding/" ^ b.binding_namespace ^ "/" ^ b.binding_name
-  else "ClusterRoleBinding/" ^ b.binding_name
 
 let subject_matches identity = function
   | User name -> identity.username = name
   | Group name -> List.mem name identity.groups
   | Service_account (ns, name) ->
       identity.username = "system:serviceaccount:" ^ ns ^ ":" ^ name
-
-let role_label b = match b.role_ref with
-  | Local_role name -> "Role/" ^ b.binding_namespace ^ "/" ^ name
-  | Cluster_role name -> "ClusterRole/" ^ name
 
 let grants snapshot = snapshot
 

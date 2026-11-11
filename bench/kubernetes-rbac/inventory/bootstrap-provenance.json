@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "kind": "kubernetes-bootstrap-reference-excerpt",
+  "artifact": "bootstrap-v1.34.0.json",
+  "sha256": "fa566661ddeb19f51f3741ae2feae374434b7363b6ac095e07a70aafe71f1097",
+  "upstream_module": "k8s.io/kubernetes@v1.34.0",
+  "upstream_commit": "f28b4c9efbca5c5c0af716d9f2d5702667ee8a45",
+  "upstream_module_sum": "h1:NvUrwPAVB4W3mSOpJ/RtNGHWWYyUP/xPaX5rUSpzA0w=",
+  "objects": [
+    "Role/kube-system/extension-apiserver-authentication-reader",
+    "ClusterRole/system:auth-delegator"
+  ],
+  "generator": "bench/kubernetes-rbac/conformance/oracle --bootstrap-reference",
+  "license": "Apache-2.0",
+  "installed_state_observed": false,
+  "complete_bootstrap_catalog": false
+}

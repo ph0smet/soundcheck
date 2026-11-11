@@ -80,6 +80,16 @@ dune build bench/kubernetes-rbac/model_oracle.exe cli/main.exe
   --z3 "$soundcheck_z3" \
   --output "$soundcheck_build_dir/manifests/results.json"
 
+# Explicit multi-source assembly is checked against the native source union,
+# including regenerated bootstrap policy and independently frozen identities.
+"$soundcheck_python" "$soundcheck_script_dir/run_inventory.py" \
+  --reference "$soundcheck_build_dir/reference-oracle" \
+  --model "$soundcheck_repo_root/_build/default/bench/kubernetes-rbac/model_oracle.exe" \
+  --soundcheck "$soundcheck_repo_root/_build/default/cli/main.exe" \
+  --module-metadata "$soundcheck_build_dir/kubernetes-module.json" \
+  --z3 "$soundcheck_z3" \
+  --output "$soundcheck_build_dir/inventory/results.json"
+
 # Contract v2 and the raw URL-to-attribute boundary have their own fixture
 # inventory and counters; legacy named-get/preparation results stay unchanged.
 "$soundcheck_python" "$soundcheck_script_dir/run_read_access.py" \
