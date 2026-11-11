@@ -109,6 +109,16 @@
  (libraries soundcheck_core soundcheck_kubernetes_rbac))
 
 (executable
+ (name authoring_t)
+ (modules authoring_t)
+ (libraries soundcheck_core soundcheck_kubernetes_rbac))
+
+(rule
+ (alias runtest)
+ (deps (source_tree ../../bench/kubernetes-rbac/workflows/authoring))
+ (action (run %{exe:authoring_t.exe} ../../bench/kubernetes-rbac/workflows/authoring)))
+
+(executable
  (name authoring_cli_t)
  (modules authoring_cli_t)
  (libraries soundcheck_core soundcheck_kubernetes_rbac unix))
