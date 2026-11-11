@@ -42,7 +42,7 @@ let () =
      "annotation non-string", snapshot (role (meta {|,"annotations":{"ok":42}|}) rule);
      "duplicate metadata map key", snapshot (role (meta {|,"labels":{"ok":"a","ok":"b"}|}) rule);
      "aggregation", {|{"apiVersion":"v1","kind":"List","items":[{"apiVersion":"rbac.authorization.k8s.io/v1","kind":"ClusterRole","metadata":{"name":"reader"},"rules":[],"aggregationRule":null}]}|};
-     "nonresource boundary", snapshot (role (meta "") {|[{"verbs":["get"],"apiGroups":[""],"resources":["configmaps"],"nonResourceURLs":[]}]|})];
+     "nonresource rules on namespaced Role", snapshot (role (meta "") {|[{"verbs":["get"],"nonResourceURLs":["/version"]}]|})];
   check "valid inert metadata"
     (supported (snapshot (role (meta {|,"labels":{"example.com/App":"Demo_1"},"annotations":{"EXAMPLE.COM/Note":"arbitrary\u0000value"}|}) rule)));
   check "empty snapshot supported" (supported {|{"apiVersion":"v1","kind":"List","items":[]}|});
@@ -52,7 +52,8 @@ let () =
    | Ok parsed ->
      check "NUL literal is preserved, never get"
        (List.exists (fun (g : Snapshot.bound_grant) ->
-           List.exists (fun (r : Snapshot.rule) -> List.mem "get\000suffix" r.verbs) g.bound_rules)
+           List.exists (function Snapshot.Resource r -> List.mem "get\000suffix" r.verbs
+             | Snapshot.Non_resource _ -> false) g.bound_rules)
           (Snapshot.grants parsed)));
   check "oversized input" (not (supported (String.make (16 * 1024 * 1024 + 1) ' ')));
   Printf.printf "RBAC snapshot: %d checks passed\n" !checks

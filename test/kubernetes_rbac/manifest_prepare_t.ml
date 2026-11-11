@@ -122,7 +122,7 @@ let () =
   reject_json "top-level array" (`A [role]);
   reject_json "generic items cannot infer GVK" (list [raw role]);
   reject_json "unresolved roleRef" binding;
-  reject_json "unbound unsupported rule still rejected" (set "rules" (`A [`O ["nonResourceURLs",`A [`String "*"]]]) role);
+  reject_json "unbound malformed URL rule still rejected" (set "rules" (`A [`O ["nonResourceURLs",`A [`String "*"]]]) role);
   reject_json "aggregation not removed" (set "aggregationRule" (`O []) role);
   List.iter (fun obj -> reject_json "RBAC cannot be projected away" ~rbac_only:true (list [role;obj]))
     [set "apiVersion" (`String "rbac.authorization.k8s.io/v1beta1") role;

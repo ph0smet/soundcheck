@@ -502,6 +502,9 @@ default with `soundcheck profile kubernetes-rbac`, or select a version with
 Review the [RBAC boundaries](docs/kubernetes-rbac.md#supported-profiles) before
 interpreting a proof. Write verification concerns the initial RBAC grant, not
 successful mutation or preserved object contents.
+ClusterRoles may contain separate non-resource URL rules alongside resource
+rules. Those rules are retained, while URL access and URL-preservation claims
+remain outside RBAC verification.
 
 ## Testing
 

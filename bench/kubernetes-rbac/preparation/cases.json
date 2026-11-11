@@ -662,9 +662,9 @@
     "sha256": "4a9c086a2e2c2ae9536752c37e6a34dbfcfc4f253dc83239516009b793034377"
   },
   "36-nonresource-rule-control": {
-    "description": "36 nonresource rule control",
-    "expected_contract": null,
-    "expected_preparation": "rejected",
+    "description": "A valid unbound URL-only ClusterRole is retained; the existing Secret grant still violates the resource contract.",
+    "expected_contract": "violated",
+    "expected_preparation": "prepared",
     "expected_preservation": null,
     "reference_valid": true,
     "removed_fields": [],

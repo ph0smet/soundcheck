@@ -1,12 +1,14 @@
 open Input
 open Identity
 
-type rule = {
+type resource_rule = {
   verbs : string list;
   api_groups : string list;
   resources : string list;
   resource_names : string list;
 }
+type nonresource_rule = { verbs : string list; urls : string list }
+type rule = Resource of resource_rule | Non_resource of nonresource_rule
 
 type subject = User of string | Group of string | Service_account of string * string
 type role_ref = Local_role of string | Cluster_role of string
@@ -51,19 +53,30 @@ let metadata path namespaced value =
     [ "labels"; "annotations" ];
   (name, ns)
 
-let parse_rule path value =
+let parse_rule ~namespaced path value =
   let o = obj path [ "verbs"; "apiGroups"; "resources"; "resourceNames"; "nonResourceURLs" ] value in
-  if List.mem_assoc "nonResourceURLs" o then
-    reject path "nonResourceURLs is outside this resource-request profile";
   let required key =
     let values = strings (path ^ "." ^ key) (field path key o) in
     if values = [] then reject path (key ^ " must not be empty");
     values
   in
-  { verbs = required "verbs";
-    api_groups = required "apiGroups";
-    resources = required "resources";
-    resource_names = optional_strings path "resourceNames" o }
+  let verbs = required "verbs" in
+  (* Kubernetes ValidatePolicyRule classifies by nonempty URL contents, not
+     field presence. All fields are still type-checked, even if unbound. *)
+  let urls = optional_strings path "nonResourceURLs" o in
+  if urls=[] then Resource {verbs;api_groups=required "apiGroups";
+    resources=required "resources";resource_names=optional_strings path "resourceNames" o}
+  else begin
+    let api_groups = optional_strings path "apiGroups" o
+    and resources = optional_strings path "resources" o
+    and resource_names = optional_strings path "resourceNames" o in
+    if namespaced then reject path "namespaced Role rules cannot apply to non-resource URLs";
+    if api_groups<>[] || resources<>[] || resource_names<>[] then
+      reject path "a rule cannot apply to both resources and non-resource URLs";
+    (* The pinned API validates no URL syntax. Preserve literal strings without
+       interpreting their paths, wildcard placement or request reachability. *)
+    Non_resource {verbs;urls}
+  end
 
 let parse_subject path binding_namespace value =
   let o = obj path [ "kind"; "apiGroup"; "name"; "namespace" ] value in
@@ -113,7 +126,7 @@ let parse_resource_object path value =
   match kind with
   | "Role" | "ClusterRole" ->
       let rules = optional_list path "rules" o
-        |> List.mapi (fun i -> parse_rule (Printf.sprintf "%s.rules[%d]" path i)) in
+        |> List.mapi (fun i -> parse_rule ~namespaced (Printf.sprintf "%s.rules[%d]" path i)) in
       Role { role_kind = kind; role_namespace = ns; role_name = name; rules }
   | _ ->
       let subjects = optional_list path "subjects" o

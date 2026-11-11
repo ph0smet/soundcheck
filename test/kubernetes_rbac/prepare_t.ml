@@ -174,8 +174,8 @@ let () =
      "namespace cannot be invented",snapshot [set "metadata" (`O ["name",`String "reader"]) role];
      "aggregation cannot be stripped",snapshot [set "aggregationRule" `Null
        (role |> set "kind" (`String "ClusterRole") |> set "metadata" (`O ["name",`String "reader"]))];
-     "nonresource rules cannot be stripped",snapshot [set "rules"
-       (`A [set "nonResourceURLs" (`A []) (List.hd (array rules))]) role]];
+     "invalid mixed-domain rules cannot be stripped",snapshot [set "rules"
+       (`A [set "nonResourceURLs" (`A [`String "/version"]) (List.hd (array rules))]) role]];
   List.iter (fun (label,source) -> check label (Result.is_error (K.Prepare.of_string source)))
     ["trailing JSON",stringify minimal ^ "{}";
      "trailing YAML",stringify minimal ^ "\n---\n{}";

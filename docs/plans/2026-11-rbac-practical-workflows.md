@@ -1,5 +1,9 @@
 # Kubernetes RBAC practical workflows
 
+The original URL-rule rejection below is superseded by
+[non-resource coexistence](2026-11-rbac-nonresource-coexistence.md). Current
+preparation retains valid URL-only ClusterRole rules under profile revision 2.
+
 After merging PR #63, Sourav chose preparation of JSON exports and CI repair
 preservation ahead of broader RBAC semantics. Deliver two focused feature
 commits on `feat/rbac-workflows`, with clean-worktree regression validation for

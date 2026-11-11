@@ -126,7 +126,8 @@ class WriteAccessChecks(unittest.TestCase):
             report['data']['frozen_spec']['canonical'] = json.dumps(changed)
             with self.subTest(verb=verb), self.assertRaises(RuntimeError):
                 validate_report(report, self.contract, 'violated')
-        for profile in ['kubernetes-rbac-v1.34-get-v1', 'kubernetes-rbac-v1.34-read-v1']:
+        for profile in ['kubernetes-rbac-v1.34-get-v2', 'kubernetes-rbac-v1.34-read-v2',
+                        'kubernetes-rbac-v1.34-read-write-v1']:
             report = copy.deepcopy(self.report)
             report['data']['assurance']['profile'] = profile
             with self.assertRaises(RuntimeError):

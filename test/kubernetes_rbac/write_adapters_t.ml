@@ -44,10 +44,10 @@ let run ?env binary args =
       code,read output,read error)
 
 (* Keep v3 acceptance separate from the unchanged v1/v2 workflows. *)
-let profile_v3 = "kubernetes-rbac-v1.34-read-write-v1"
-let profile_v4 = "kubernetes-rbac-v1.34-scoped-read-write-v1"
+let profile_v3 = "kubernetes-rbac-v1.34-read-write-v2"
+let profile_v4 = "kubernetes-rbac-v1.34-scoped-read-write-v2"
 let profile_for_version = function
-  | 1 -> "kubernetes-rbac-v1.34-get-v1" | 2 -> "kubernetes-rbac-v1.34-read-v1"
+  | 1 -> "kubernetes-rbac-v1.34-get-v2" | 2 -> "kubernetes-rbac-v1.34-read-v2"
   | 3 -> profile_v3 | 4 -> profile_v4 | _ -> failwith "unexpected contract version"
 let assert_report ~version ~spec outcome report =
   check "report schema remains 10" (field "schema_version" report=`Number "10");

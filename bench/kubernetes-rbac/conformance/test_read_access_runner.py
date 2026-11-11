@@ -116,10 +116,11 @@ class ReadAccessChecks(unittest.TestCase):
             changed['data']['frozen_spec'][field] = value
             with self.assertRaises(RuntimeError):
                 validate_report(changed, self.contract, 'violated')
-        changed = copy.deepcopy(self.report)
-        changed['data']['assurance']['profile'] = 'kubernetes-rbac-v1.34-get-v1'
-        with self.assertRaises(RuntimeError):
-            validate_report(changed, self.contract, 'violated')
+        for profile in ['kubernetes-rbac-v1.34-get-v2', 'kubernetes-rbac-v1.34-read-v1']:
+            changed = copy.deepcopy(self.report)
+            changed['data']['assurance']['profile'] = profile
+            with self.subTest(profile=profile), self.assertRaises(RuntimeError):
+                validate_report(changed, self.contract, 'violated')
         for field, value in [('verb', 'watch'), ('namespace', None), ('names', ['settings'])]:
             changed = copy.deepcopy(self.report)
             contract = copy.deepcopy(self.contract)

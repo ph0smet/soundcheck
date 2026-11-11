@@ -103,6 +103,11 @@
  (modules inventory_t)
  (libraries soundcheck_core soundcheck_kubernetes_rbac))
 
+(test
+ (name nonresource_t)
+ (modules nonresource_t)
+ (libraries soundcheck_core soundcheck_kubernetes_rbac))
+
 (executable
  (name inventory_cli_t)
  (modules inventory_cli_t)

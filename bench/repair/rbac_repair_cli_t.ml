@@ -55,7 +55,7 @@ let ()=
   check "supplied synthetic sequence includes a valid repair" (exit=0);
   check "distinct experimental summary" (field "kind" summary=`String "submitted_rbac_repair_evaluation"
     && field "experimental_format_version" summary=`Number "1");
-  check "exact static named-get profile" (field "profile" summary=`String "kubernetes-rbac-v1.34-get-v1");
+  check "exact static named-get profile" (field "profile" summary=`String "kubernetes-rbac-v1.34-get-v2");
   check "fixed preservation comparison" (field "comparison" summary=`String "frozen_scope_preservation");
   List.iter (fun (name,value)->check ("summary " ^ name) (field name summary=`Number value))
     ["scheduled_tasks","1";"tasks_with_valid_repair","1";"tasks_with_errors","0";"submitted_attempts","7"];

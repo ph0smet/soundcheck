@@ -1,7 +1,7 @@
 # Named-write reference corpus
 
 These synthetic fixtures check contract schema v3 and profile
-`kubernetes-rbac-v1.34-read-write-v1`. The supported domain retains get/list/watch
+`kubernetes-rbac-v1.34-read-write-v2`. The supported domain retains get/list/watch
 and adds named `update`, `patch`, and `delete` for core ConfigMaps and Secrets.
 Every write request needs a valid nonempty namespace and object name, with no
 subresource. This is offline authorization evidence, not deployment experience

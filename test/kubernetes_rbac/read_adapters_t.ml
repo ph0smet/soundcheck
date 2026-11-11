@@ -99,8 +99,23 @@ let snapshot ?(config_verbs=["get";"list";"watch"]) ?(secret_verbs=[]) ?secret_n
         "roleRef",`O ["kind",`String "ClusterRole";"name",`String "global-secrets";"apiGroup",`String "rbac.authorization.k8s.io"]]] else [] in
   I.json (`O ["apiVersion",`String "v1";"kind",`String "List";"items",`A (config @ secrets @ operators @ global)])
 
-let profile_v1 = "kubernetes-rbac-v1.34-get-v1"
-let profile_v2 = "kubernetes-rbac-v1.34-read-v1"
+let profile_v1 = "kubernetes-rbac-v1.34-get-v2"
+let profile_v2 = "kubernetes-rbac-v1.34-read-v2"
+
+let with_urls ?(urls=["*"]) ?(mixed=false) source =
+  let fields = match I.parse source with `O fields -> fields | _ -> assert false in
+  let items = I.arr "items" (List.assoc "items" fields) in
+  let url_rule = `O (["verbs",strings ["get"];"nonResourceURLs",strings urls]
+    @ if mixed then ["resources",strings ["secrets"]] else []) in
+  let additional = [
+    `O ["apiVersion",`String "rbac.authorization.k8s.io/v1";"kind",`String "ClusterRole";
+      "metadata",`O ["name",`String "discovery"];"rules",`A [url_rule]];
+    `O ["apiVersion",`String "rbac.authorization.k8s.io/v1";"kind",`String "ClusterRoleBinding";
+      "metadata",`O ["name",`String "discovery"];
+      "subjects",`A [`O ["kind",`String "User";"name",`String "reader";"apiGroup",`String "rbac.authorization.k8s.io"]];
+      "roleRef",`O ["kind",`String "ClusterRole";"name",`String "discovery";"apiGroup",`String "rbac.authorization.k8s.io"]]] in
+  I.json (`O (List.map (fun (key,value) -> key,if key="items" then `A (items@additional) else value) fields))
+
 let assert_report ~version ~spec outcome report =
   check "report schema remains 10" (field "schema_version" report=`Number "10");
   check "expected verdict" (string "result" report=outcome);
@@ -285,6 +300,13 @@ let cli_checks directory binary =
   assert_coordinate missing_watch ~action:"watch" ~namespace:"frontend" ~name:None;
   check "watch functionality is a must-allow failure" (string "kind" (field "clause" missing_watch)="must_allow");
   ignore (invoke ~before:baseline_path "valid-repair" repaired "proved");
+  let url_source = with_urls repaired and url_changed = with_urls ~urls:["/version"] repaired in
+  let url_before = Filename.concat directory "url-before.json" in write url_before url_source;
+  ignore (invoke "url-coexistence" url_source "proved");
+  ignore (invoke ~before:url_before ~evidence:(Filename.concat directory "url-edit-evidence")
+    "url-only-edit" url_changed "proved");
+  check "URL edit is still a distinct evidence input" (Sha256.string url_source<>Sha256.string url_changed);
+  ignore (invoke "invalid-mixed-url-rule" (with_urls ~mixed:true repaired) "unknown");
   let config_regression = invoke ~before:baseline_path "config-list-regression" (snapshot ~config_verbs:["get";"watch"] ()) "violated" in
   assert_coordinate config_regression ~action:"list" ~namespace:"frontend" ~name:None;
   check "unmentioned ConfigMap list grant must be preserved" (string "kind" (field "clause" config_regression)="must_preserve");
@@ -375,6 +397,9 @@ let mcp_checks directory binary spec contract_source old_contract baseline repai
     let rejected = exchange child 7 "tools/call" (`O ["name",`String "verify";
       "arguments",`O ["config",`String repaired;"contract_version",`Number "1";"verb",`String "get"]]) in
     check "MCP cannot downgrade the frozen read requirement" (field "code" (field "error" rejected)=`Number "-32602");
+    ignore (call 8 "verify" (with_urls repaired) "proved");
+    ignore (call 9 "compare" (with_urls ~urls:["/version"] repaired) "proved");
+    ignore (call 10 "verify" (with_urls ~mixed:true repaired) "unknown");
     close_out child.input;
     check "MCP emits no unsolicited responses" (child.pending="");
     let ready,_,_ = Unix.select [child.output] [] [] 10. in
@@ -423,7 +448,9 @@ let gate_checks directory binary helper contract_source old_contract baseline re
     check "Action never rewrites candidate contract" (read contract_path=old_contract) in
   execute "verify" (snapshot ~secret_verbs:["list"] ()) 3 ["must_not_grant";"reader list secrets";"\"schema_version\":2"];
   execute "repair" regression 3 ["Approved baseline: " ^ approved_sha ^ ":snapshot.json";"must_preserve";"operator watch configmaps"];
-  execute "repair" repaired 0 ["rbac-repair-preservation proved"]
+  execute "repair" repaired 0 ["rbac-repair-preservation proved"];
+  execute "repair" (with_urls repaired) 0 ["rbac-repair-preservation proved"];
+  execute "verify" (with_urls ~mixed:true repaired) 4 ["unknown";"unsupported"]
 
 let () =
   if Array.length Sys.argv<>3 then failwith "expected CLI binary and approved-contract helper";
