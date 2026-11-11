@@ -99,8 +99,8 @@ let snapshot ?(config_verbs=["get";"list";"watch"]) ?(secret_verbs=[]) ?secret_n
         "roleRef",`O ["kind",`String "ClusterRole";"name",`String "global-secrets";"apiGroup",`String "rbac.authorization.k8s.io"]]] else [] in
   I.json (`O ["apiVersion",`String "v1";"kind",`String "List";"items",`A (config @ secrets @ operators @ global)])
 
-let profile_v1 = "kubernetes-rbac-v1.34-get-v2"
-let profile_v2 = "kubernetes-rbac-v1.34-read-v2"
+let profile_v1 = "kubernetes-rbac-v1.34-get-v3"
+let profile_v2 = "kubernetes-rbac-v1.34-read-v3"
 
 let with_urls ?(urls=["*"]) ?(mixed=false) source =
   let fields = match I.parse source with `O fields -> fields | _ -> assert false in

@@ -12,7 +12,8 @@ type rule = Resource of resource_rule | Non_resource of nonresource_rule
 
 type subject = User of string | Group of string | Service_account of string * string
 type role_ref = Local_role of string | Cluster_role of string
-type role = { role_kind : string; role_namespace : string; role_name : string; rules : rule list }
+type role = { role_kind : string; role_namespace : string; role_name : string; rules : rule list;
+  labels : (string * string) list; aggregation : Label_selector.t list option; source_path : string }
 type binding = {
   binding_kind : string;
   binding_namespace : string;
@@ -51,7 +52,10 @@ let metadata path namespaced value =
       | Some `Null -> ()
       | Some value -> metadata_map (path ^ "." ^ key) ~annotations:(key = "annotations") value)
     [ "labels"; "annotations" ];
-  (name, ns)
+  let labels = match List.assoc_opt "labels" o with
+    | Some (`O pairs) -> List.map (fun (key,value) -> key,str path value) pairs
+    | _ -> [] in
+  (name, ns, labels)
 
 let parse_rule ~namespaced path value =
   let o = obj path [ "verbs"; "apiGroups"; "resources"; "resourceNames"; "nonResourceURLs" ] value in
@@ -114,22 +118,31 @@ let parse_resource_object path value =
   let kind = string_field path "kind" raw in
   let allowed =
     match kind with
-    | "Role" | "ClusterRole" -> [ "apiVersion"; "kind"; "metadata"; "rules" ]
+    | "Role" -> [ "apiVersion"; "kind"; "metadata"; "rules" ]
+    | "ClusterRole" -> [ "apiVersion"; "kind"; "metadata"; "rules"; "aggregationRule" ]
     | "RoleBinding" | "ClusterRoleBinding" ->
         [ "apiVersion"; "kind"; "metadata"; "subjects"; "roleRef" ]
     | _ -> reject path "only RBAC Roles and Bindings are supported"
   in
-  if kind="ClusterRole" && List.mem_assoc "aggregationRule" raw then
-    reject (path ^ ".aggregationRule") "unsupported aggregationRule: aggregation-controller semantics are outside this profile; do not remove this field or role to obtain a proof";
   let o = obj path allowed value in
   require_equal (path ^ ".apiVersion") (string_field path "apiVersion" o) api_version;
   let namespaced = kind = "Role" || kind = "RoleBinding" in
-  let name, ns = metadata (path ^ ".metadata") namespaced (field path "metadata" o) in
+  let name, ns, labels = metadata (path ^ ".metadata") namespaced (field path "metadata" o) in
   match kind with
   | "Role" | "ClusterRole" ->
       let rules = optional_list path "rules" o
         |> List.mapi (fun i -> parse_rule ~namespaced (Printf.sprintf "%s.rules[%d]" path i)) in
-      Role { role_kind = kind; role_namespace = ns; role_name = name; rules }
+      let aggregation = match List.assoc_opt "aggregationRule" o with
+        | None | Some `Null -> None
+        | Some value ->
+          let path = path ^ ".aggregationRule" in
+          let fields = obj path ["clusterRoleSelectors"] value in
+          let selectors = optional_list path "clusterRoleSelectors" fields in
+          if selectors=[] then reject path "at least one clusterRoleSelector is required";
+          Some (List.mapi (fun i -> Label_selector.parse
+            (Printf.sprintf "%s.clusterRoleSelectors[%d]" path i)) selectors) in
+      Role { role_kind = kind; role_namespace = ns; role_name = name; rules;
+        labels;aggregation;source_path=path }
   | _ ->
       let subjects = optional_list path "subjects" o
         |> List.mapi (fun i -> parse_subject (Printf.sprintf "%s.subjects[%d]" path i) ns) in
@@ -177,12 +190,80 @@ let unresolved (objects,roles) =
 
 let unresolved_references source = protect (fun () -> unresolved (parse_objects (parse source)))
 
+let normalized_rules rules =
+  let set = List.sort_uniq String.compare in
+  List.map (function
+    | Resource r -> Resource { verbs=set r.verbs;api_groups=set r.api_groups;
+        resources=set r.resources;resource_names=set r.resource_names }
+    | Non_resource r -> Non_resource {verbs=set r.verbs;urls=set r.urls}) rules
+  |> List.sort_uniq Stdlib.compare
+
+let check_aggregation objects =
+  let cluster_roles = List.filter_map (function
+    | Role r when r.role_kind="ClusterRole" -> Some r | _ -> None) objects in
+  if List.exists (fun r -> Option.is_some r.aggregation) cluster_roles then begin
+    (* Resolution needs unbound contributors as well as referenced roles. This
+       checks supplied objects; it cannot establish inventory completeness. *)
+    let roles = Array.of_list cluster_roles in
+    let count = Array.length roles in
+    if count > 512 then reject "manifest" "aggregation requires at most 512 ClusterRoles";
+    let selector_cost = Array.fold_left (fun total r -> total +
+      Option.fold ~none:0 ~some:(List.fold_left (fun n s -> n + Label_selector.cost s) 0) r.aggregation) 0 roles in
+    if selector_cost > 1024 then reject "manifest" "aggregation selector budget exceeds 1024 units";
+    let labels = Array.map (fun r ->
+      let table = Hashtbl.create (List.length r.labels) in
+      List.iter (fun (key,value) -> Hashtbl.add table key value) r.labels;
+      table) roles in
+    let dependencies = Array.mapi (fun i r -> match r.aggregation with
+      | None -> []
+      | Some selectors ->
+        let selected = ref [] in
+        for j = count - 1 downto 0 do
+          (* Native reconciliation skips its own ClusterRole, even when an
+             empty selector or its labels would match. *)
+          if i<>j && List.exists (fun s -> Label_selector.matches s (Hashtbl.find_opt labels.(j))) selectors
+          then selected := j :: !selected
+        done;
+        !selected) roles in
+    let state = Array.make count 0 and derived = Array.make count [] in
+    let contributions = ref 0 in
+    let rec resolve trail i =
+      let role = roles.(i) in
+      if state.(i)=1 then reject (role.source_path ^ ".aggregationRule")
+        ("cyclic aggregate dependencies are unsupported: " ^ String.concat " -> "
+          (List.rev (role.role_name :: trail)) ^ "; controller ordering can change the retained grants")
+      else if state.(i)=0 then begin
+        state.(i) <- 1;
+        let expected = match role.aggregation with
+          | None -> normalized_rules role.rules
+          | Some _ ->
+            let rules = List.concat_map (fun j ->
+              resolve (role.role_name :: trail) j;
+              contributions := !contributions + List.length derived.(j);
+              if !contributions > 100000 then reject "manifest" "aggregation rule contribution budget exceeds 100000";
+              derived.(j)) dependencies.(i) in
+            List.sort_uniq Stdlib.compare rules in
+        derived.(i) <- expected;
+        state.(i) <- 2
+      end
+    in
+    (* Derive only from nonaggregate leaves, never from a stale aggregate's
+       stored rules. Validate every aggregate, including unrelated/unbound ones. *)
+    Array.iteri (fun i _ -> resolve [] i) roles;
+    Array.iteri (fun i role -> match role.aggregation with
+      | None -> ()
+      | Some _ when normalized_rules role.rules = derived.(i) -> ()
+      | Some _ -> reject (role.source_path ^ ".rules")
+        (Printf.sprintf "aggregate ClusterRole %S has stored rules that differ from its recursively selected rules; supply a complete, already-resolved inventory. Soundcheck does not reconcile aggregation controllers; do not remove aggregationRule or roles to obtain a proof" role.role_name)) roles
+  end
+
 let parse_manifest value =
   let objects,roles = parse_objects value in
   let missing = unresolved (objects,roles) in
   if missing <> [] then reject "manifest" ("unresolved roleRef: " ^ String.concat "; "
     (List.map (fun r -> Printf.sprintf "items[%d] %s -> %s" r.binding_index r.binding_label r.role_label) missing)
     ^ ". Supply the exact omitted roles from reviewed sources, using rbac inventory for multiple sources; reference resolution alone does not establish completeness");
+  check_aggregation objects;
   List.filter_map
     (function
       | Role _ -> None

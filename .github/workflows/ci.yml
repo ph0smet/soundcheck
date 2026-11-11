@@ -180,7 +180,8 @@ jobs:
           check_rbac_gate 03-valid-repair 0
           check_rbac_gate 01-unsafe 3
           check_rbac_gate 02-delete-workload-grants 3
-          check_rbac_gate 18-aggregation-boundary 4
+          check_rbac_gate 18-aggregation-boundary 0
+          check_rbac_gate 30-stale-aggregation 4
 
       - name: Frozen Kubernetes RBAC repair preservation
         if: github.event_name == 'pull_request'

@@ -172,7 +172,7 @@ let () =
      "unknown item field cannot be dropped",snapshot [set "status" `Null role];
      "duplicate object identity cannot be deduplicated",snapshot [role;role];
      "namespace cannot be invented",snapshot [set "metadata" (`O ["name",`String "reader"]) role];
-     "aggregation cannot be stripped",snapshot [set "aggregationRule" `Null
+     "invalid aggregation cannot be stripped",snapshot [set "aggregationRule" (`O [])
        (role |> set "kind" (`String "ClusterRole") |> set "metadata" (`O ["name",`String "reader"]))];
      "invalid mixed-domain rules cannot be stripped",snapshot [set "rules"
        (`A [set "nonResourceURLs" (`A [`String "/version"]) (List.hd (array rules))]) role]];

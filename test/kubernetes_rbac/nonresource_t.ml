@@ -82,8 +82,8 @@ let () =
     let spec = ok (K.Contract_spec.of_string (contract version)) in
     let verified = K.Verify.run spec mixed in
     check "all existing contracts accept separated URL rules" (verified.result=Report.Proved);
-    check "revised profile identifies new boundary" ((Option.get verified.assurance).profile=K.Assurance.id_for_version version
-      && String.ends_with ~suffix:"-v2" (Option.get verified.assurance).profile);
+    check "revised profile identifies aggregate boundary" ((Option.get verified.assurance).profile=K.Assurance.id_for_version version
+      && String.ends_with ~suffix:"-v3" (Option.get verified.assurance).profile);
     check "URL-only grants cannot satisfy resource must_allow" (match (K.Verify.run spec (bytes [url ["*"]])).result with
       | Report.Violated _ -> true | _ -> false);
     let compared = K.Verify.compare_with_trace spec ~before:baseline ~after:mixed in

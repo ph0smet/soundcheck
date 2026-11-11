@@ -1,23 +1,25 @@
 open Soundcheck_core
 
-let profile_id = "kubernetes-rbac-v1.34-get-v2"
-let read_profile_id = "kubernetes-rbac-v1.34-read-v2"
-let write_profile_id = "kubernetes-rbac-v1.34-read-write-v2"
-let scoped_profile_id = "kubernetes-rbac-v1.34-scoped-read-write-v2"
+let profile_id = "kubernetes-rbac-v1.34-get-v3"
+let read_profile_id = "kubernetes-rbac-v1.34-read-v3"
+let write_profile_id = "kubernetes-rbac-v1.34-read-write-v3"
+let scoped_profile_id = "kubernetes-rbac-v1.34-scoped-read-write-v3"
 let id_for_version = function
   | 1 -> profile_id | 2 -> read_profile_id | 3 -> write_profile_id | 4 -> scoped_profile_id
   | _ -> invalid_arg "unsupported RBAC contract version"
 let assumptions = [
-  "The input is the complete static desired RBAC snapshot, including every applicable binding and referenced role.";
+  "The input is the complete static desired RBAC snapshot, including every applicable binding and the complete ClusterRole inventory with labels, even unbound aggregation contributors.";
+  "Aggregated ClusterRoles must have acyclic dependencies (self-matches ignored) and stored full rule sets equal to recursively selected rules. Completeness is assumed; no controller reconciliation, rollout or future label/object changes are verified.";
   "The contract's fixed usernames and groups are trusted request attributes; authentication is not verified.";
   "Only named get requests for core ConfigMaps and Secrets, with no subresource, are quantified.";
   "Validated ClusterRole non-resource URL rules are retained but cannot grant resource requests. Non-resource URL authorization and preservation are outside this profile.";
   "NoOpinion means RBAC supplied no grant; it is not a final API-server denial.";
-  "Admission, object existence, aggregation controllers, list/watch and privilege-escalation paths are outside this profile.";
+  "Admission, object existence, live aggregation controllers, list/watch and privilege-escalation paths are outside this profile.";
   "Applying a partial manifest does not remove omitted live bindings; deployment reconciliation must establish the assumed snapshot." ]
 
 let read_assumptions = [
-  "The input is the complete static desired RBAC snapshot, including every applicable binding and referenced role.";
+  "The input is the complete static desired RBAC snapshot, including every applicable binding and the complete ClusterRole inventory with labels, even unbound aggregation contributors.";
+  "Aggregated ClusterRoles must have acyclic dependencies (self-matches ignored) and stored full rule sets equal to recursively selected rules. Completeness is assumed; no controller reconciliation, rollout or future label/object changes are verified.";
   "The contract's fixed usernames and groups are trusted request attributes; authentication is not verified.";
   "Only get/list/watch authorization of core ConfigMaps and Secrets, with no subresource, is quantified.";
   "Validated ClusterRole non-resource URL rules are retained but cannot grant resource requests. Non-resource URL authorization and preservation are outside this profile.";
@@ -25,11 +27,12 @@ let read_assumptions = [
   "Nonempty effective authorization names are DNS1123 object names. For list/watch they may come from an exact metadata.name selector or a legacy named watch path after Kubernetes request interpretation; they are not the names of returned objects.";
   "An empty effective name means no usable exact-name restriction; it does not assert that the HTTP request has no selectors.";
   "NoOpinion means RBAC supplied no grant; it is not a final API-server denial.";
-  "Raw HTTP/selector parsing, API execution, response contents, watch events, admission, object existence, aggregation controllers, mutation and indirect privilege-escalation paths are outside this profile.";
+  "Raw HTTP/selector parsing, API execution, response contents, watch events, admission, object existence, live aggregation controllers, mutation and indirect privilege-escalation paths are outside this profile.";
   "Applying a partial manifest does not remove omitted live bindings; deployment reconciliation must establish the assumed snapshot." ]
 
 let write_assumptions = [
-  "The input is the complete static desired RBAC snapshot, including every applicable binding and referenced role.";
+  "The input is the complete static desired RBAC snapshot, including every applicable binding and the complete ClusterRole inventory with labels, even unbound aggregation contributors.";
+  "Aggregated ClusterRoles must have acyclic dependencies (self-matches ignored) and stored full rule sets equal to recursively selected rules. Completeness is assumed; no controller reconciliation, rollout or future label/object changes are verified.";
   "The contract's fixed usernames and groups are trusted request attributes; authentication is not verified.";
   "Only get/list/watch and named update/patch/delete authorization of core ConfigMaps and Secrets, with no subresource, is quantified.";
   "Validated ClusterRole non-resource URL rules are retained but cannot grant resource requests. Non-resource URL authorization and preservation are outside this profile.";
@@ -38,7 +41,7 @@ let write_assumptions = [
   "An empty effective name means no usable exact-name restriction; it does not assert that the HTTP request has no selectors.";
   "NoOpinion means RBAC supplied no grant; it is not a final API-server denial.";
   "Named write grants describe initial request authorization only, not request bodies, changed fields, additional operation-specific authorization, successful mutation, object existence, or admission decisions. Create and deletecollection are outside the profile.";
-  "Raw HTTP/selector parsing, API execution, response contents, watch events, other authorizers, aggregation controllers and indirect privilege-escalation paths are outside this profile.";
+  "Raw HTTP/selector parsing, API execution, response contents, watch events, other authorizers, live aggregation controllers and indirect privilege-escalation paths are outside this profile.";
   "Applying a partial manifest does not remove omitted live bindings; deployment reconciliation must establish the assumed snapshot." ]
 
 let assessment ?(version=1) ?reason () : Report.assurance =

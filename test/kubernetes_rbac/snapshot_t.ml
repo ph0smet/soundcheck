@@ -23,7 +23,7 @@ let () =
   let dir = Sys.argv.(1) in
   Array.iter (fun filename ->
       let number = int_of_string (String.sub filename 0 2) in
-      let expected = not (List.mem number [17;18;19;20;26;27]) in
+      let expected = not (List.mem number [17;19;20;26;27;30]) in
       check filename (supported (read (Filename.concat dir filename)) = expected))
     (Sys.readdir dir);
   let valid = snapshot (role (meta "") rule) in
@@ -41,11 +41,13 @@ let () =
      "invalid annotation key", snapshot (role (meta {|,"annotations":{"/bad":"value"}|}) rule);
      "annotation non-string", snapshot (role (meta {|,"annotations":{"ok":42}|}) rule);
      "duplicate metadata map key", snapshot (role (meta {|,"labels":{"ok":"a","ok":"b"}|}) rule);
-     "aggregation", {|{"apiVersion":"v1","kind":"List","items":[{"apiVersion":"rbac.authorization.k8s.io/v1","kind":"ClusterRole","metadata":{"name":"reader"},"rules":[],"aggregationRule":null}]}|};
+     "invalid aggregation", {|{"apiVersion":"v1","kind":"List","items":[{"apiVersion":"rbac.authorization.k8s.io/v1","kind":"ClusterRole","metadata":{"name":"reader"},"rules":[],"aggregationRule":{}}]}|};
      "nonresource rules on namespaced Role", snapshot (role (meta "") {|[{"verbs":["get"],"nonResourceURLs":["/version"]}]|})];
   check "valid inert metadata"
     (supported (snapshot (role (meta {|,"labels":{"example.com/App":"Demo_1"},"annotations":{"EXAMPLE.COM/Note":"arbitrary\u0000value"}|}) rule)));
   check "empty snapshot supported" (supported {|{"apiVersion":"v1","kind":"List","items":[]}|});
+  check "null aggregation is ordinary policy"
+    (supported {|{"apiVersion":"v1","kind":"List","items":[{"apiVersion":"rbac.authorization.k8s.io/v1","kind":"ClusterRole","metadata":{"name":"reader"},"rules":[],"aggregationRule":null}]}|});
   let nul = read (Filename.concat dir "23-nul-verb-literal.json") in
   (match Snapshot.of_string nul with
    | Error reason -> failwith reason

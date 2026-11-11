@@ -33,10 +33,11 @@ The numbered fixtures include:
 | --- | --- |
 | Unsafe, required-access loss, valid repair, remaining cluster/group grants, operator regression, exact-name leak and a NUL-bearing verb | Prepared; the original modeled behavior is retained |
 | An already strict snapshot and an empty snapshot | Prepared; no invented objects or grants |
+| Empty aggregate with no selected contributors (fixture 35) | Prepared; its original policy is retained |
 | Invalid types, negative/overflowing generation, an invalid calendar date, duplicate keys and trailing documents | Rejected |
 | Nonempty generateName, active deletion/ownership/finalizer/managed-field metadata | Rejected |
 | Nonempty continuation token or remaining item count | Rejected as an explicitly incomplete page |
-| Missing role reference and aggregation rule | Rejected; normalization cannot erase unsupported policy |
+| Missing role references and unsupported aggregate states | Rejected; normalization cannot erase unsupported policy |
 | Valid URL-only ClusterRole (fixture 36) | Prepared with its full rule retained; the existing Secret grant still violates the resource contract |
 | Typed lists, duplicate objects and missing namespaces | Rejected |
 
@@ -98,8 +99,10 @@ object selection or controller execution. Explicit nonempty pagination markers
 are rejected, but empty markers do not establish that every applicable binding
 was supplied.
 
-A complete cluster export can contain built-in aggregation rules that remain
-outside the verifier's profile. Valid URL-only ClusterRole rules are retained
+A complete cluster export can contain stale or cyclic aggregates that remain
+outside the verifier's profile. Already-resolved acyclic aggregates must satisfy
+the [complete-policy consistency check](../../../docs/kubernetes-rbac.md#already-resolved-aggregated-clusterroles).
+Valid URL-only ClusterRole rules are retained
 and have no resource-request grants; their URL authorization is not verified.
 Preparation does not remove objects merely because they appear unrelated to the
 current contract. The separate [coexistence suite](../nonresource/README.md)

@@ -107,7 +107,8 @@ let () =
     | Ok _ -> failwith "bad snapshot accepted"
     | Error reason -> List.iter (fun part -> check part (contains reason part)) fragments in
   snapshot_error (objects @ [List.hd objects]) ["manifest.items[4]";"duplicate RBAC object identity ClusterRole";"first supplied at items[0]"];
-  snapshot_error [set "aggregationRule" `Null (List.hd objects)] [".aggregationRule";"aggregation-controller";"do not remove"];
+  snapshot_error [set "aggregationRule" (`O ["clusterRoleSelectors",`A [`O []]]) (List.hd objects)]
+    [".rules";"stored rules";"aggregation controllers";"do not remove"];
   snapshot_error [List.nth objects 1;List.nth objects 3]
     ["items[0] ClusterRoleBinding/config-reader-global -> ClusterRole/config-reader";
      "items[1] RoleBinding/ops/status-reader -> Role/ops/status-reader";"rbac inventory";"does not establish completeness"];

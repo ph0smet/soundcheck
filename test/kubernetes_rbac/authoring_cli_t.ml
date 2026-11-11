@@ -91,8 +91,8 @@ let () =
       let path = input (Printf.sprintf "contract v%d.json" version) source in
       let out = review path in
       let profile = match version with
-        | 1 -> "kubernetes-rbac-v1.34-get-v2" | 2 -> "kubernetes-rbac-v1.34-read-v2"
-        | 3 -> "kubernetes-rbac-v1.34-read-write-v2" | _ -> "kubernetes-rbac-v1.34-scoped-read-write-v2" in
+        | 1 -> "kubernetes-rbac-v1.34-get-v3" | 2 -> "kubernetes-rbac-v1.34-read-v3"
+        | 3 -> "kubernetes-rbac-v1.34-read-write-v3" | _ -> "kubernetes-rbac-v1.34-scoped-read-write-v3" in
       List.iter (fun part -> check ("review contains " ^ part) (contains out part))
         [Printf.sprintf "Contract schema: %d" version;"Selected profile (information only): " ^ profile;
          "Raw artifact SHA-256: " ^ hash source;"Canonical frozen-contract SHA-256: " ^ hash (canonical version);

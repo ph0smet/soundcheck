@@ -2,7 +2,7 @@
 
 This synthetic example starts with access requirements, then checks candidate
 RBAC snapshots against them. The contract uses schema 4 and the
-`kubernetes-rbac-v1.34-scoped-read-write-v2` profile. It is not a public deployment
+`kubernetes-rbac-v1.34-scoped-read-write-v3` profile. It is not a public deployment
 evaluation, an observed authentication context, or a measured authoring study.
 
 ## Write the requirement before inspecting grants

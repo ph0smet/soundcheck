@@ -12,7 +12,7 @@ from run import (EXIT_CODES, decisions, digest, execute, module_provenance,
                  require, save, smt_decisions, strict_json)
 from run_write_access import validate_request, witness_request
 
-PROFILE = 'kubernetes-rbac-v1.34-scoped-read-write-v2'
+PROFILE = 'kubernetes-rbac-v1.34-scoped-read-write-v3'
 VERBS = ['get', 'list', 'watch', 'update', 'patch', 'delete']
 READS = ['list', 'watch']
 API = 'rbac.authorization.k8s.io'

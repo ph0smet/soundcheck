@@ -108,6 +108,20 @@
  (modules nonresource_t)
  (libraries soundcheck_core soundcheck_kubernetes_rbac))
 
+(test
+ (name aggregation_t)
+ (modules aggregation_t)
+ (libraries soundcheck_core soundcheck_kubernetes_rbac))
+
+(executable
+ (name aggregation_cli_t)
+ (modules aggregation_cli_t)
+ (libraries soundcheck_core soundcheck_kubernetes_rbac unix))
+
+(rule
+ (alias runtest)
+ (action (run %{exe:aggregation_cli_t.exe} %{exe:../../cli/main.exe})))
+
 (executable
  (name authoring_t)
  (modules authoring_t)

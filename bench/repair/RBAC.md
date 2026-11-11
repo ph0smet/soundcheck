@@ -58,11 +58,11 @@ file checks are not a race-resistant sandbox or a contract-approval mechanism.
 ## Interpretation and boundaries
 
 The frozen contract selects the profile. Schema 1 retains
-`kubernetes-rbac-v1.34-get-v2` and named `get`; schema 2 selects
-`kubernetes-rbac-v1.34-read-v2` and `get/list/watch`, including namespaced and
+`kubernetes-rbac-v1.34-get-v3` and named `get`; schema 2 selects
+`kubernetes-rbac-v1.34-read-v3` and `get/list/watch`, including namespaced and
 all-namespace collection authorization. Schema 3 selects
-`kubernetes-rbac-v1.34-read-write-v2`, adding named `update`, `patch` and `delete`.
-Schema 4 selects `kubernetes-rbac-v1.34-scoped-read-write-v2`, retaining those
+`kubernetes-rbac-v1.34-read-write-v3`, adding named `update`, `patch` and `delete`.
+Schema 4 selects `kubernetes-rbac-v1.34-scoped-read-write-v3`, retaining those
 verbs and adding namespace/name selectors to access clauses and approved changes.
 All use complete static desired RBAC
 snapshots in strict JSON, fixed trusted usernames/groups, and core ConfigMaps

@@ -119,7 +119,7 @@ let () =
              set "metadata" (set "deletionTimestamp" (`String "2026-11-08T09:10:11Z") (field "metadata" item)) item
            else item) in
          K.Input.json (set "items" (`A items) value));
-      "unsupported aggregation",read (fixture "18-aggregation-boundary");
+      "unsupported aggregation",read (fixture "30-stale-aggregation");
       "missing reference",read (fixture "17-missing-reference");
       "unknown field",read (fixture "19-unknown-field");
       "trailing document",source ^ "{}";

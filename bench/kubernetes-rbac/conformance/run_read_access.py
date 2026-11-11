@@ -15,7 +15,7 @@ from run import (CORPUS, DNS_LABEL, DNS_SUBDOMAIN, EXIT_CODES, decisions, digest
                  smt_decisions, strict_json, strings, valid_dns,
                  validate_contract as validate_v1_contract)
 
-PROFILE = 'kubernetes-rbac-v1.34-read-v2'
+PROFILE = 'kubernetes-rbac-v1.34-read-v3'
 REQUEST_KEYS = {'id', 'username', 'groups', 'verb', 'apiGroup', 'resource',
                 'namespace', 'name', 'resourceRequest', 'subresource'}
 URL_KEYS = {'id', 'username', 'groups', 'method', 'url'}
