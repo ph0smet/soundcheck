@@ -1,7 +1,7 @@
 # Repair named write grants without breaking readers or operators
 
 This synthetic example uses contract schema 3 and the
-`kubernetes-rbac-v1.34-read-write-v1` profile. It checks named `update`, `patch`
+`kubernetes-rbac-v1.34-read-write-v2` profile. It checks named `update`, `patch`
 and `delete` authorization for core ConfigMaps and Secrets alongside the existing
 read domain. It uses a complete desired RBAC snapshot and four frozen identities.
 

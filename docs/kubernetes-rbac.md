@@ -92,7 +92,7 @@ Without `--input-format`, input remains one strict JSON `apiVersion: v1`,
 `kind: List`. Use the [explicit manifest mode](#prepare-rendered-manifests)
 below for YAML streams, typed Lists or individual objects.
 The 16 MiB input limit and all existing policy checks still apply, including
-aggregation rules, non-resource permissions, duplicate identities and unresolved
+aggregation rules, invalid mixed resource/URL rules, duplicate identities and unresolved
 references. An ordinary whole-cluster export may therefore remain unsupported.
 Do not filter out objects or fields simply to obtain an accepted snapshot.
 
@@ -310,8 +310,8 @@ deny-all and operator-regression snapshots.
 Schema 2 keeps the same `kind`, frozen identity context, paired clause kinds and
 approved `change_scope`. Every clause and change-scope entry also requires a
 singular `verb`: `get`, `list` or `watch`. The contract selects the
-`kubernetes-rbac-v1.34-read-v1` profile. Existing schema-1 artifacts, canonical
-identities, profiles and get-only preservation semantics keep their meaning;
+`kubernetes-rbac-v1.34-read-v2` profile. Existing schema-1 artifacts, canonical
+identities and get-only preservation semantics keep their meaning;
 upgrading a contract requires separate requirement review.
 
 | Scope field | Schema-2 meaning |
@@ -367,8 +367,9 @@ selector expressions are not new verifier inputs; reports describe effective
 authorization attributes. The model does not assert successful API execution,
 returned objects or watch events. In particular, an empty witness name means
 no effective exact-name restriction, not necessarily no selectors in an HTTP
-request. Preparation still checks the shared snapshot format; its original
-receipt `target_profile` is not the profile selected for a later verification.
+request. Preparation still checks the shared snapshot format; its receipt
+`target_profile` identifies snapshot support, not the contract-selected profile
+of a later verification.
 
 ## Named write-access contracts (schema 3)
 
@@ -377,8 +378,8 @@ includes an incomplete repair, required manager writes and an unrelated
 Secret-rotation regression caught only by repair comparison.
 
 Schema 3 retains the schema-2 fields and adds `update`, `patch` and `delete` to
-the allowed verbs. It selects `kubernetes-rbac-v1.34-read-write-v1`. Existing
-schema-1/2 contracts and profiles keep their meaning; selecting schema 3 is a
+the allowed verbs. It selects `kubernetes-rbac-v1.34-read-write-v2`. Existing
+schema-1/2 contracts keep their meaning; selecting schema 3 is a
 separate requirement change, not an automatic upgrade.
 
 Each write requires a nonempty DNS-valid namespace and object name. In a write
@@ -419,7 +420,7 @@ dune exec soundcheck -- profile kubernetes-rbac --contract-version 3 --format js
 
 ## Namespace and name selectors (schema 4)
 
-Schema 4 selects `kubernetes-rbac-v1.34-scoped-read-write-v1`. It retains the
+Schema 4 selects `kubernetes-rbac-v1.34-scoped-read-write-v2`. It retains the
 schema-3 authorization model and six verbs, and adds the following selectors
 to **both clauses and `change_scope`**. Existing literal/null selectors keep
 their meaning; schemas 1–3 reject the new syntax and retain their profiles.
@@ -476,7 +477,13 @@ finite reference checks do not independently prove universal selector coverage.
 
 ## Supported profiles
 
-`kubernetes-rbac-v1.34-get-v1` references Kubernetes v1.34.0 and supports:
+The current profile IDs end in `-v2`. This revision accepts validated ClusterRole
+non-resource rules alongside resource rules. Contract schemas 1–4, canonical
+contract identities and quantified request domains are unchanged. Older `-v1`
+profile IDs describe the earlier input boundary; report/evidence/receipt schemas
+retain their existing shapes and now identify the revised profile.
+
+`kubernetes-rbac-v1.34-get-v2` references Kubernetes v1.34.0 and supports:
 
 - One strict JSON Kubernetes `v1/List` of RBAC v1 Roles, ClusterRoles,
   RoleBindings and ClusterRoleBindings. Direct verification does not accept general
@@ -490,25 +497,62 @@ finite reference checks do not independently prove universal selector coverage.
   require it explicitly. User/Group and roleRef API groups must be explicit.
 - Additive grants, local and cluster role references, namespace-scoped bindings,
   cluster-wide bindings, literal resourceNames and supported wildcards.
+- Separate non-resource URL rules in ClusterRoles, retained as policy content
+  with no grants in the quantified resource-request domain.
 - Named `get` requests for core ConfigMaps/Secrets. Namespaces are DNS1123 labels
   of 1..63 bytes; object names are DNS1123 subdomains of 1..253 bytes.
 
-`kubernetes-rbac-v1.34-read-v1` uses the same snapshot/identity boundary, adding
+`kubernetes-rbac-v1.34-read-v2` uses the same snapshot/identity boundary, adding
 the schema-2 list/watch request classes described above. Get still requires a
 nonempty namespace and name. List/watch additionally permit empty effective
 namespace and/or name. Other verbs, resources, API groups, subresources and
 nonempty names outside the DNS bounds are outside the request domain.
 
-`kubernetes-rbac-v1.34-read-write-v1` retains the read domain and adds named
+`kubernetes-rbac-v1.34-read-write-v2` retains the read domain and adds named
 update/patch/delete for those same resources. The snapshot and identity boundary
 is unchanged. Other write verbs, resources, API groups and subresources remain
 outside the request domain.
 
 All supplied objects are checked, including unbound roles and unrelated
 bindings. Malformed input, unknown fields, duplicate identities, missing
-references, aggregation rules and nonResourceURLs return `unknown`. Escaped
+references, aggregation rules and invalid URL/resource mixtures return `unknown`. Escaped
 NULs remain distinct; duplicate JSON keys, invalid Unicode and trailing data
 are rejected. Unsupported forms are never silently discarded.
+
+### Non-resource rules in resource verification
+
+A ClusterRole can contain separate rules for URLs such as `/version` and for
+resources such as ConfigMaps. Soundcheck retains both. A URL-only rule cannot
+satisfy a required ConfigMap read or introduce a Secret grant in this model,
+even with `verbs: ["*"]` and `nonResourceURLs: ["*"]`. Resource wildcards in a
+separate resource rule remain active.
+
+The rule distinction follows Kubernetes v1.34 validation:
+
+- A **nonempty** `nonResourceURLs` list is valid only on a ClusterRole and
+  requires a nonempty `verbs` list. Its `apiGroups`, `resources` and
+  `resourceNames` lists must each be absent, null or empty. A list containing
+  `""` is nonempty and cannot be mixed into a URL rule.
+- An absent, null or empty `nonResourceURLs` list is a **resource rule**. It
+  still requires nonempty API-group/resource/verb lists. It must never be
+  discarded merely because the URL field exists.
+- All arrays and elements are type-checked. The pinned API does not validate
+  URL-string syntax; strings are preserved literally without interpreting their
+  wildcard placement or asserting that they describe reachable endpoints.
+- A RoleBinding may reference a ClusterRole containing both kinds of rules.
+  Its resource grants remain restricted to the binding's namespace. A Role
+  itself cannot contain a nonempty URL rule, including when unbound.
+
+Rule positions are preserved: if a URL rule precedes a resource grant, evidence
+still names that resource grant's original `/rules/1` index. Preparation,
+inventory receipts and snapshot hashes retain the complete URL policy.
+Inspection counts every source rule; subject matches are not access decisions.
+
+**URL authorization and preservation remain outside the model.** A URL-only
+change may pass resource repair-preservation while changing `/version` access.
+The changed snapshot still has a different hash. Use a separate review for that
+URL change; this feature adds coexistence, not URL contracts or URL equivalence.
+The request adapter continues to reject `resourceRequest: false`.
 
 **Completeness is an external assumption.** Resolving every supplied role
 reference does not establish that all applicable bindings were included. The

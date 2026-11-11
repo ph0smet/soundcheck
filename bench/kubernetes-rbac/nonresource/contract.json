@@ -1,0 +1,35 @@
+{
+  "schema_version": 3,
+  "kind": "kubernetes-rbac-access",
+  "context": {
+    "schema_version": 1,
+    "snapshot_complete": true,
+    "identities": [
+      {"username": "app", "groups": []},
+      {"username": "other", "groups": []},
+      {"username": "ops-auditor", "groups": []},
+      {"username": "system:serviceaccount:frontend:frontend-sa", "groups": []}
+    ]
+  },
+  "clauses": [
+    {
+      "name": "required-config",
+      "kind": "must_allow",
+      "subject": "app",
+      "verb": "get",
+      "namespace": "team-a",
+      "resource": "configmaps",
+      "names": ["settings"]
+    },
+    {
+      "name": "secrets-not-granted",
+      "kind": "must_not_grant",
+      "subject": "app",
+      "verb": "get",
+      "namespace": "team-a",
+      "resource": "secrets",
+      "names": null
+    }
+  ],
+  "change_scope": []
+}

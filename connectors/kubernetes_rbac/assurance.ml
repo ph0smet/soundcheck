@@ -1,9 +1,9 @@
 open Soundcheck_core
 
-let profile_id = "kubernetes-rbac-v1.34-get-v1"
-let read_profile_id = "kubernetes-rbac-v1.34-read-v1"
-let write_profile_id = "kubernetes-rbac-v1.34-read-write-v1"
-let scoped_profile_id = "kubernetes-rbac-v1.34-scoped-read-write-v1"
+let profile_id = "kubernetes-rbac-v1.34-get-v2"
+let read_profile_id = "kubernetes-rbac-v1.34-read-v2"
+let write_profile_id = "kubernetes-rbac-v1.34-read-write-v2"
+let scoped_profile_id = "kubernetes-rbac-v1.34-scoped-read-write-v2"
 let id_for_version = function
   | 1 -> profile_id | 2 -> read_profile_id | 3 -> write_profile_id | 4 -> scoped_profile_id
   | _ -> invalid_arg "unsupported RBAC contract version"
@@ -11,6 +11,7 @@ let assumptions = [
   "The input is the complete static desired RBAC snapshot, including every applicable binding and referenced role.";
   "The contract's fixed usernames and groups are trusted request attributes; authentication is not verified.";
   "Only named get requests for core ConfigMaps and Secrets, with no subresource, are quantified.";
+  "Validated ClusterRole non-resource URL rules are retained but cannot grant resource requests. Non-resource URL authorization and preservation are outside this profile.";
   "NoOpinion means RBAC supplied no grant; it is not a final API-server denial.";
   "Admission, object existence, aggregation controllers, list/watch and privilege-escalation paths are outside this profile.";
   "Applying a partial manifest does not remove omitted live bindings; deployment reconciliation must establish the assumed snapshot." ]
@@ -19,6 +20,7 @@ let read_assumptions = [
   "The input is the complete static desired RBAC snapshot, including every applicable binding and referenced role.";
   "The contract's fixed usernames and groups are trusted request attributes; authentication is not verified.";
   "Only get/list/watch authorization of core ConfigMaps and Secrets, with no subresource, is quantified.";
+  "Validated ClusterRole non-resource URL rules are retained but cannot grant resource requests. Non-resource URL authorization and preservation are outside this profile.";
   "Get requires a valid namespace and object name. List/watch also permit an empty namespace (all-namespace endpoint) and empty effective authorization name.";
   "Nonempty effective authorization names are DNS1123 object names. For list/watch they may come from an exact metadata.name selector or a legacy named watch path after Kubernetes request interpretation; they are not the names of returned objects.";
   "An empty effective name means no usable exact-name restriction; it does not assert that the HTTP request has no selectors.";
@@ -30,6 +32,7 @@ let write_assumptions = [
   "The input is the complete static desired RBAC snapshot, including every applicable binding and referenced role.";
   "The contract's fixed usernames and groups are trusted request attributes; authentication is not verified.";
   "Only get/list/watch and named update/patch/delete authorization of core ConfigMaps and Secrets, with no subresource, is quantified.";
+  "Validated ClusterRole non-resource URL rules are retained but cannot grant resource requests. Non-resource URL authorization and preservation are outside this profile.";
   "Get/update/patch/delete require a valid namespace and object name. List/watch also permit an empty namespace (all-namespace endpoint) and empty effective authorization name.";
   "Nonempty effective authorization names are DNS1123 object names. For list/watch they may come from an exact metadata.name selector or a legacy named watch path after Kubernetes request interpretation; they are not the names of returned objects.";
   "An empty effective name means no usable exact-name restriction; it does not assert that the HTTP request has no selectors.";

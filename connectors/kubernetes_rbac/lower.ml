@@ -29,7 +29,7 @@ let domain spec =
 
 let wildcard_or values value = List.mem "*" values || List.mem value values
 
-let rule_condition verbs (rule : Snapshot.rule) =
+let resource_condition verbs (rule : Snapshot.resource_rule) =
   if not (wildcard_or rule.api_groups "") then Ir.Or []
   else Ir.And [
       Ir.Or (List.filter_map (fun verb ->
@@ -42,6 +42,13 @@ let rule_condition verbs (rule : Snapshot.rule) =
        | [] -> Ir.True
        | names -> Ir.Or (List.filter_map (fun name ->
            if name = "" || Input.dns_subdomain name then Some (Ir.Object_is (Ir.Object_name,name)) else None) names))]
+
+let rule_condition verbs = function
+  | Snapshot.Resource rule -> resource_condition verbs rule
+  | Snapshot.Non_resource _ ->
+    (* Every quantified request is a resource request. Keep this rule's source
+       slot for trace IDs, but it cannot grant any request in that domain. *)
+    Ir.Or []
 
 let grant_id binding index =
   Printf.sprintf "%s -> %s/rules/%d" (Snapshot.binding_label binding) (Snapshot.role_label binding) index

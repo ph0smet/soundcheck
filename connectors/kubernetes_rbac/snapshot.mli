@@ -1,12 +1,17 @@
 (** A complete static desired RBAC snapshot in one strict JSON Kubernetes List.
     Unsupported fields, invalid accepted fields, duplicate identities and
     unresolved role references fail closed. No live cluster is consulted. *)
-type rule = {
+type resource_rule = {
   verbs : string list;
   api_groups : string list;
   resources : string list;
   resource_names : string list;
 }
+type nonresource_rule = { verbs : string list; urls : string list }
+type rule = Resource of resource_rule | Non_resource of nonresource_rule
+(** Native rule domains remain distinct. URL rules are valid only on ClusterRole
+    and cannot contain nonempty resource fields. Both variants retain their
+    original rule-array positions; URL authorization is outside verification. *)
 type subject = User of string | Group of string | Service_account of string * string
 type role_ref = Local_role of string | Cluster_role of string
 type binding = {

@@ -32,6 +32,11 @@ for named update/patch/delete alongside the read domain. Its URL cases distingui
 the initial write request from collection deletion, subresources, and additional
 authorization checks needed by some operations. Old suites stay unchanged.
 
+The [non-resource coexistence suite](../nonresource/README.md) checks valid
+ClusterRole URL rules alongside resource rules. It preserves the full source
+policy while checking only the existing resource domain. Native URL controls
+show why resource preservation does not establish URL-permission preservation.
+
 Run from the repository root:
 
 ```sh
@@ -108,7 +113,7 @@ three-way decision comparisons, outside-domain checks and witness replays. The
 named-write suite records the corresponding v3 checks and old-version controls
 in `write-access/results.json`. The combined command exits nonzero if any suite
 fails. The original matrix's `complete:true` alone does not establish preparation,
-read-access, named-write or manifest-ingestion conformance.
+read-access, named-write, manifest-ingestion or non-resource coexistence conformance.
 
 Manifest preparation records `manifests/results.json`: source/output hashes,
 schema-2 receipt audits, exact retained data after approved metadata removal,
@@ -124,6 +129,12 @@ and provenance, source/output receipt audits, typed policy comparisons, finite
 native/original/prepared/connector/SMT decisions, contract witness replays and
 inspection reports. Missing sources, duplicate roles, changed pins and fabricated
 receipts must fail. Its counts remain separate from manifest preparation.
+
+Non-resource coexistence records `nonresource/results.json`: original/prepared
+policy equality, resource decisions and source rule indices, native witness
+replays, malformed-rule rejection, and URL permission controls. Changing or
+dropping a URL rule must fail whole-policy equality even when the resource-only
+preservation check passes. The connector must still reject URL request attributes.
 
 ## Reference adapter and provenance
 
@@ -217,4 +228,5 @@ python3 bench/kubernetes-rbac/conformance/test_runner.py
 python3 bench/kubernetes-rbac/conformance/test_preparation_runner.py
 python3 bench/kubernetes-rbac/conformance/test_read_access_runner.py
 python3 bench/kubernetes-rbac/conformance/test_write_access_runner.py
+python3 bench/kubernetes-rbac/conformance/test_nonresource_runner.py
 ```

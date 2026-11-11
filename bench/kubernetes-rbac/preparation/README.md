@@ -36,7 +36,8 @@ The numbered fixtures include:
 | Invalid types, negative/overflowing generation, an invalid calendar date, duplicate keys and trailing documents | Rejected |
 | Nonempty generateName, active deletion/ownership/finalizer/managed-field metadata | Rejected |
 | Nonempty continuation token or remaining item count | Rejected as an explicitly incomplete page |
-| Missing role reference, aggregation rule and non-resource permissions | Rejected; normalization cannot erase unsupported policy |
+| Missing role reference and aggregation rule | Rejected; normalization cannot erase unsupported policy |
+| Valid URL-only ClusterRole (fixture 36) | Prepared with its full rule retained; the existing Secret grant still violates the resource contract |
 | Typed lists, duplicate objects and missing namespaces | Rejected |
 
 `cases.json` pins each original fixture hash, upstream-adapter validity,
@@ -82,9 +83,9 @@ command must exit zero; a successful original matrix alone does not establish
 preparation conformance. Both reports retain input and executable hashes and
 check that their inputs stayed unchanged.
 
-The checked-in corpus contains ten accepted and twenty-two rejected preparation
-controls. The current matrix supplies 3,000 four-way preparation comparisons,
-seven contract-witness replay requests and two preservation-side replay requests.
+The checked-in corpus contains eleven accepted and twenty-one rejected preparation
+controls. The current matrix supplies 3,300 four-way preparation comparisons,
+eight contract-witness replay requests and two preservation-side replay requests.
 Each replay checks both original and prepared upstream inputs. These finite
 checks support the implementation; they are not an independently checked proof
 of the preparer, parser, encoder or deployed authorization behavior.
@@ -97,9 +98,12 @@ object selection or controller execution. Explicit nonempty pagination markers
 are rejected, but empty markers do not establish that every applicable binding
 was supplied.
 
-A complete cluster export can contain built-in aggregation and non-resource
-rules that remain outside the verifier's profile. Preparation does not remove
-such objects merely because they appear unrelated to the current contract.
+A complete cluster export can contain built-in aggregation rules that remain
+outside the verifier's profile. Valid URL-only ClusterRole rules are retained
+and have no resource-request grants; their URL authorization is not verified.
+Preparation does not remove objects merely because they appear unrelated to the
+current contract. The separate [coexistence suite](../nonresource/README.md)
+checks malformed resource/URL mixtures and namespaced URL-rule rejection.
 It does not establish that applying a partial manifest deletes omitted live
 bindings. The existing complete-snapshot and trusted-identity assumptions still
 apply.

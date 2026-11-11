@@ -1,7 +1,7 @@
 # Read-access reference corpus
 
 These synthetic snapshots test contract schema v2 and the
-`kubernetes-rbac-v1.34-read-v1` profile. They are not deployment samples or an AI
+`kubernetes-rbac-v1.34-read-v2` profile. They are not deployment samples or an AI
 repair evaluation. Run them with the existing explicit command:
 
 ```sh

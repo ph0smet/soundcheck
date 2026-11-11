@@ -229,7 +229,7 @@ let () =
   let json=K.Input.parse summary in
   check "separate experimental RBAC kind" (field "kind" json=`String "submitted_rbac_repair_evaluation"
     && field "experimental_format_version" json=`Number "1");
-  check "exact supported profile" (field "profile" json=`String "kubernetes-rbac-v1.34-get-v1");
+  check "exact supported profile" (field "profile" json=`String "kubernetes-rbac-v1.34-get-v2");
   check "schema1 task JSON shape unchanged" (match field "tasks" json with
     | `A (`O fields::_) -> not (List.mem_assoc "profile" fields) | _ -> false);
   List.iter (fun (key,value) -> check ("aggregate " ^ key) (field key json=`Number value))

@@ -34,7 +34,7 @@ class ProtocolChecks(unittest.TestCase):
             {'id': 'second', 'decision': 'NoOpinion', 'grants': []}]}}
         self.report = {'returncode': 0, 'data': {
             'schema_version': 10, 'result': 'proved', 'counterexample': None,
-            'assurance': {'profile': 'kubernetes-rbac-v1.34-get-v1', 'status': 'within_profile'},
+            'assurance': {'profile': 'kubernetes-rbac-v1.34-get-v2', 'status': 'within_profile'},
             'frozen_spec': {'schema_version': 1, 'kind': 'kubernetes-rbac-access',
                             'canonical': json.dumps(self.contract)}}}
 
@@ -113,10 +113,11 @@ class ProtocolChecks(unittest.TestCase):
             smt_result({'returncode': 0, 'stdout': 'true true true false', 'stderr': 'bad formula'}, self.requests)
 
     def test_wrong_profile_cannot_claim_reference_agreement(self):
-        candidate = copy.deepcopy(self.report)
-        candidate['data']['assurance']['profile'] = 'another-profile'
-        with self.assertRaises(RuntimeError):
-            validate_report(candidate, self.contract, 'proved')
+        for profile in ['another-profile', 'kubernetes-rbac-v1.34-get-v1']:
+            candidate = copy.deepcopy(self.report)
+            candidate['data']['assurance']['profile'] = profile
+            with self.subTest(profile=profile), self.assertRaises(RuntimeError):
+                validate_report(candidate, self.contract, 'proved')
 
     def test_frozen_contract_must_not_be_substituted(self):
         for key, value in [('result', 'violated'), ('schema_version', 9), ('counterexample', {})]:
