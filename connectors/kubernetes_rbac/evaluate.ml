@@ -18,13 +18,20 @@ let requests spec source = protect (fun () ->
         identity.username = username && identity.groups = groups) (Contract_spec.identities spec))
     then reject path "username and exact groups must match the frozen context";
     let verb = string_field path "verb" fields in
-    require_equal path (string_field path "apiGroup" fields) "";
+    (* Classify the request before interpreting resource coordinates. URL
+       controls carry empty group/resource strings and must keep the explicit
+       non-resource boundary, rather than fail catalogue lookup first. *)
     require_equal path (string_field path "subresource" fields) "";
     (match field path "resourceRequest" fields with
      | `Bool true -> () | _ -> reject path "resourceRequest must be true");
+    let api_group = string_field path "apiGroup" fields in
+    let resource = string_field path "resource" fields in
+    let entry = match Resource_domain.find ~version:(Contract_spec.version spec) ~api_group ~resource with
+      | Some entry -> entry
+      | None -> reject path "API group/resource pair is outside the contract's fixed RBAC resource catalogue" in
     let coordinates : Ir.object_request =
       {namespace=string_field path "namespace" fields;
-       resource_kind=string_field path "resource" fields;
+       resource_kind=Resource_domain.kind entry;
        name=string_field path "name" fields} in
     let request : Ir.request =
       {principal=Ir.Authenticated username;action=verb;resource="";context=[];

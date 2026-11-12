@@ -436,4 +436,38 @@ let () =
   check "submission failure retains frozen v3 profile"
     (let json=K.Input.parse (to_json (failed_tasks Submissions_invalid write_suite)) in
      field "experimental_format_version" json=`Number "2" && field "profile" json=`String K.Assurance.write_profile_id);
+  let resource_contract = Printf.sprintf {|{
+    "schema_version":5,"kind":"kubernetes-rbac-access",
+    "context":{"schema_version":1,"snapshot_complete":true,
+      "identities":[{"username":%S,"groups":["operators"]}]},
+    "clauses":[
+      {"name":"required","kind":"must_allow","subject":%S,"verb":"patch",
+       "api_group":"apps","resource":"deployments","namespace":"frontend","names":["web"]},
+      {"name":"forbidden","kind":"must_not_grant","subject":%S,"verb":"get",
+       "api_group":"","resource":"nodes","namespace":null,"names":null}],
+    "change_scope":[]}|} secret secret secret in
+  let resource_suite=freeze_contract resource_contract in
+  let rows=evaluate_suite resource_suite (fun frozen ~before:_ ~after:_->
+    check "resource contract frozen before evaluator dispatch" (K.Contract_spec.version frozen=5);
+    comparison frozen "valid") in
+  let json=K.Input.parse (to_json rows) in
+  check "v5 evaluator retains format2 and exact broader profile"
+    (exit_code rows=0 && field "experimental_format_version" json=`Number "2"
+     && field "profile" json=`String K.Assurance.resource_profile_id);
+  List.iter (fun prior_profile ->
+    List.iter (fun (label,forge) ->
+      let rows=evaluate_suite resource_suite (fun frozen ~before:_ ~after:_->forge (comparison frozen "valid")) in
+      check ("v5 evaluator rejects "^label^" downgrade to "^prior_profile)
+        ((first_attempt rows).failure=Some Report_mismatch && exit_code rows=1))
+      ["both profiles",map_reports (with_profile prior_profile);
+       "candidate profile",(fun (r:K.Verify.comparison)->
+         {r with candidate_report=Option.map (with_profile prior_profile) r.candidate_report});
+       "final profile",(fun (r:K.Verify.comparison)->{r with report=with_profile prior_profile r.report})])
+    [K.Assurance.profile_id;K.Assurance.read_profile_id;K.Assurance.write_profile_id;K.Assurance.scoped_profile_id];
+  List.iter (fun mode ->
+    let rows=evaluate_suite resource_suite (fun frozen ~before:_ ~after:_->comparison frozen mode) in
+    check ("v5 evaluator retains uncertainty "^mode)
+      ((first_attempt rows).failure=None && (first_attempt rows).repair_result=Some "unknown"
+       && exit_code rows=3 && (List.hd rows).profile=Some K.Assurance.resource_profile_id))
+    ["unsupported";"candidate-unknown";"preservation-unknown"];
   Printf.printf "All %d RBAC submitted-repair unit checks passed.\n" !checks

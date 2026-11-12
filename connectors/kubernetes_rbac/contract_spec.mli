@@ -8,7 +8,11 @@
     [All_names] for these verbs means all supported named requests.
     V4 retains that domain and adds sets/complements. Namespace complements
     exclude the empty namespace. Name complements include empty only explicitly;
-    [Empty_name] and [include_empty=true] are permitted only for list/watch. *)
+    [Empty_name] and [include_empty=true] are permitted only for list/watch.
+    V5 adds a fixed resource/API-group catalogue; Nodes use
+    [Exact_namespace ""] for cluster scope for every supported verb. Other
+    resources retain v4 namespace semantics. Older contracts retain their
+    ConfigMap/Secret domain and implicit core group. *)
 type namespace_selector =
   | Exact_namespace of string
   | Namespace_set of string list
@@ -18,7 +22,7 @@ type name_selector =
   | Names of string list
   | Empty_name
   | Other_names of { excluded:string list; include_empty:bool }
-type scope = { subject:string; verb:string; namespace:namespace_selector; resource:string; names:name_selector }
+type scope = { subject:string; verb:string; namespace:namespace_selector; resource:string; names:name_selector; api_group:string }
 type kind = Must_allow | Must_not_grant
 type clause = { name:string; kind:kind; scope:scope }
 type t

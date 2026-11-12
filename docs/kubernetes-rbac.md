@@ -5,6 +5,9 @@ bounded static RBAC profiles. Contract schema 1 checks named `get`; schema 2
 adds `list` and `watch`; schema 3 adds named `update`, `patch` and `delete` for
 core ConfigMaps and Secrets. Schema 4 adds namespace sets/complements and
 precise effective-name selectors over that same request domain.
+Schema 5 explicitly expands the resource catalogue to include Pods, Services,
+Endpoints, EndpointSlices, Deployments and Nodes, with API-group-aware access
+and preservation. Older contracts keep their original domains.
 CLI and library workflows share the decision IR,
 encoder, Z3 backend and witness validation with the Kong connector.
 
@@ -314,7 +317,7 @@ dune exec soundcheck -- rbac check-contract \
 ```
 
 This read-only command uses the same strict contract reader as verification and
-prints a human-readable review of schemas 1–4: the selected profile, exact declared
+prints a human-readable review of schemas 1–5: the selected profile, exact declared
 identities and groups, ordered clause meanings, approved changes, and separate
 SHA-256 hashes for the raw artifact and canonical frozen contract. Artifact counts
 are reported after normalization; they measure size, not human authoring effort.
@@ -520,9 +523,97 @@ supported resource/rule inventory are unchanged. Synthetic acceptance tests
 replay concrete counterexamples through the pinned Kubernetes authorizer;
 finite reference checks do not independently prove universal selector coverage.
 
+## Resource and API-group contracts (schema 5)
+
+Schema 5 selects `kubernetes-rbac-v1.34-resource-read-write-v1`. It keeps the six
+verbs and scope selectors from schema 4, but requires an explicit `api_group`
+alongside the raw plural `resource` in **every clause and change scope**, including
+`api_group: ""` for core resources. Its fixed catalogue is:
+
+| `api_group` | `resource` | Scope | Counterexample `resource_kind` |
+| --- | --- | --- | --- |
+| `""` | `configmaps` | Namespaced | `configmaps` |
+| `""` | `secrets` | Namespaced | `secrets` |
+| `""` | `pods` | Namespaced | `pods` |
+| `""` | `services` | Namespaced | `services` |
+| `""` | `endpoints` | Namespaced | `endpoints` |
+| `apps` | `deployments` | Namespaced | `deployments.apps` |
+| `discovery.k8s.io` | `endpointslices` | Namespaced | `endpointslices.discovery.k8s.io` |
+| `""` | `nodes` | Cluster | `nodes` |
+
+For example, these two clauses require a deployment patch grant while forbidding
+direct Node reads for the same independently declared identity:
+
+```json
+[
+  {
+    "name": "deploy-web", "kind": "must_allow", "subject": "deployer",
+    "verb": "patch", "api_group": "apps", "resource": "deployments",
+    "namespace": "apps", "names": ["web"]
+  },
+  {
+    "name": "no-node-read", "kind": "must_not_grant", "subject": "deployer",
+    "verb": "get", "api_group": "", "resource": "nodes",
+    "namespace": null, "names": null
+  }
+]
+```
+
+These are clauses, not a complete contract. Supply the existing trusted
+`context`, paired clauses, and separately reviewed `change_scope` in a
+`schema_version: 5`, `kind: "kubernetes-rbac-access"` artifact. No identity,
+requirement or approved change is inferred from candidate grants.
+
+For namespaced resources, `namespace: null` still means only the all-namespace
+list/watch endpoint. Named get/update/patch/delete require a nonempty namespace.
+For Nodes, `namespace: null` is required for **every** supported verb and means
+cluster scope; namespace strings and include/exclude selectors are rejected.
+A RoleBinding cannot grant these Node requests, even when it references a
+ClusterRole containing Node rules. ClusterRoleBindings can supply the grant.
+
+Nonempty effective authorization names remain restricted to DNS1123 subdomains
+of at most 253 characters, and nonempty namespaces to DNS1123 labels of at most
+63 characters. Named operations require nonempty names; list/watch also admit
+the empty effective name with the existing selector meanings. This is a bounded
+authorization-request domain, **not object-body name validation** or complete
+HTTP request coverage. It does not establish that an object or API route exists,
+or that a subsequent mutation would accept the name or body.
+
+Group and resource must match separately. `apps` is not `extensions`; a core
+rule for `deployments` does not grant an `apps` Deployment request. Whole `*`
+wildcards in policy rules match within this fixed catalogue; wildcard contracts,
+qualified contract aliases such as `deployments.apps`, and subresource request
+scopes are rejected. Policy rules for other resources or subresources remain
+retained input; they cannot grant a request in this base-resource domain unless
+the same rule also matches its supported group/resource pair. The qualified
+notation in the table is the lossless **output**
+discriminator, not another input spelling.
+
+Repair preservation covers all eight catalogue entries for every frozen
+identity, including entries absent from the clauses. An approved change to
+Deployment access does not permit changing Node access. Upgrading from schema 4
+to 5 therefore requires independent review of intent and preservation scope;
+it is not a mechanical version-number edit. Existing schemas 1–4 retain their
+original canonical identities, profile IDs and smaller preservation domains.
+
+```sh
+dune exec soundcheck -- profile kubernetes-rbac --contract-version 5
+dune exec soundcheck -- profile kubernetes-rbac --contract-version 5 --format json
+```
+
+Profile JSON schema 3 exposes each `resource_domains` entry's group, resource,
+scope and discriminator. Report schema 10 and evidence shapes remain unchanged.
+
+Namespaces need separate modeling: named Namespace paths carry their name in
+the authorization namespace attribute, unlike Nodes. They remain excluded,
+alongside custom resources, create/deletecollection, subresources and indirect
+privilege escalation. Deployment/Pod grants do not establish anything about
+workload behavior, secret exposure through execution, admission or mutation
+effects. See the [scope and target-source record](plans/2026-11-rbac-resource-domains.md).
+
 ## Supported profiles
 
-The current profile IDs end in `-v3`. This revision accepts already-resolved,
+The profile IDs for schemas 1–4 end in `-v3`. This revision accepts already-resolved,
 acyclic aggregated ClusterRoles alongside the resource/URL rule coexistence
 introduced in `-v2`. Contract schemas 1–4, canonical contract identities and
 quantified request domains are unchanged. Older profile IDs describe earlier
@@ -560,6 +651,11 @@ nonempty names outside the DNS bounds are outside the request domain.
 update/patch/delete for those same resources. The snapshot and identity boundary
 is unchanged. Other write verbs, resources, API groups and subresources remain
 outside the request domain.
+
+`kubernetes-rbac-v1.34-resource-read-write-v1` uses that same snapshot/identity
+boundary, including aggregate consistency and URL-rule coexistence, with the
+schema-5 resource catalogue and request domains described above. Its `-v1`
+suffix identifies the first revision of this broader resource profile.
 
 All supplied objects are checked, including unbound roles and unrelated
 bindings. Malformed input, unknown fields, duplicate identities, missing
@@ -662,6 +758,7 @@ grants, but pod creation and other indirect exposure paths remain outside it.
 Preservation ranges over all supported valid namespace/name strings for the
 frozen identities, not just namespaces present in the input. Schema 2 includes
 the all-namespace collection endpoint; schema 3 also includes named writes.
+Schema 5 includes every entry in its fixed resource catalogue, including Nodes.
 All exclude identities, verbs, resources and control planes outside their
 selected profile.
 
@@ -669,6 +766,9 @@ selected profile.
 
 Both RBAC commands emit report schema 10. Violations include `object_request`,
 `identity_groups` and `granting_rules`; legacy HTTP fields are unused placeholders.
+The selected profile defines `resource_kind`: schema 5 uses qualified
+discriminators for noncore resources as listed in its catalogue. Consumers must
+not assume every object request belongs to the core API group.
 Preservation uses a `must_preserve` clause with before/after RBAC decisions in
 its description. Only `proved` exits `0`; violation/unknown/vacuous/inconsistent
 exit `3`/`4`/`5`/`6`. I/O and usage failures exit `1` and `2`.

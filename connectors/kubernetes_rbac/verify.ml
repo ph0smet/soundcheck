@@ -37,13 +37,18 @@ let counterexample spec policy ~note model : Report.counterexample =
 
 let request_description model =
   let coordinates = Option.get model.Solve.object_request in
+  let entry = Resource_domain.of_kind ~version:5 coordinates.resource_kind in
+  let resource = match entry with Some entry -> Resource_domain.description entry
+    | None -> coordinates.resource_kind in
+  let location =
+    if Option.fold ~none:false ~some:(fun entry -> not entry.Resource_domain.namespaced) entry then "at cluster scope"
+    else if coordinates.namespace = "" then "at the all-namespace endpoint"
+    else Printf.sprintf "in namespace %S" coordinates.namespace in
   if List.mem model.method_ ["get";"update";"patch";"delete"] then
-    Printf.sprintf "%S %s core %s %S in namespace %S"
-      (Option.get model.principal_name) model.method_ coordinates.resource_kind coordinates.name coordinates.namespace
-  else Printf.sprintf "%S %s core %s %s (%s)"
-    (Option.get model.principal_name) model.method_ coordinates.resource_kind
-    (if coordinates.namespace = "" then "at the all-namespace endpoint"
-     else Printf.sprintf "in namespace %S" coordinates.namespace)
+    Printf.sprintf "%S %s %s %S %s"
+      (Option.get model.principal_name) model.method_ resource coordinates.name location
+  else Printf.sprintf "%S %s %s %s (%s)"
+    (Option.get model.principal_name) model.method_ resource location
     (if coordinates.name = "" then "no effective exact-name restriction"
      else Printf.sprintf "effective authorization name %S" coordinates.name)
 

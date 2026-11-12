@@ -64,9 +64,11 @@ all-namespace collection authorization. Schema 3 selects
 `kubernetes-rbac-v1.34-read-write-v3`, adding named `update`, `patch` and `delete`.
 Schema 4 selects `kubernetes-rbac-v1.34-scoped-read-write-v3`, retaining those
 verbs and adding namespace/name selectors to access clauses and approved changes.
-All use complete static desired RBAC
-snapshots in strict JSON, fixed trusted usernames/groups, and core ConfigMaps
-and Secrets. Preservation covers that profile's fixed domain outside the
+These four versions quantify core ConfigMaps and Secrets. Schema 5 selects
+`kubernetes-rbac-v1.34-resource-read-write-v1`, with explicit API-group/resource
+scopes over its [fixed eight-resource catalogue](../../docs/kubernetes-rbac.md#resource-and-api-group-contracts-schema-5).
+All use complete static desired RBAC snapshots in strict JSON and fixed trusted
+usernames/groups. Preservation covers that profile's fixed domain outside the
 contract's `change_scope`. Both returned stages must match the frozen contract
 and its profile; candidate output cannot downgrade the expected profile.
 The supplied examples remain schema 1.
@@ -100,7 +102,7 @@ incoherent returned results have explicit fixed failure codes.
 The distinct experimental format is `kind: submitted_rbac_repair_evaluation`.
 Suites containing only schema-1 or invalid/unreadable contracts retain format 1,
 including existing fatal summaries. Any successfully frozen newer contract
-(schema 2, 3 or 4) selects format 2:
+(schema 2, 3, 4 or 5) selects format 2:
 each task includes its trusted `profile` (null for an invalid/unreadable contract),
 and the top-level `profile` is the sole known profile or null for mixed profiles.
 The existing Kong format and report/evidence schemas are unchanged.
