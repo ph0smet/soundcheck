@@ -49,6 +49,13 @@ controls establish why object names and deletion selectors cannot narrow these
 permissions. Paired v5/v6 repairs exercise the expanded preservation domain,
 including unmentioned resources and identities.
 
+The [subresource suite](../subresources/README.md) checks schema 7's finite named
+log, exec, token, status and scale catalogue, exact native matching and preservation.
+The [apply suite](../apply/README.md) checks schema 8's conditional existing/missing
+object branches. It executes Kubernetes' actual PATCH handler and generic-store
+authorization path with deterministic storage fixtures, then compares the
+prerequisites with concrete and SMT decisions. Earlier suites retain their domains.
+
 Run from the repository root:
 
 ```sh
@@ -243,6 +250,16 @@ object existence, write effects, live controllers, aggregation convergence,
 admission/escalation or additional operation-specific checks, bootstrap bindings,
 or a composed authorization chain.
 
+The separate schema-8 suite additionally checks named patch and create
+prerequisites through native handler/store execution with fixed valid synthetic
+bodies. It does not infer object existence or establish full REST/API execution,
+OpenAPI field-schema validation, admission or resource-specific storage hooks.
+Its `force=true`, dry-run, deduced-type-converter fixtures and body-validation
+boundaries are detailed in the [apply corpus](../apply/README.md). A body or
+handler failure cannot be accepted as an RBAC denial. Apply results and their
+before-execution source/input/tool receipt live in `apply/results.json` and
+`apply/before-execution.json` alongside the independently counted older suites.
+
 RBAC `NoOpinion` means no RBAC grant for the request; it is not a final API-server
 denial. Missing role references may appear in upstream's reason string with an
 empty error field, and a later applicable grant may yield `Allow`. The connector
@@ -258,4 +275,5 @@ python3 bench/kubernetes-rbac/conformance/test_read_access_runner.py
 python3 bench/kubernetes-rbac/conformance/test_write_access_runner.py
 python3 bench/kubernetes-rbac/conformance/test_nonresource_runner.py
 python3 bench/kubernetes-rbac/conformance/test_aggregation_runner.py
+python3 bench/kubernetes-rbac/conformance/test_apply_runner.py
 ```

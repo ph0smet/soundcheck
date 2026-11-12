@@ -57,7 +57,19 @@ export CGO_ENABLED=0
 "$soundcheck_python" "$soundcheck_script_dir/test_resources_runner.py"
 "$soundcheck_python" "$soundcheck_script_dir/test_collection_writes_runner.py"
 "$soundcheck_python" "$soundcheck_script_dir/test_subresources_runner.py"
+"$soundcheck_python" "$soundcheck_script_dir/test_apply_runner.py"
 dune build bench/kubernetes-rbac/model_oracle.exe cli/main.exe
+
+# Exercise compound authorization first, with actual native PATCH/store branch
+# selection. All legacy suites below retain their separate counts and domains.
+"$soundcheck_python" "$soundcheck_script_dir/run_apply.py" \
+  --reference "$soundcheck_build_dir/reference-oracle" \
+  --model "$soundcheck_repo_root/_build/default/bench/kubernetes-rbac/model_oracle.exe" \
+  --soundcheck "$soundcheck_repo_root/_build/default/cli/main.exe" \
+  --module-metadata "$soundcheck_build_dir/kubernetes-module.json" \
+  --z3 "$soundcheck_z3" \
+  --output "$soundcheck_build_dir/apply/results.json"
+
 "$soundcheck_python" "$soundcheck_script_dir/run.py" \
   --reference "$soundcheck_build_dir/reference-oracle" \
   --model "$soundcheck_repo_root/_build/default/bench/kubernetes-rbac/model_oracle.exe" \

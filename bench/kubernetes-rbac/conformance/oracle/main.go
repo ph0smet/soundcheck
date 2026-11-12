@@ -61,6 +61,16 @@ type inventory struct {
 }
 
 func main() {
+	if len(os.Args) == 2 && os.Args[1] == "--apply-reference-info" {
+		if err := json.NewEncoder(os.Stdout).Encode(applyRuntimeInfo()); err != nil {
+			panic(err)
+		}
+		return
+	}
+	if len(os.Args) > 1 && os.Args[1] == "--apply-reference" {
+		applyReferenceFiles(os.Args[2:])
+		return
+	}
 	if len(os.Args) > 1 && os.Args[1] == "--aggregate-reference" {
 		aggregationReferenceFiles(os.Args[2:])
 		return

@@ -927,6 +927,10 @@ effects. SSA on subresources, PUT create-on-update, unsafe deletion and other
 operation-specific checks remain separately scoped. The retained native request
 operations still describe initial RBAC authorization only.
 
+The [synthetic apply corpus](../bench/kubernetes-rbac/apply/README.md) compares
+conditional authorization, frozen repair decisions and counterexample replays
+with pinned Kubernetes. It is separate from the external public-config pilot.
+
 ## Supported profiles
 
 The profile IDs for schemas 1–4 end in `-v3`. This revision accepts already-resolved,
