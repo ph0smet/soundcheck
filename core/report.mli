@@ -130,7 +130,11 @@ val to_json : t -> string
     [frozen_spec] is [null] for verification not bound to an external artifact.
     An HTTP counterexample has [object_request:null], [identity_groups:null] and
     [granting_rules:[]]. Object coordinates contain [namespace], [resource_kind]
-    and [name]; profile constants define any additional request dimensions.
+    and [name]. The connector's versioned profile defines the [resource_kind]
+    discriminator and its namespace/name domain. A discriminator may identify
+    both a resource family and group; consumers must use the selected profile's
+    catalogue rather than assume a bare resource name or implicit API group.
+    Profile constants define any remaining request dimensions.
     [counterexample] is [null] for [Proved], [Vacuous], and [Inconsistent]; for
     [Unknown] and [Inconsistent] a ["reason"] field carries the explanation.
     Emitted with a hand-rolled encoder (no external JSON dependency) since the

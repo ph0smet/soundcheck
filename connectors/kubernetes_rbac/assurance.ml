@@ -4,8 +4,10 @@ let profile_id = "kubernetes-rbac-v1.34-get-v3"
 let read_profile_id = "kubernetes-rbac-v1.34-read-v3"
 let write_profile_id = "kubernetes-rbac-v1.34-read-write-v3"
 let scoped_profile_id = "kubernetes-rbac-v1.34-scoped-read-write-v3"
+let resource_profile_id = "kubernetes-rbac-v1.34-resource-read-write-v1"
 let id_for_version = function
   | 1 -> profile_id | 2 -> read_profile_id | 3 -> write_profile_id | 4 -> scoped_profile_id
+  | 5 -> resource_profile_id
   | _ -> invalid_arg "unsupported RBAC contract version"
 let assumptions = [
   "The input is the complete static desired RBAC snapshot, including every applicable binding and the complete ClusterRole inventory with labels, even unbound aggregation contributors.";
@@ -55,9 +57,40 @@ let scoped_assumptions = write_assumptions @ [
   "Name complements explicitly select whether empty effective authorization names are included. Empty-only scopes are restricted to list/watch.";
   "The same selectors define required access and the approved changes excluded from preservation; only frozen identities are quantified." ]
 
+let resource_assumptions = [
+  "The input is the complete static desired RBAC snapshot, including every applicable binding and the complete ClusterRole inventory with labels, even unbound aggregation contributors.";
+  "Aggregated ClusterRoles must have acyclic dependencies (self-matches ignored) and stored full rule sets equal to recursively selected rules. Completeness is assumed; no controller reconciliation, rollout or future label/object changes are verified.";
+  "The contract's fixed usernames and groups are trusted request attributes; authentication is not verified.";
+  "Only get/list/watch and named update/patch/delete initial RBAC authorization is quantified, with an empty subresource, over the fixed resource_domains catalogue.";
+  "For namespaced resources, get/update/patch/delete require a nonempty DNS1123 namespace label of at most 63 characters. List/watch also permit the empty authorization namespace for the all-namespace endpoint.";
+  "Nodes always have an empty authorization namespace. Only cluster-wide bindings contribute to these requests. Namespace objects are outside this profile because their request attributes differ from Nodes.";
+  "Nonempty effective authorization names are restricted to DNS1123 subdomains of at most 253 characters. This is a bounded request domain, not object-body name validation or a claim of complete HTTP request coverage. Get/update/patch/delete require nonempty names; list/watch also permit empty names.";
+  "List/watch names are effective authorization attributes after Kubernetes request interpretation, not names of returned objects. An empty effective name means no usable exact-name restriction, not necessarily absence of selectors.";
+  "Namespace include/exclude selectors range over nonempty namespaces, including those absent from the inventory. Node scopes require null. Name complements explicitly select whether empty list/watch names are included.";
+  "Required access and approved changes match exact API-group/resource pairs. Preservation quantifies all eight catalogue entries for every frozen identity, including resources absent from clauses. Existing contract versions keep their own smaller domains.";
+  "Counterexample resource_kind uses a fixed injective catalogue: raw core plural, deployments.apps, or endpointslices.discovery.k8s.io. Contracts and evaluation requests use separate raw group/resource fields.";
+  "Validated ClusterRole non-resource URL rules are retained but cannot grant resource requests. Non-resource URL authorization and preservation are outside this profile.";
+  "NoOpinion means RBAC supplied no grant; it is not a final API-server denial.";
+  "Grants describe initial request authorization only, not object existence, API route availability, request bodies, changed fields, successful execution, additional operation-specific authorization, admission, response contents, watch events, or indirect privilege escalation.";
+  "Create, deletecollection, subresources, Namespaces, custom resources and resources outside the catalogue are outside this profile. No controller or workload effects are modeled.";
+  "Applying a partial manifest does not remove omitted live bindings; deployment reconciliation must establish the assumed snapshot." ]
+
 let profile_json ?(version=1) () =
   let id = id_for_version version in
-  if version >= 2 then
+  if version = 5 then
+    Input.json (`O ["schema_version",`Number "3";"id",`String id;
+      "connector",`String "kubernetes-rbac";"reference_version",`String "v1.34.0";
+      "contract_schema_version",`Number "5";
+      "input_format",`String "strict-json-kubernetes-list";
+      "decision",`String "Allow|NoOpinion";
+      "verbs",`A (List.map (fun s -> `String s) ["get";"list";"watch";"update";"patch";"delete"]);
+      "subresource",`String "";
+      "resource_domains",`A (List.map (fun (entry : Resource_domain.t) -> `O [
+        "api_group",`String entry.api_group;"resource",`String entry.resource;
+        "scope",`String (if entry.namespaced then "namespaced" else "cluster");
+        "resource_kind",`String (Resource_domain.kind entry)]) (Resource_domain.for_version version));
+      "assumptions",`A (List.map (fun s -> `String s) resource_assumptions)])
+  else if version >= 2 then
     Input.json (`O ["schema_version",`Number "2";"id",`String id;
       "connector",`String "kubernetes-rbac";"reference_version",`String "v1.34.0";
       "contract_schema_version",`Number (string_of_int version);
@@ -80,5 +113,11 @@ let profile_json ?(version=1) () =
 let profile_human ?(version=1) () =
   "Kubernetes RBAC assurance profile: " ^ id_for_version version ^ "\n"
   ^ "Input: one strict JSON v1/List of static RBAC objects. Reference: Kubernetes v1.34.0.\n"
+  ^ (if version=5 then "Fixed resource catalogue:\n" ^ String.concat "\n"
+       (List.map (fun (entry : Resource_domain.t) -> Printf.sprintf "- %s (%s; resource_kind %S)"
+         (Resource_domain.description entry) (if entry.namespaced then "namespaced" else "cluster-scoped")
+         (Resource_domain.kind entry)) (Resource_domain.for_version version)) ^ "\n"
+     else "")
   ^ String.concat "\n" (List.map (fun s -> "- " ^ s)
-      (match version with 1 -> assumptions | 2 -> read_assumptions | 3 -> write_assumptions | _ -> scoped_assumptions))
+      (match version with 1 -> assumptions | 2 -> read_assumptions | 3 -> write_assumptions
+       | 4 -> scoped_assumptions | _ -> resource_assumptions))

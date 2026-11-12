@@ -16,6 +16,7 @@ type scope = {
   namespace : namespace_selector;
   resource : string;
   names : name_selector;
+  api_group : string;
 }
 type kind = Must_allow | Must_not_grant
 type clause = { name : string; kind : kind; scope : scope }
@@ -28,7 +29,9 @@ type t = {
 
 let kind = "kubernetes-rbac-access"
 let scope_fields version =
-  ["subject";"namespace";"resource";"names"] @ if version >= 2 then ["verb"] else []
+  ["subject";"namespace";"resource";"names"]
+  @ (if version >= 2 then ["verb"] else [])
+  @ (if version = 5 then ["api_group"] else [])
 
 let collection_verb verb = verb = "list" || verb = "watch"
 
@@ -48,7 +51,7 @@ let parse_namespace version verb path = function
   | `Null -> reject path "null denotes only the all-namespace list/watch endpoint (schema 2+), not every named namespace; choose the independently intended scope"
   | `String "*" -> reject path "\"*\" is not a namespace wildcard; schema 4 supports reviewed include/exclude selectors over nonempty namespaces"
   | `String ns -> Exact_namespace (namespace path ns)
-  | `O _ as value when version = 4 ->
+  | `O _ as value when version >= 4 ->
     let fields = obj path ["include";"exclude"] value in
     let values key ~allow_empty value = selector_values ~allow_empty
         ~valid:(fun value -> Result.is_ok (protect (fun () -> namespace path value)))
@@ -63,7 +66,7 @@ let parse_namespace version verb path = function
 
 let parse_names version verb path = function
   | `Null -> All_names
-  | `O _ as value when version = 4 ->
+  | `O _ as value when version >= 4 ->
     let fields = obj path ["empty";"exclude";"include_empty"] value in
     (match fields with
      | ["empty",`Bool true] when collection_verb verb -> Empty_name
@@ -92,12 +95,21 @@ let parse_scope version identities path fields =
     else ["get";"list";"watch"] in
   if not (List.mem verb verbs) then
     reject (path ^ ".verb") (Printf.sprintf "%S is outside contract schema %d; supported verbs: %s. Do not substitute a different operation to make the contract pass" verb version (String.concat ", " verbs));
-  let ns = parse_namespace version verb (path ^ ".namespace") (field path "namespace" fields) in
   let resource = string_field path "resource" fields in
-  if resource <> "configmaps" && resource <> "secrets" then
-    reject (path ^ ".resource") (Printf.sprintf "%S is outside the modeled resource domain; use core configmaps or secrets only, with no API-group prefix or subresource" resource);
+  let api_group = if version=5 then string_field path "api_group" fields else "" in
+  let entry = match Resource_domain.find ~version ~api_group ~resource with
+    | Some entry -> entry
+    | None when version < 5 -> reject (path ^ ".resource")
+        (Printf.sprintf "%S is outside the modeled resource domain; use core configmaps or secrets only, with no API-group prefix or subresource" resource)
+    | None -> reject (path ^ ".resource")
+        (Printf.sprintf "API group %S and resource %S are outside contract schema %d's fixed resource catalogue; use separate exact api_group/resource fields in schema 5, with no wildcard, qualified alias or subresource. A contract upgrade needs separate requirement review" api_group resource version) in
+  let ns_value = field path "namespace" fields in
+  let ns = if entry.namespaced then parse_namespace version verb (path ^ ".namespace") ns_value
+    else match ns_value with
+      | `Null -> Exact_namespace ""
+      | _ -> reject (path ^ ".namespace") "Nodes require namespace:null for cluster-scoped requests; namespace strings and selectors are not applicable" in
   let names = parse_names version verb (path ^ ".names") (field path "names" fields) in
-  {subject; verb; namespace=ns; resource; names}
+  {subject; verb; namespace=ns; resource; names; api_group}
 
 let compare_scope version left right =
   if version >= 4 then compare left right else
@@ -114,8 +126,8 @@ let parse_value value =
   let path = "contract" in
   let fields = obj path ["schema_version";"kind";"context";"clauses";"change_scope"] value in
   let version = match field path "schema_version" fields with
-   | `Number "1" -> 1 | `Number "2" -> 2 | `Number "3" -> 3 | `Number "4" -> 4
-   | _ -> reject path "schema_version must be integer 1, 2, 3 or 4" in
+   | `Number "1" -> 1 | `Number "2" -> 2 | `Number "3" -> 3 | `Number "4" -> 4 | `Number "5" -> 5
+   | _ -> reject path "schema_version must be integer 1, 2, 3, 4 or 5" in
   require_equal (path ^ ".kind") (string_field path "kind" fields) kind;
   let identities = Identity.parse_context (field path "context" fields)
     |> List.sort (fun (a : Identity.identity) b -> String.compare a.username b.username) in
@@ -170,9 +182,10 @@ let names_condition = function
     Ir.Not (member Ir.Object_name (if include_empty then excluded else "" :: excluded))
 
 let scope_condition scope =
+  let entry = Resource_domain.find ~version:5 ~api_group:scope.api_group ~resource:scope.resource in
   Ir.And [Ir.Principal_is scope.subject;Ir.Method_is scope.verb;
           namespace_condition scope.namespace;
-          Ir.Object_is (Ir.Object_kind,scope.resource);
+          (match entry with None -> Ir.Or [] | Some entry -> Ir.Object_is (Ir.Object_kind,Resource_domain.kind entry));
           names_condition scope.names]
 
 let approved_changes spec = Ir.Or (List.map scope_condition spec.change_scope)
@@ -180,9 +193,12 @@ let approved_changes spec = Ir.Or (List.map scope_condition spec.change_scope)
 let quoted values = String.concat ", " (List.map (Printf.sprintf "%S") values)
 
 let describe_scope scope =
-  Printf.sprintf "%s for %S on core %s %s (%s)"
-    scope.verb scope.subject scope.resource
+  let entry = Resource_domain.find ~version:5 ~api_group:scope.api_group ~resource:scope.resource in
+  Printf.sprintf "%s for %S on %s %s (%s)"
+    scope.verb scope.subject
+    (match entry with Some entry -> Resource_domain.description entry | None -> "unsupported resource")
     (match scope.namespace with
+     | Exact_namespace "" when Option.fold ~none:false ~some:(fun entry -> not entry.Resource_domain.namespaced) entry -> "at cluster scope"
      | Exact_namespace "" -> "at the all-namespace endpoint"
      | Exact_namespace value -> Printf.sprintf "in namespace %S" value
      | Namespace_set values -> "in namespaces " ^ quoted values
@@ -206,7 +222,8 @@ let to_contract spec : Contract.t =
      | 1 -> "Frozen named-get RBAC access requirements"
      | 2 -> "Frozen get/list/watch RBAC access requirements"
      | 3 -> "Frozen read and named-write RBAC access requirements"
-     | _ -> "Frozen read and named-write RBAC requirements with explicit scope selectors");
+     | 4 -> "Frozen read and named-write RBAC requirements with explicit scope selectors"
+     | _ -> "Frozen read and named-write RBAC requirements over the explicit resource catalogue");
    clauses=List.map (fun clause ->
        let make = match clause.kind with
          | Must_allow -> Contract.must_allow
@@ -226,7 +243,8 @@ let scope_json version scope =
      | All_names -> `Null | Names xs -> values xs
      | Empty_name -> `O ["empty",`Bool true]
      | Other_names {excluded;include_empty} -> `O ["exclude",values excluded;"include_empty",`Bool include_empty])]
-  @ if version >= 2 then ["verb",`String scope.verb] else []
+  @ (if version >= 2 then ["verb",`String scope.verb] else [])
+  @ (if version = 5 then ["api_group",`String scope.api_group] else [])
 
 let canonical spec =
   json (`O ["schema_version",`Number (string_of_int spec.version);"kind",`String kind;

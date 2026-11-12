@@ -244,8 +244,8 @@ let annotation_checks () =
   check "named-get annotation remains byte compatible"
     (ordinary="::error file=rbac.json,title=Soundcheck%3A rbac-access::rbac-access violated; reader get secrets/signing-key in namespace payments; identity groups []; granting rules []; RBAC decision: Allow");
   let global = render "list" "" "" in
-  check "all-namespace unfiltered collection is explicit"
-    (contains global "reader list secrets in all namespaces with no exact-name restriction");
+  check "empty authorization namespace does not assume resource scope"
+    (contains global "reader list secrets with empty authorization namespace with no exact-name restriction");
   let selected = render "watch" "payments" "signing-key" in
   check "watch name is an effective name without invented selector provenance"
     (contains selected "reader watch secrets in namespace payments with effective name signing-key");
@@ -264,7 +264,7 @@ let cli_checks directory binary =
     let code,stdout,stderr = run binary (["profile";"kubernetes-rbac"] @ args @ ["--format";"json"]) in
     check "version-selected profile command" (code=0 && stderr="" && string "id" (I.parse stdout)=expected))
     [[],profile_v1;["--contract-version";"2"],profile_v2];
-  let invalid_code,invalid_stdout,_ = run binary ["profile";"kubernetes-rbac";"--contract-version";"5";"--format";"json"] in
+  let invalid_code,invalid_stdout,_ = run binary ["profile";"kubernetes-rbac";"--contract-version";"6";"--format";"json"] in
   check "unsupported profile versions cannot silently select a model" (invalid_code=2 && invalid_stdout="");
   let baseline = snapshot ~secret_verbs:["get";"list";"watch"] () in
   let repaired = snapshot () in

@@ -147,7 +147,7 @@ let () =
     List.iter (fun (label,bytes) ->
       let path = input (label ^ ".json") bytes in
       ignore (no_output label 2 ["rbac";"check-contract";path]))
-      ["malformed","{";"unknown-version",json (contract 4 |> set "schema_version" (`Number "5"));
+      ["malformed","{";"unknown-version",json (contract 4 |> set "schema_version" (`Number "6"));
        "trailing-document",original ^ "{}"];
     ignore (no_output "missing file" 1 ["rbac";"check-contract";local "missing\n::notice::forged"]);
     ignore (no_output "directory" 1 ["rbac";"check-contract";elsewhere]);

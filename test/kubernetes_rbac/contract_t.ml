@@ -52,7 +52,7 @@ let () =
   let value = Input.parse source in
   List.iter (fun (name,changed) ->
       check name (Result.is_error (Contract_spec.of_string (Input.json changed))))
-    ["unknown version",replace "schema_version" (`Number "5") value;
+    ["unknown version",replace "schema_version" (`Number "6") value;
      "v2 requires explicit verbs",replace "schema_version" (`Number "2") value;
      "v3 requires explicit verbs",replace "schema_version" (`Number "3") value;
      "rounded version",replace "schema_version" (`Number "1.0") value;
