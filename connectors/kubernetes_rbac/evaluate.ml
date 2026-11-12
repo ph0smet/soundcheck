@@ -21,13 +21,15 @@ let requests spec source = protect (fun () ->
     (* Classify the request before interpreting resource coordinates. URL
        controls carry empty group/resource strings and must keep the explicit
        non-resource boundary, rather than fail catalogue lookup first. *)
-    require_equal path (string_field path "subresource" fields) "";
+    let subresource = string_field path "subresource" fields in
+    if Contract_spec.version spec<7 then require_equal path subresource "";
     (match field path "resourceRequest" fields with
      | `Bool true -> () | _ -> reject path "resourceRequest must be true");
     let api_group = string_field path "apiGroup" fields in
     let resource = string_field path "resource" fields in
-    let entry = match Resource_domain.find ~version:(Contract_spec.version spec) ~api_group ~resource with
+    let entry = match Resource_domain.find_subresource ~version:(Contract_spec.version spec) ~api_group ~resource ~subresource with
       | Some entry -> entry
+      | None when Contract_spec.version spec>=7 -> reject path "API group/resource/subresource triple is outside the contract's fixed RBAC catalogue"
       | None -> reject path "API group/resource pair is outside the contract's fixed RBAC resource catalogue" in
     let coordinates : Ir.object_request =
       {namespace=string_field path "namespace" fields;

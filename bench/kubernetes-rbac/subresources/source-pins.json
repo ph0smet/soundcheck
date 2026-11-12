@@ -1,0 +1,24 @@
+{
+  "apiserver": {
+    "pkg/endpoints/filters/authorization.go": "ecaa911bfee83cc5710e64081b8cc9fefbbe19885b62af7fa95ab2523185b4f0",
+    "pkg/endpoints/handlers/create.go": "2f17325a969d02a31057d3241bf99d9b3837746a991c12d1784ef067f53117ac",
+    "pkg/endpoints/handlers/get.go": "507bf833511c6758760592940ef63d8aa0e97274aafd0fe745027647e12d932e",
+    "pkg/endpoints/handlers/rest.go": "b7858d6e8fe6486f736f6913db9608f76d0df416275262cae1b8460bd0ccd601",
+    "pkg/endpoints/installer.go": "c75f072feb8daaf5d9f5add29120c4d01b5e8cd599e665c74b5cdf9fafdd1f9c",
+    "pkg/endpoints/request/requestinfo.go": "ae96b44fbfe3a39ba205ccc96cb28938179a41c515f7bddfb41e803a621db115"
+  },
+  "kubernetes": {
+    "pkg/apis/rbac/v1/evaluation_helpers.go": "1b1ee3ec93d7ea41c8cab38960131e66b01a889a51449c45e6f8791f951a13d1",
+    "pkg/registry/apps/deployment/storage/storage.go": "e940260409a64c686d957c3abd8108210d562bdc7f4100021b34c06d58b49b7a",
+    "pkg/registry/apps/rest/storage_apps.go": "364ece5ee55e0e159ee5eab6964c004eb6cb49ea0dcb1761341de0a92c107fab",
+    "pkg/registry/core/node/storage/storage.go": "cbd6284c4a609be4d3b40ad090ade4528ce561d7d6de91851d3e0615864f5df4",
+    "pkg/registry/core/pod/rest/log.go": "526aa4bd769bee41308b97ed271bfe13db86c68da2da2d6348c599c9cc47e0d5",
+    "pkg/registry/core/pod/rest/subresources.go": "c84079bd9bb94b630e48e92ae5fd6f2e7c50721caf2be595cff516346b3c89d9",
+    "pkg/registry/core/pod/storage/storage.go": "3688dcbfd6cd0a175eb706264f91ba7d12c7ee682a9c010d255f020510d95bd4",
+    "pkg/registry/core/rest/storage_core_generic.go": "31f1586a39dac8aa83c05066f5b4c0c38adc26d3770a4f5b30dca397bf5c2a8e",
+    "pkg/registry/core/service/storage/storage.go": "908c3f3f0c722942269df68d603d2a4d1659fd6a3da831b9d7a58ac8ce7cdb10",
+    "pkg/registry/core/serviceaccount/storage/token.go": "47333c186063e16e2b8255004055f4a577179483b4809fc12203c620f5dc29b1",
+    "plugin/pkg/admission/noderestriction/admission.go": "4b22f2467aa58a89be6f6f681c78d285a6ad47133a5a90b37144a5061e6fc343",
+    "plugin/pkg/auth/authorizer/rbac/rbac.go": "64fb483dceb31028d2ddf7daffdaa2afbdd8e4c083b68f5f8fcfee42e951d95e"
+  }
+}

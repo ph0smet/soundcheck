@@ -17,7 +17,11 @@
     empty authorization names. Their [All_names] and [Empty_name] both select
     that singleton; name lists/complements are rejected. These writes require
     a nonempty namespace for namespaced resources; Nodes remain cluster-scoped.
-    Body names and deletion targets are not authorization-name constraints. *)
+    Body names and deletion targets are not authorization-name constraints.
+    V7 adds an explicit finite subresource operation catalogue. Every supported
+    subresource operation has a nonempty parent authorization name, including
+    create on pods/exec and serviceaccounts/token. Base collection writes retain
+    their empty-name domain. Older contract versions never gain subresources. *)
 type namespace_selector =
   | Exact_namespace of string
   | Namespace_set of string list
@@ -27,7 +31,7 @@ type name_selector =
   | Names of string list
   | Empty_name
   | Other_names of { excluded:string list; include_empty:bool }
-type scope = { subject:string; verb:string; namespace:namespace_selector; resource:string; names:name_selector; api_group:string }
+type scope = { subject:string; verb:string; namespace:namespace_selector; resource:string; names:name_selector; api_group:string; subresource:string }
 type kind = Must_allow | Must_not_grant
 type clause = { name:string; kind:kind; scope:scope }
 type t

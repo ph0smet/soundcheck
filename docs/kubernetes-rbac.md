@@ -9,6 +9,8 @@ Schema 5 explicitly expands the resource catalogue to include Pods, Services,
 Endpoints, EndpointSlices, Deployments and Nodes, with API-group-aware access
 and preservation. Schema 6 adds `create` and `deletecollection` over that
 catalogue, with empty authorization names and explicit namespace scope.
+Schema 7 adds a fixed catalogue of Pod log/exec, ServiceAccount token and
+selected status/scale subresource operations, each with its own allowed verbs.
 Older contracts keep their original domains.
 CLI and library workflows share the decision IR,
 encoder, Z3 backend and witness validation with the Kong connector.
@@ -319,7 +321,7 @@ dune exec soundcheck -- rbac check-contract \
 ```
 
 This read-only command uses the same strict contract reader as verification and
-prints a human-readable review of schemas 1–6: the selected profile, exact declared
+prints a human-readable review of schemas 1–7: the selected profile, exact declared
 identities and groups, ordered clause meanings, approved changes, and separate
 SHA-256 hashes for the raw artifact and canonical frozen contract. Artifact counts
 are reported after normalization; they measure size, not human authoring effort.
@@ -698,6 +700,117 @@ The [synthetic collection-write corpus](../bench/kubernetes-rbac/collection-writ
 compares literal expectations, native Kubernetes, concrete lowering and SMT,
 including body/selector controls and replay of contract/preservation witnesses.
 
+## Subresource contracts (schema 7)
+
+Schema 7 can require Pod log access while forbidding exec grants, or restrict
+Deployment scaling to named deployments. It retains every schema-6 base
+operation and adds exactly these subresource operations:
+
+| API group | Resource/subresource | Initial RBAC verbs |
+| --- | --- | --- |
+| core (`""`) | `pods/log` | `get` |
+| core | `pods/exec` | `get`, `create` |
+| core | `serviceaccounts/token` | `create` |
+| core | `pods/status`, `services/status`, `nodes/status` | `get`, `update`, `patch` |
+| `apps` | `deployments/status`, `deployments/scale` | `get`, `update`, `patch` |
+
+Every added operation uses the **nonempty parent object name**. For example,
+POST to `/api/v1/namespaces/frontend/pods/worker/exec` has verb `create`, resource
+`pods`, subresource `exec` and name `worker`. This differs from base Pod creation,
+whose initial authorization name is empty. The URL supplies the parent name;
+body fields and query selectors do not replace it. Log `follow=true` remains
+`get`, and exec uses `get`/`create`, not an RBAC verb named `connect`.
+
+Every clause and change scope now requires a separate `subresource` string;
+use `""` for base resources. This example keeps log access to `worker` and
+forbids both initial exec verbs in `frontend`:
+
+```json
+{
+  "schema_version": 7,
+  "kind": "kubernetes-rbac-access",
+  "context": {
+    "schema_version": 1,
+    "snapshot_complete": true,
+    "identities": [{"username": "app", "groups": []}]
+  },
+  "clauses": [
+    {"name": "required-log", "kind": "must_allow", "subject": "app",
+     "verb": "get", "api_group": "", "resource": "pods", "subresource": "log",
+     "namespace": "frontend", "names": ["worker"]},
+    {"name": "forbidden-exec-get", "kind": "must_not_grant", "subject": "app",
+     "verb": "get", "api_group": "", "resource": "pods", "subresource": "exec",
+     "namespace": "frontend", "names": null},
+    {"name": "forbidden-exec-create", "kind": "must_not_grant", "subject": "app",
+     "verb": "create", "api_group": "", "resource": "pods", "subresource": "exec",
+     "namespace": "frontend", "names": null}
+  ],
+  "change_scope": [
+    {"subject": "app", "verb": "get", "api_group": "", "resource": "pods",
+     "subresource": "exec", "namespace": "frontend", "names": null},
+    {"subject": "app", "verb": "create", "api_group": "", "resource": "pods",
+     "subresource": "exec", "namespace": "frontend", "names": null}
+  ]
+}
+```
+
+For these named subresources, `names: null` means all supported nonempty parent
+names. Name sets and complements with `include_empty: false` work as before;
+empty-only scopes and `include_empty: true` reject. Namespaced subresources
+require a nonempty namespace or an include/exclude selector. Nodes/status
+requires `namespace: null` and can receive grants only through cluster-wide
+bindings. Existing DNS name/namespace bounds apply. Base collection-write
+names remain empty even in schema 7; there is no global rule that all `create`
+requests have empty names.
+
+Kubernetes resource matching is precise:
+
+- `pods` grants base Pod operations, not log or exec operations.
+- `pods/exec`, `*/exec` and whole `*` can match Pod exec; `pods/*` and `*/*`
+  are **not** general subresource wildcards.
+- `resourceNames: ["worker"]` can restrict exec/token creation to that parent.
+  Omitted/empty arrays are unrestricted; `[""]` and `["*"]` do not grant any
+  supported named subresource operation by themselves.
+- Deployment scale uses API group `apps`; token requests use the core group.
+  Their response objects' API groups do not change the request authorization.
+
+The [pinned-source scope record](plans/2026-11-rbac-subresources.md) explains the
+request parser, matcher, installed routes and version boundaries. Unsupported
+combinations such as `pods/scale`, `list pods/log`, or base ServiceAccount
+operations reject. A native RBAC wildcard can allow a fabricated resource name;
+that does not establish a real API endpoint or expand Soundcheck's catalogue.
+
+The profile is `kubernetes-rbac-v1.34-subresources-v1`. Profile JSON schema 4
+lists `operations` for each resource entry, including `verb`, `name_domain`
+and `namespace_domain`. Domains are `named`, `empty` or `empty-or-named`.
+Consumers must use these per-entry combinations, not multiply all verbs by
+all resources. Report schema 10 and evidence shapes remain unchanged:
+
+```sh
+dune exec soundcheck -- profile kubernetes-rbac --contract-version 7
+dune exec soundcheck -- profile kubernetes-rbac --contract-version 7 --format json
+```
+
+Repair preservation covers **all supported base and subresource operations for
+every frozen identity**, including operations absent from clauses. Removing a
+log grant or changing an unrelated scaling grant fails unless the exact change
+is approved. Base and subresource change scopes are distinct. Schemas 1–6 keep
+their canonical identities, profiles and original preservation domains; a
+schema upgrade requires independent review of the expanded scope.
+
+The guarantee is initial Kubernetes v1.34.0 RBAC `Allow | NoOpinion`, not exec
+success, token issuance, response contents, admission or final authorization.
+GET on status endpoints can return the full underlying object, not just status
+fields. Newer Kubernetes versions can require additional `create` permission
+for WebSocket GET exec, and token issuance can involve separate NodeRestriction
+audience authorization. These checks and operational effects are outside this
+profile. CLI/library, review, evidence, frozen MCP, trusted-base CI and
+submitted-repair evaluation all use the same selected contract and catalogue.
+
+The [synthetic subresource corpus](../bench/kubernetes-rbac/subresources/README.md)
+compares frozen expectations with native Kubernetes, concrete lowering and SMT,
+including URL/body controls and contract/preservation witness replay.
+
 ## Supported profiles
 
 The profile IDs for schemas 1–4 end in `-v3`. This revision accepts already-resolved,
@@ -747,6 +860,10 @@ suffix identifies the first revision of this broader resource profile.
 `kubernetes-rbac-v1.34-collection-write-v1` retains that snapshot, identity and
 resource boundary, adding the schema-6 empty-name create/deletecollection
 request classes described above. Existing profiles do not gain these verbs.
+
+`kubernetes-rbac-v1.34-subresources-v1` retains the schema-6 base domain and adds
+the eight subresource entries above. Its operation catalogue is explicit in
+profile JSON schema 4. Existing profiles do not gain subresource obligations.
 
 All supplied objects are checked, including unbound roles and unrelated
 bindings. Malformed input, unknown fields, duplicate identities, missing
@@ -850,6 +967,8 @@ Preservation ranges over all supported valid namespace/name strings for the
 frozen identities, not just namespaces present in the input. Schema 2 includes
 the all-namespace collection endpoint; schema 3 also includes named writes.
 Schema 5 includes every entry in its fixed resource catalogue, including Nodes.
+Schema 6 adds base collection writes; schema 7 adds every listed subresource
+operation, including operations absent from the clauses.
 All exclude identities, verbs, resources and control planes outside their
 selected profile.
 
@@ -858,8 +977,11 @@ selected profile.
 Both RBAC commands emit report schema 10. Violations include `object_request`,
 `identity_groups` and `granting_rules`; legacy HTTP fields are unused placeholders.
 The selected profile defines `resource_kind`: schemas 5 and 6 use qualified
-discriminators for noncore resources as listed in its catalogue. Consumers must
-not assume every object request belongs to the core API group.
+discriminators for noncore resources. Schema 7 also identifies subresources,
+for example `pods/exec`, `serviceaccounts/token` and `deployments/scale.apps`.
+Decode by exact lookup in the profile catalogue, rather than splitting arbitrary
+strings or assuming every request belongs to the core API group. For subresource
+operations, `object_request.name` is the parent authorization name.
 Preservation uses a `must_preserve` clause with before/after RBAC decisions in
 its description. Only `proved` exits `0`; violation/unknown/vacuous/inconsistent
 exit `3`/`4`/`5`/`6`. I/O and usage failures exit `1` and `2`.

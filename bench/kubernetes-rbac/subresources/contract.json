@@ -1,0 +1,57 @@
+{
+  "change_scope": [
+    {
+      "api_group": "",
+      "names": null,
+      "namespace": "team-a",
+      "resource": "pods",
+      "subject": "app",
+      "subresource": "exec",
+      "verb": "create"
+    }
+  ],
+  "clauses": [
+    {
+      "api_group": "",
+      "kind": "must_allow",
+      "name": "required-log",
+      "names": [
+        "settings"
+      ],
+      "namespace": "team-a",
+      "resource": "pods",
+      "subject": "app",
+      "subresource": "log",
+      "verb": "get"
+    },
+    {
+      "api_group": "",
+      "kind": "must_not_grant",
+      "name": "forbidden-exec",
+      "names": null,
+      "namespace": "team-a",
+      "resource": "pods",
+      "subject": "app",
+      "subresource": "exec",
+      "verb": "create"
+    }
+  ],
+  "context": {
+    "identities": [
+      {
+        "groups": [],
+        "username": "app"
+      },
+      {
+        "groups": [
+          "operators"
+        ],
+        "username": "ops"
+      }
+    ],
+    "schema_version": 1,
+    "snapshot_complete": true
+  },
+  "kind": "kubernetes-rbac-access",
+  "schema_version": 7
+}
