@@ -43,6 +43,12 @@ with native RBAC; extracts grouped, namespaced and Node request attributes;
 and replays contract/preservation counterexamples. A paired v4/v5 comparison
 checks that adding this catalogue does not change earlier frozen domains.
 
+The [collection-write suite](../collection-writes/README.md) checks schema 6's
+empty-name `create`/`deletecollection` over that same catalogue. Native URL/body
+controls establish why object names and deletion selectors cannot narrow these
+permissions. Paired v5/v6 repairs exercise the expanded preservation domain,
+including unmentioned resources and identities.
+
 Run from the repository root:
 
 ```sh

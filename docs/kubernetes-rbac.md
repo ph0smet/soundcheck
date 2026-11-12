@@ -694,6 +694,10 @@ gates and submitted-repair evaluation. A proof concerns initial RBAC grants,
 not mutation success, body contents, admission, extra authorization checks,
 controller/workload effects or the number/identity of deleted objects.
 
+The [synthetic collection-write corpus](../bench/kubernetes-rbac/collection-writes/README.md)
+compares literal expectations, native Kubernetes, concrete lowering and SMT,
+including body/selector controls and replay of contract/preservation witnesses.
+
 ## Supported profiles
 
 The profile IDs for schemas 1–4 end in `-v3`. This revision accepts already-resolved,
