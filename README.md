@@ -36,9 +36,10 @@ frozen verification interface keeps the requirement fixed.
 
 Today, Soundcheck verifies **decK-style Kong OSS 3.9.3 configurations** under the
 `traditional` and `traditional_compatible` HTTP routers, and **static Kubernetes
-RBAC snapshots** with bounded read and named-write authorization profiles for
+RBAC snapshots** with bounded read and write authorization profiles for
 ConfigMaps, Secrets, Pods, Services, Endpoints, EndpointSlices, Deployments and
-Nodes. Kong is the first connector;
+Nodes, plus selected log, exec, token, status and scale subresource operations.
+Kong is the first connector;
 RBAC adds individual identities, resource permissions, and repair preservation
 to the shared verification core. The verifier is AI-model agnostic.
 
@@ -154,7 +155,7 @@ or CI job.
 
 | Capability | Current support |
 | --- | --- |
-| Targets | Kong OSS 3.9.3 decK YAML; static Kubernetes RBAC JSON Lists, with versioned v1.34.0 read, named-write and collection-write profiles over an explicit resource catalogue |
+| Targets | Kong OSS 3.9.3 decK YAML; static Kubernetes RBAC JSON Lists, with versioned v1.34.0 profiles over explicit base-resource and subresource operation catalogues |
 | Verification | Six Kong property templates, three Kong frozen contract kinds, and paired RBAC access contracts |
 | Verdicts | `proved`, `violated`, `vacuous`, `inconsistent`, or `unknown` |
 | Comparisons | Kong decision/routing equivalence; RBAC decision preservation outside a frozen change scope |
@@ -189,8 +190,10 @@ check `list`/`watch` and all-namespace collection requests for core ConfigMaps
 and Secrets. [Schema 5](docs/kubernetes-rbac.md#resource-and-api-group-contracts-schema-5)
 adds the broader resource catalogue. [Schema 6](docs/kubernetes-rbac.md#collection-write-contracts-schema-6)
 also checks creation and bulk-deletion authorization, so a repair can remove
-unwanted collection deletion while preserving required creation. Existing
-contracts keep their meaning. All profiles require
+unwanted collection deletion while preserving required creation.
+[Schema 7](docs/kubernetes-rbac.md#subresource-contracts-schema-7) distinguishes
+Pod log access from exec grants and adds named token, status and scaling
+authorization. Existing contracts keep their meaning. All profiles require
 a complete static desired snapshot and trusted, fixed usernames/groups.
 `NoOpinion` means RBAC supplies no grant; other authorizers, admission, indirect
 access and runtime deployment behavior remain outside this claim.

@@ -264,7 +264,7 @@ let cli_checks directory binary =
     let code,stdout,stderr = run binary (["profile";"kubernetes-rbac"] @ args @ ["--format";"json"]) in
     check "version-selected profile command" (code=0 && stderr="" && string "id" (I.parse stdout)=expected))
     [[],profile_v1;["--contract-version";"2"],profile_v2];
-  let invalid_code,invalid_stdout,_ = run binary ["profile";"kubernetes-rbac";"--contract-version";"7";"--format";"json"] in
+  let invalid_code,invalid_stdout,_ = run binary ["profile";"kubernetes-rbac";"--contract-version";"8";"--format";"json"] in
   check "unsupported profile versions cannot silently select a model" (invalid_code=2 && invalid_stdout="");
   let baseline = snapshot ~secret_verbs:["get";"list";"watch"] () in
   let repaired = snapshot () in

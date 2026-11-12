@@ -7,7 +7,7 @@ let dns_label =
 
 let dns_name = Regex.Concat [dns_label;Regex.Star (Regex.Concat [Regex.Lit ".";dns_label])]
 
-let domain spec =
+let legacy_domain spec =
   let resources = Resource_domain.for_version (Contract_spec.version spec) in
   let namespace = Ir.And [Ir.Object_matches (Ir.Object_namespace,dns_label);
                          Ir.Object_length_at_most (Ir.Object_namespace,63)] in
@@ -43,6 +43,28 @@ let domain spec =
       (Contract_spec.identities spec));
     kind resources]
 
+let domain spec =
+  if Contract_spec.version spec<>7 then legacy_domain spec else
+  let named coordinate regex length = Ir.And [Ir.Object_matches (coordinate,regex);
+      Ir.Object_length_at_most (coordinate,length)] in
+  let attribute coordinate nonempty = function
+    | "named" -> nonempty
+    | "empty" -> Ir.Object_is (coordinate,"")
+    | "empty-or-named" -> Ir.Or [Ir.Object_is (coordinate,"");nonempty]
+    | _ -> invalid_arg "unregistered RBAC attribute domain" in
+  let namespace = named Ir.Object_namespace dns_label 63
+  and name = named Ir.Object_name dns_name 253 in
+  let operations entry = Resource_domain.verbs ~version:7 entry |> List.map (fun verb ->
+      Ir.And [Ir.Method_is verb;
+        attribute Ir.Object_namespace namespace (Resource_domain.namespace_domain entry ~verb);
+        attribute Ir.Object_name name (Resource_domain.name_domain entry ~verb)]) in
+  Ir.And [Ir.Has_object_request;
+    Ir.Or (List.map (fun (identity : Identity.identity) -> Ir.Principal_is identity.username)
+      (Contract_spec.identities spec));
+    Ir.Or (List.map (fun entry -> Ir.And [
+      Ir.Object_is (Ir.Object_kind,Resource_domain.kind entry);Ir.Or (operations entry)])
+      (Resource_domain.for_version 7))]
+
 let wildcard_or values value = List.mem "*" values || List.mem value values
 
 let resource_condition resources verbs (rule : Snapshot.resource_rule) =
@@ -51,7 +73,11 @@ let resource_condition resources verbs (rule : Snapshot.resource_rule) =
           if wildcard_or rule.verbs verb then Some (Ir.Method_is verb) else None)
         verbs);
       Ir.Or (List.filter_map (fun (entry : Resource_domain.t) ->
-          if wildcard_or rule.api_groups entry.api_group && wildcard_or rule.resources entry.resource
+          (* Kubernetes accepts exact combined resources, whole *, and an
+             exact subresource after */. Parent/* is not a general glob. *)
+          if wildcard_or rule.api_groups entry.api_group &&
+             (wildcard_or rule.resources (Resource_domain.combined_resource entry)
+              || (entry.subresource<>"" && List.mem ("*/" ^ entry.subresource) rule.resources))
           then Some (Ir.Object_is (Ir.Object_kind,Resource_domain.kind entry)) else None) resources);
       (match rule.resource_names with
        | [] -> Ir.True
@@ -71,7 +97,7 @@ let grant_id binding index =
 let policy spec snapshot : Ir.policy =
   let identities = Contract_spec.identities spec in
   let resources = Resource_domain.for_version (Contract_spec.version spec) in
-  let verbs = if Contract_spec.version spec = 6 then ["get";"list";"watch";"update";"patch";"delete";"create";"deletecollection"]
+  let verbs = if Contract_spec.version spec >= 6 then ["get";"list";"watch";"update";"patch";"delete";"create";"deletecollection"]
     else if Contract_spec.version spec >= 3 then ["get";"list";"watch";"update";"patch";"delete"]
     else ["get";"list";"watch"] in
   let rules = Snapshot.grants snapshot |> List.concat_map (fun (grant : Snapshot.bound_grant) ->

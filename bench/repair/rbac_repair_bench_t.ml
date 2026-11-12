@@ -509,4 +509,88 @@ let () =
     map_reports (with_profile K.Assurance.collection_write_profile_id) (comparison frozen "valid")) in
   check "v5 evaluator cannot silently upgrade to collection-write profile"
     ((first_attempt upgraded).failure=Some Report_mismatch && exit_code upgraded=1);
+  let subresource_contract ?(required_subresource="scale") ?(changes=true) () = Printf.sprintf {|{
+    "schema_version":7,"kind":"kubernetes-rbac-access",
+    "context":{"schema_version":1,"snapshot_complete":true,
+      "identities":[{"username":%S,"groups":["operators"]}]},
+    "clauses":[
+      {"name":"required","kind":"must_allow","subject":%S,"verb":"patch",
+       "api_group":"apps","resource":"deployments","subresource":%S,
+       "namespace":"frontend","names":["web"]},
+      {"name":"forbidden","kind":"must_not_grant","subject":%S,"verb":"create",
+       "api_group":"","resource":"pods","subresource":"exec",
+       "namespace":"frontend","names":["worker"]}],
+    "change_scope":%s}|} secret secret required_subresource secret
+    (if changes then Printf.sprintf {|[{"subject":%S,"verb":"create","api_group":"",
+      "resource":"pods","subresource":"exec","namespace":"frontend","names":["worker"]}]|} secret
+     else "[]") in
+  let subresource_profile="kubernetes-rbac-v1.34-subresources-v1" in
+  let subresource_source=subresource_contract () in
+  let subresource_spec=ok (K.Contract_spec.of_string subresource_source) in
+  let subresource_suite=freeze_contract subresource_source in
+  let rows=evaluate_suite subresource_suite (fun frozen ~before:_ ~after:_->
+    check "subresource contract frozen before evaluator dispatch" (K.Contract_spec.version frozen=7);
+    check "all frozen subresource coordinates survive dispatch"
+      (K.Contract_spec.canonical frozen=K.Contract_spec.canonical subresource_spec);
+    comparison frozen "valid") in
+  let json=K.Input.parse (to_json rows) in
+  check "v7 evaluator retains format2 and exact subresource profile"
+    (exit_code rows=0 && field "experimental_format_version" json=`Number "2"
+     && field "profile" json=`String subresource_profile
+     && (List.hd rows).frozen_contract_sha256=Some (Sha256.string (K.Contract_spec.canonical subresource_spec)));
+  List.iter (fun prior_profile ->
+    List.iter (fun (label,forge) ->
+      let rows=evaluate_suite subresource_suite (fun frozen ~before:_ ~after:_->forge (comparison frozen "valid")) in
+      check ("v7 evaluator rejects "^label^" downgrade to "^prior_profile)
+        ((first_attempt rows).failure=Some Report_mismatch && exit_code rows=1))
+      ["both profiles",map_reports (with_profile prior_profile);
+       "candidate profile",(fun (r:K.Verify.comparison)->
+         {r with candidate_report=Option.map (with_profile prior_profile) r.candidate_report});
+       "final profile",(fun (r:K.Verify.comparison)->{r with report=with_profile prior_profile r.report})])
+    [K.Assurance.profile_id;K.Assurance.read_profile_id;K.Assurance.write_profile_id;
+     K.Assurance.scoped_profile_id;K.Assurance.resource_profile_id;K.Assurance.collection_write_profile_id];
+  List.iter (fun (label,source) ->
+    let forged_spec=ok (K.Contract_spec.of_string source) in
+    List.iter (fun (stage,forge) ->
+      let rows=evaluate_suite subresource_suite (fun frozen ~before:_ ~after:_->
+        forge (fun (report:Report.t) -> {report with frozen_spec=Some (K.Contract_spec.frozen_spec forged_spec)})
+          (comparison frozen "valid")) in
+      check ("v7 evaluator rejects "^stage^" "^label)
+        ((first_attempt rows).failure=Some Report_mismatch && exit_code rows=1))
+      ["both stages",map_reports;
+       "candidate stage",(fun transform (r:K.Verify.comparison) ->
+         {r with candidate_report=Option.map transform r.candidate_report});
+       "final stage",(fun transform (r:K.Verify.comparison) -> {r with report=transform r.report})])
+    ["schema downgrade",collection_contract;
+     "same-schema subresource substitution",subresource_contract ~required_subresource:"status" ();
+     "same-schema approved-scope substitution",subresource_contract ~changes:false ()];
+  List.iter (fun mode ->
+    let rows=evaluate_suite subresource_suite (fun frozen ~before:_ ~after:_->comparison frozen mode) in
+    check ("v7 evaluator retains uncertainty "^mode)
+      ((first_attempt rows).failure=None && (first_attempt rows).repair_result=Some "unknown"
+       && exit_code rows=3 && (List.hd rows).profile=Some subresource_profile))
+    ["unsupported";"candidate-unknown";"preservation-unknown"];
+  let rows=evaluate_suite subresource_suite (fun frozen ~before:_ ~after:_->
+    map_reports (with_profile K.Assurance.collection_write_profile_id) (comparison frozen "unsupported")) in
+  check "unsupported subresource results cannot downgrade profile"
+    ((first_attempt rows).failure=Some Report_mismatch && exit_code rows=1);
+  let rows=evaluate_suite collection_suite (fun frozen ~before:_ ~after:_->
+    map_reports (with_profile subresource_profile) (comparison frozen "valid")) in
+  check "schema6 evaluator cannot silently acquire the subresource profile"
+    ((first_attempt rows).failure=Some Report_mismatch && exit_code rows=1);
+  let source=ref subresource_source and read_count=ref 0 in
+  let suite=freeze ~read_suite:(fun path -> incr read_count;
+      Ok (if path="contract.json" then !source else "original baseline"))
+    ~suite_root:"unused" [task ()] in
+  source:=subresource_contract ~required_subresource:"status" ~changes:false ();
+  let rows=evaluate_suite suite (fun frozen ~before ~after:_ ->
+    check "mutated source cannot replace frozen subresource requirement or change scope"
+      (before="original baseline" && K.Contract_spec.canonical frozen=K.Contract_spec.canonical subresource_spec);
+    comparison frozen "valid") in
+  check "schema7 sources read only at freeze and exact result retained" (!read_count=2 && exit_code rows=0);
+  List.iter (fun extra ->
+    let bytes={|{"format_version":1,"attempts":[{"task":"task","id":"a","config":"candidate.json",|}^extra^"}]}" in
+    check "external submissions cannot select subresource or frozen schema"
+      (Result.is_error (parse_submissions subresource_suite bytes)))
+    ["\"subresource\":\"\"";"\"schema_version\":6";"\"change_scope\":[]"];
   Printf.printf "All %d RBAC submitted-repair unit checks passed.\n" !checks
