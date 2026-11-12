@@ -154,7 +154,7 @@ or CI job.
 
 | Capability | Current support |
 | --- | --- |
-| Targets | Kong OSS 3.9.3 decK YAML; static Kubernetes RBAC JSON Lists, with versioned v1.34.0 read and named-write profiles over an explicit resource catalogue |
+| Targets | Kong OSS 3.9.3 decK YAML; static Kubernetes RBAC JSON Lists, with versioned v1.34.0 read, named-write and collection-write profiles over an explicit resource catalogue |
 | Verification | Six Kong property templates, three Kong frozen contract kinds, and paired RBAC access contracts |
 | Verdicts | `proved`, `violated`, `vacuous`, `inconsistent`, or `unknown` |
 | Comparisons | Kong decision/routing equivalence; RBAC decision preservation outside a frozen change scope |
@@ -187,7 +187,10 @@ The example uses the original named-`get` contract. The
 [schema-2 contracts](docs/kubernetes-rbac.md#read-access-contracts-schema-2) also
 check `list`/`watch` and all-namespace collection requests for core ConfigMaps
 and Secrets. [Schema 5](docs/kubernetes-rbac.md#resource-and-api-group-contracts-schema-5)
-adds the broader resource catalogue; existing contracts keep their meaning. All profiles require
+adds the broader resource catalogue. [Schema 6](docs/kubernetes-rbac.md#collection-write-contracts-schema-6)
+also checks creation and bulk-deletion authorization, so a repair can remove
+unwanted collection deletion while preserving required creation. Existing
+contracts keep their meaning. All profiles require
 a complete static desired snapshot and trusted, fixed usernames/groups.
 `NoOpinion` means RBAC supplies no grant; other authorizers, admission, indirect
 access and runtime deployment behavior remain outside this claim.
@@ -505,10 +508,12 @@ RBAC contracts select named `get` (schema 1),
 `update`/`patch`/`delete` (schema 3). Schema 4 adds namespace sets/complements
 and precise name selectors over the same authorization domain. Schema 5 opts
 into the [eight-resource catalogue](docs/kubernetes-rbac.md#resource-and-api-group-contracts-schema-5),
-with explicit API groups and cluster-scoped Node requests. Older contracts keep
-their ConfigMap/Secret domain. Inspect the
+with explicit API groups and cluster-scoped Node requests. Schema 6 adds
+`create`/`deletecollection` over that catalogue, using empty authorization names
+independently of object bodies and deletion filters. Older contracts keep their
+original domains. Inspect the
 default with `soundcheck profile kubernetes-rbac`, or select a version with
-`--contract-version 2`, `3`, `4` or `5`.
+`--contract-version 2`, `3`, `4`, `5` or `6`.
 Review the [RBAC boundaries](docs/kubernetes-rbac.md#supported-profiles) before
 interpreting a proof. Write verification concerns the initial RBAC grant, not
 successful mutation or preserved object contents.

@@ -184,6 +184,23 @@
  (modules resource_domains_t)
  (libraries soundcheck_core soundcheck_kubernetes_rbac unix))
 
+(test
+ (name collection_writes_t)
+ (modules collection_writes_t)
+ (libraries soundcheck_core soundcheck_kubernetes_rbac))
+
+(executable
+ (name collection_write_adapters_t)
+ (modules collection_write_adapters_t)
+ (libraries soundcheck_core soundcheck_kubernetes_rbac unix))
+
+(rule
+ (alias runtest)
+ (deps ../../scripts/verify-approved-contract.sh)
+ (action
+  (run %{exe:collection_write_adapters_t.exe} %{exe:../../cli/main.exe}
+   ../../scripts/verify-approved-contract.sh)))
+
 (executable
  (name resource_adapters_t)
  (modules resource_adapters_t)

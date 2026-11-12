@@ -67,6 +67,10 @@ verbs and adding namespace/name selectors to access clauses and approved changes
 These four versions quantify core ConfigMaps and Secrets. Schema 5 selects
 `kubernetes-rbac-v1.34-resource-read-write-v1`, with explicit API-group/resource
 scopes over its [fixed eight-resource catalogue](../../docs/kubernetes-rbac.md#resource-and-api-group-contracts-schema-5).
+Schema 6 selects `kubernetes-rbac-v1.34-collection-write-v1`, adding empty-name
+`create`/`deletecollection` to that catalogue and its preservation domain.
+Namespaced collection writes require nonempty namespaces; Nodes remain
+cluster-scoped. Body names and deletion filters cannot narrow these permissions.
 All use complete static desired RBAC snapshots in strict JSON and fixed trusted
 usernames/groups. Preservation covers that profile's fixed domain outside the
 contract's `change_scope`. Both returned stages must match the frozen contract

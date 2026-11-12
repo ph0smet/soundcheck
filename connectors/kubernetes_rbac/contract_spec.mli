@@ -12,7 +12,12 @@
     V5 adds a fixed resource/API-group catalogue; Nodes use
     [Exact_namespace ""] for cluster scope for every supported verb. Other
     resources retain v4 namespace semantics. Older contracts retain their
-    ConfigMap/Secret domain and implicit core group. *)
+    ConfigMap/Secret domain and implicit core group.
+    V6 retains v5's catalogue and adds create/deletecollection with strictly
+    empty authorization names. Their [All_names] and [Empty_name] both select
+    that singleton; name lists/complements are rejected. These writes require
+    a nonempty namespace for namespaced resources; Nodes remain cluster-scoped.
+    Body names and deletion targets are not authorization-name constraints. *)
 type namespace_selector =
   | Exact_namespace of string
   | Namespace_set of string list

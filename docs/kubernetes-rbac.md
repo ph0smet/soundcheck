@@ -7,7 +7,9 @@ core ConfigMaps and Secrets. Schema 4 adds namespace sets/complements and
 precise effective-name selectors over that same request domain.
 Schema 5 explicitly expands the resource catalogue to include Pods, Services,
 Endpoints, EndpointSlices, Deployments and Nodes, with API-group-aware access
-and preservation. Older contracts keep their original domains.
+and preservation. Schema 6 adds `create` and `deletecollection` over that
+catalogue, with empty authorization names and explicit namespace scope.
+Older contracts keep their original domains.
 CLI and library workflows share the decision IR,
 encoder, Z3 backend and witness validation with the Kong connector.
 
@@ -317,7 +319,7 @@ dune exec soundcheck -- rbac check-contract \
 ```
 
 This read-only command uses the same strict contract reader as verification and
-prints a human-readable review of schemas 1–5: the selected profile, exact declared
+prints a human-readable review of schemas 1–6: the selected profile, exact declared
 identities and groups, ordered clause meanings, approved changes, and separate
 SHA-256 hashes for the raw artifact and canonical frozen contract. Artifact counts
 are reported after normalization; they measure size, not human authoring effort.
@@ -609,10 +611,88 @@ authorization, including replay of grouped and cluster-scoped witnesses.
 
 Namespaces need separate modeling: named Namespace paths carry their name in
 the authorization namespace attribute, unlike Nodes. They remain excluded,
-alongside custom resources, create/deletecollection, subresources and indirect
-privilege escalation. Deployment/Pod grants do not establish anything about
+alongside custom resources, subresources and indirect privilege escalation.
+Create/deletecollection require the separate schema-6 opt-in below.
+Deployment/Pod grants do not establish anything about
 workload behavior, secret exposure through execution, admission or mutation
 effects. See the [scope and target-source record](plans/2026-11-rbac-resource-domains.md).
+
+## Collection-write contracts (schema 6)
+
+Schema 6 adds initial RBAC authorization for `create` and `deletecollection`
+over the same eight-resource catalogue. For example, require a workload to
+create Pods in `frontend`, while forbidding bulk Pod deletion there. A repair
+that removes both permissions fails the required-creation clause.
+
+```json
+{
+  "schema_version": 6,
+  "kind": "kubernetes-rbac-access",
+  "context": {
+    "schema_version": 1,
+    "snapshot_complete": true,
+    "identities": [{"username": "app", "groups": []}]
+  },
+  "clauses": [
+    {"name": "required-creation", "kind": "must_allow", "subject": "app",
+     "verb": "create", "api_group": "", "resource": "pods",
+     "namespace": "frontend", "names": {"empty": true}},
+    {"name": "forbidden-bulk-deletion", "kind": "must_not_grant", "subject": "app",
+     "verb": "deletecollection", "api_group": "", "resource": "pods",
+     "namespace": "frontend", "names": {"empty": true}}
+  ],
+  "change_scope": [
+    {"subject": "app", "verb": "deletecollection", "api_group": "",
+     "resource": "pods", "namespace": "frontend", "names": {"empty": true}}
+  ]
+}
+```
+
+These two verbs use an **empty effective authorization name**. `names: null`
+and `names: {"empty": true}` both select that singleton; name lists and
+complements are rejected. A create request's body `metadata.name` or
+`generateName` does not constrain its initial RBAC permission. Likewise,
+`fieldSelector=metadata.name=example` on collection DELETE does not become an
+authorization name. This differs from the supported list/watch name-selector
+behavior. Soundcheck does not interpret the body or model which objects a
+deletion filter selects.
+
+Namespaced collection writes require a nonempty namespace, or a reviewed
+namespace include/exclude selector. `namespace: null` is rejected for those
+resources; it does not mean “write across every namespace.” Nodes still require
+`namespace: null` for cluster scope and can receive grants only through
+ClusterRoleBindings. Named POST paths, subresources and non-resource URL
+authorization remain outside this profile.
+
+Policy `resourceNames` are literal: an omitted or empty list is unrestricted;
+`["example"]` and `["*"]` do not match the new empty-name requests, while
+**`[""]` does**. Such an empty-string grant does not restrict created/deleted
+objects by name. Named `delete` and `deletecollection` are distinct verbs;
+granting one does not grant the other unless another rule or wildcard does.
+The [pinned-source scope record](plans/2026-11-rbac-collection-writes.md)
+links the Kubernetes parser, matcher and authorization boundary behind these rules.
+
+The profile is `kubernetes-rbac-v1.34-collection-write-v1`. Its JSON remains
+profile schema 3, declaring contract version 6 and all eight verbs. Report
+schema 10 and evidence shapes are unchanged. Use:
+
+```sh
+dune exec soundcheck -- profile kubernetes-rbac --contract-version 6
+dune exec soundcheck -- profile kubernetes-rbac --contract-version 6 --format json
+```
+
+Preservation covers all eight verbs and all eight resources for **every frozen
+identity**, including dimensions absent from clauses. Adding or removing a
+creation/bulk-deletion grant outside `change_scope` fails repair verification.
+Schema 5 intentionally retains its six-verb preservation domain; an upgrade
+requires independent review of the broader requirements and approved changes.
+Schemas 1–5 keep their canonical bytes, domains and profile IDs.
+
+All interfaces use the same frozen contract: CLI/library verification and
+comparison, contract review, evidence, config-only MCP, trusted-base CI repair
+gates and submitted-repair evaluation. A proof concerns initial RBAC grants,
+not mutation success, body contents, admission, extra authorization checks,
+controller/workload effects or the number/identity of deleted objects.
 
 ## Supported profiles
 
@@ -659,6 +739,10 @@ outside the request domain.
 boundary, including aggregate consistency and URL-rule coexistence, with the
 schema-5 resource catalogue and request domains described above. Its `-v1`
 suffix identifies the first revision of this broader resource profile.
+
+`kubernetes-rbac-v1.34-collection-write-v1` retains that snapshot, identity and
+resource boundary, adding the schema-6 empty-name create/deletecollection
+request classes described above. Existing profiles do not gain these verbs.
 
 All supplied objects are checked, including unbound roles and unrelated
 bindings. Malformed input, unknown fields, duplicate identities, missing
@@ -769,7 +853,7 @@ selected profile.
 
 Both RBAC commands emit report schema 10. Violations include `object_request`,
 `identity_groups` and `granting_rules`; legacy HTTP fields are unused placeholders.
-The selected profile defines `resource_kind`: schema 5 uses qualified
+The selected profile defines `resource_kind`: schemas 5 and 6 use qualified
 discriminators for noncore resources as listed in its catalogue. Consumers must
 not assume every object request belongs to the core API group.
 Preservation uses a `must_preserve` clause with before/after RBAC decisions in

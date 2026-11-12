@@ -33,6 +33,11 @@ let domain spec =
       Ir.Or [reads;Ir.And [Ir.Or [Ir.Method_is "update";Ir.Method_is "patch";Ir.Method_is "delete"];
                           named_namespace;name]]
     else reads in
+  let requests = if Contract_spec.version spec = 6 then
+      Ir.Or [requests;
+        Ir.And [Ir.Or [Ir.Method_is "create";Ir.Method_is "deletecollection"];
+                named_namespace;Ir.Object_is (Ir.Object_name,"")]]
+    else requests in
   Ir.And [Ir.Has_object_request;requests;
     Ir.Or (List.map (fun (identity : Identity.identity) -> Ir.Principal_is identity.username)
       (Contract_spec.identities spec));
@@ -66,7 +71,8 @@ let grant_id binding index =
 let policy spec snapshot : Ir.policy =
   let identities = Contract_spec.identities spec in
   let resources = Resource_domain.for_version (Contract_spec.version spec) in
-  let verbs = if Contract_spec.version spec >= 3 then ["get";"list";"watch";"update";"patch";"delete"]
+  let verbs = if Contract_spec.version spec = 6 then ["get";"list";"watch";"update";"patch";"delete";"create";"deletecollection"]
+    else if Contract_spec.version spec >= 3 then ["get";"list";"watch";"update";"patch";"delete"]
     else ["get";"list";"watch"] in
   let rules = Snapshot.grants snapshot |> List.concat_map (fun (grant : Snapshot.bound_grant) ->
       let binding = grant.binding in

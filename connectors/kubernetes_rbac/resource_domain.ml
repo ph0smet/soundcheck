@@ -10,7 +10,7 @@ let expanded = legacy @ [
 
 let for_version = function
   | 1 | 2 | 3 | 4 -> legacy
-  | 5 -> expanded
+  | 5 | 6 -> expanded
   | _ -> invalid_arg "unsupported RBAC contract version"
 
 let find ~version ~api_group ~resource =
