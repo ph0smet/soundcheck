@@ -31,9 +31,10 @@ let kind = "kubernetes-rbac-access"
 let scope_fields version =
   ["subject";"namespace";"resource";"names"]
   @ (if version >= 2 then ["verb"] else [])
-  @ (if version = 5 then ["api_group"] else [])
+  @ (if version >= 5 then ["api_group"] else [])
 
-let collection_verb verb = verb = "list" || verb = "watch"
+let collection_read_verb verb = verb = "list" || verb = "watch"
+let collection_write_verb verb = verb = "create" || verb = "deletecollection"
 
 let selector_values ~allow_empty ~valid ~expected path value =
   let values = strings path value in
@@ -47,7 +48,9 @@ let selector_values ~allow_empty ~valid ~expected path value =
   List.sort String.compare values
 
 let parse_namespace version verb path = function
-  | `Null when version >= 2 && collection_verb verb -> Exact_namespace ""
+  | `Null when version >= 2 && collection_read_verb verb -> Exact_namespace ""
+  | `Null when version = 6 && collection_write_verb verb ->
+    reject path "create/deletecollection of namespaced resources require a nonempty namespace; there is no all-namespace write scope. Use an independently reviewed namespace or include/exclude selector"
   | `Null -> reject path "null denotes only the all-namespace list/watch endpoint (schema 2+), not every named namespace; choose the independently intended scope"
   | `String "*" -> reject path "\"*\" is not a namespace wildcard; schema 4 supports reviewed include/exclude selectors over nonempty namespaces"
   | `String ns -> Exact_namespace (namespace path ns)
@@ -64,19 +67,31 @@ let parse_namespace version verb path = function
   | `O _ -> reject path "namespace include/exclude selectors require contract schema 4; a contract upgrade needs separate requirement review"
   | _ -> reject path "namespace must be a DNS label; only list/watch permit null for the all-namespace endpoint"
 
-let parse_names version verb path = function
+let parse_names version verb path value =
+  if version = 6 && collection_write_verb verb then
+    (* Collection writes have no object name at initial authorization. Do not
+       let a name selector appear to constrain the created/deleted objects. *)
+    match value with
+    | `Null -> All_names
+    | `O _ ->
+      let fields = obj path ["empty";"exclude";"include_empty"] value in
+      (match fields with
+       | ["empty",`Bool true] -> Empty_name
+       | _ -> reject path "create/deletecollection require names:null or {\"empty\":true}; their effective authorization name is empty, not a request-body or deletion-target name")
+    | _ -> reject path "create/deletecollection require names:null or {\"empty\":true}; object-name lists or complements cannot restrict their initial RBAC authorization"
+  else match value with
   | `Null -> All_names
   | `O _ as value when version >= 4 ->
     let fields = obj path ["empty";"exclude";"include_empty"] value in
     (match fields with
-     | ["empty",`Bool true] when collection_verb verb -> Empty_name
+     | ["empty",`Bool true] when collection_read_verb verb -> Empty_name
      | ["empty",_] -> reject (path ^ ".empty") "empty:true selects only the empty effective authorization name for list/watch; it cannot select named get/update/patch/delete requests"
      | _ when List.length fields = 2 && List.mem_assoc "exclude" fields && List.mem_assoc "include_empty" fields ->
        let excluded = selector_values ~allow_empty:true ~valid:dns_subdomain
            ~expected:"a DNS1123 object name; exclusions are literal names, not wildcards"
            (path ^ ".exclude") (field path "exclude" fields) in
        let include_empty = match field path "include_empty" fields with
-         | `Bool value when not value || collection_verb verb -> value
+         | `Bool value when not value || collection_read_verb verb -> value
          | _ -> reject (path ^ ".include_empty") "must be boolean; only list/watch permit true for empty effective authorization names" in
        Other_names {excluded;include_empty}
      | _ -> reject path "use empty:true for list/watch, or exclude with an explicit include_empty boolean")
@@ -91,18 +106,19 @@ let parse_scope version identities path fields =
   if not (List.exists (fun (i : Identity.identity) -> i.username = subject) identities) then
     reject (path ^ ".subject") (Printf.sprintf "%S must exactly match a frozen context.identities[].username; review the caller identity independently, without inferring it or its groups from grants" subject);
   let verb = if version = 1 then "get" else string_field path "verb" fields in
-  let verbs = if version >= 3 then ["get";"list";"watch";"update";"patch";"delete"]
+  let verbs = if version = 6 then ["get";"list";"watch";"update";"patch";"delete";"create";"deletecollection"]
+    else if version >= 3 then ["get";"list";"watch";"update";"patch";"delete"]
     else ["get";"list";"watch"] in
   if not (List.mem verb verbs) then
     reject (path ^ ".verb") (Printf.sprintf "%S is outside contract schema %d; supported verbs: %s. Do not substitute a different operation to make the contract pass" verb version (String.concat ", " verbs));
   let resource = string_field path "resource" fields in
-  let api_group = if version=5 then string_field path "api_group" fields else "" in
+  let api_group = if version>=5 then string_field path "api_group" fields else "" in
   let entry = match Resource_domain.find ~version ~api_group ~resource with
     | Some entry -> entry
     | None when version < 5 -> reject (path ^ ".resource")
         (Printf.sprintf "%S is outside the modeled resource domain; use core configmaps or secrets only, with no API-group prefix or subresource" resource)
     | None -> reject (path ^ ".resource")
-        (Printf.sprintf "API group %S and resource %S are outside contract schema %d's fixed resource catalogue; use separate exact api_group/resource fields in schema 5, with no wildcard, qualified alias or subresource. A contract upgrade needs separate requirement review" api_group resource version) in
+        (Printf.sprintf "API group %S and resource %S are outside contract schema %d's fixed resource catalogue; use separate exact api_group/resource fields in schema %d, with no wildcard, qualified alias or subresource. A contract upgrade needs separate requirement review" api_group resource version version) in
   let ns_value = field path "namespace" fields in
   let ns = if entry.namespaced then parse_namespace version verb (path ^ ".namespace") ns_value
     else match ns_value with
@@ -126,8 +142,8 @@ let parse_value value =
   let path = "contract" in
   let fields = obj path ["schema_version";"kind";"context";"clauses";"change_scope"] value in
   let version = match field path "schema_version" fields with
-   | `Number "1" -> 1 | `Number "2" -> 2 | `Number "3" -> 3 | `Number "4" -> 4 | `Number "5" -> 5
-   | _ -> reject path "schema_version must be integer 1, 2, 3, 4 or 5" in
+   | `Number "1" -> 1 | `Number "2" -> 2 | `Number "3" -> 3 | `Number "4" -> 4 | `Number "5" -> 5 | `Number "6" -> 6
+   | _ -> reject path "schema_version must be integer 1, 2, 3, 4, 5 or 6" in
   require_equal (path ^ ".kind") (string_field path "kind" fields) kind;
   let identities = Identity.parse_context (field path "context" fields)
     |> List.sort (fun (a : Identity.identity) b -> String.compare a.username b.username) in
@@ -205,9 +221,11 @@ let describe_scope scope =
      | Outside_namespaces [] -> "in every valid nonempty namespace"
      | Outside_namespaces values -> "in every valid nonempty namespace except " ^ quoted values)
     (match scope.names with
-     | All_names when collection_verb scope.verb -> "empty or any valid effective authorization name"
+     | All_names when collection_write_verb scope.verb -> "empty effective authorization name only; object contents and deletion targets are not constrained"
+     | All_names when collection_read_verb scope.verb -> "empty or any valid effective authorization name"
      | All_names -> "all valid names"
-     | Names names -> (if collection_verb scope.verb then "effective authorization name: " else "") ^ quoted names
+     | Names names -> (if collection_read_verb scope.verb then "effective authorization name: " else "") ^ quoted names
+     | Empty_name when collection_write_verb scope.verb -> "empty effective authorization name only; object contents and deletion targets are not constrained"
      | Empty_name -> "empty effective authorization name only"
      | Other_names {excluded;include_empty} ->
        (if include_empty then "empty or any valid effective authorization name" else "any valid nonempty name")
@@ -223,6 +241,7 @@ let to_contract spec : Contract.t =
      | 2 -> "Frozen get/list/watch RBAC access requirements"
      | 3 -> "Frozen read and named-write RBAC access requirements"
      | 4 -> "Frozen read and named-write RBAC requirements with explicit scope selectors"
+     | 6 -> "Frozen read, named-write and collection-write RBAC requirements over the explicit resource catalogue"
      | _ -> "Frozen read and named-write RBAC requirements over the explicit resource catalogue");
    clauses=List.map (fun clause ->
        let make = match clause.kind with
@@ -244,7 +263,7 @@ let scope_json version scope =
      | Empty_name -> `O ["empty",`Bool true]
      | Other_names {excluded;include_empty} -> `O ["exclude",values excluded;"include_empty",`Bool include_empty])]
   @ (if version >= 2 then ["verb",`String scope.verb] else [])
-  @ (if version = 5 then ["api_group",`String scope.api_group] else [])
+  @ (if version >= 5 then ["api_group",`String scope.api_group] else [])
 
 let canonical spec =
   json (`O ["schema_version",`Number (string_of_int spec.version);"kind",`String kind;

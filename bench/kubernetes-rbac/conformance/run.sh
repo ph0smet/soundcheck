@@ -55,6 +55,7 @@ export CGO_ENABLED=0
 "$soundcheck_python" "$soundcheck_script_dir/test_nonresource_runner.py"
 "$soundcheck_python" "$soundcheck_script_dir/test_aggregation_runner.py"
 "$soundcheck_python" "$soundcheck_script_dir/test_resources_runner.py"
+"$soundcheck_python" "$soundcheck_script_dir/test_collection_writes_runner.py"
 dune build bench/kubernetes-rbac/model_oracle.exe cli/main.exe
 "$soundcheck_python" "$soundcheck_script_dir/run.py" \
   --reference "$soundcheck_build_dir/reference-oracle" \
@@ -152,3 +153,13 @@ dune build bench/kubernetes-rbac/model_oracle.exe cli/main.exe
   --module-metadata "$soundcheck_build_dir/kubernetes-module.json" \
   --z3 "$soundcheck_z3" \
   --output "$soundcheck_build_dir/resources/results.json"
+
+# V6 adds only empty-name create/deletecollection over the same catalogue.
+# Compare request-body/selector boundaries and preservation against native RBAC.
+"$soundcheck_python" "$soundcheck_script_dir/run_collection_writes.py" \
+  --reference "$soundcheck_build_dir/reference-oracle" \
+  --model "$soundcheck_repo_root/_build/default/bench/kubernetes-rbac/model_oracle.exe" \
+  --soundcheck "$soundcheck_repo_root/_build/default/cli/main.exe" \
+  --module-metadata "$soundcheck_build_dir/kubernetes-module.json" \
+  --z3 "$soundcheck_z3" \
+  --output "$soundcheck_build_dir/collection-writes/results.json"

@@ -470,4 +470,43 @@ let () =
       ((first_attempt rows).failure=None && (first_attempt rows).repair_result=Some "unknown"
        && exit_code rows=3 && (List.hd rows).profile=Some K.Assurance.resource_profile_id))
     ["unsupported";"candidate-unknown";"preservation-unknown"];
+  let collection_contract = Printf.sprintf {|{
+    "schema_version":6,"kind":"kubernetes-rbac-access",
+    "context":{"schema_version":1,"snapshot_complete":true,
+      "identities":[{"username":%S,"groups":["operators"]}]},
+    "clauses":[
+      {"name":"required","kind":"must_allow","subject":%S,"verb":"create",
+       "api_group":"","resource":"pods","namespace":"frontend","names":{"empty":true}},
+      {"name":"forbidden","kind":"must_not_grant","subject":%S,"verb":"deletecollection",
+       "api_group":"","resource":"nodes","namespace":null,"names":null}],
+    "change_scope":[]}|} secret secret secret in
+  let collection_suite=freeze_contract collection_contract in
+  let rows=evaluate_suite collection_suite (fun frozen ~before:_ ~after:_->
+    check "collection-write contract frozen before evaluator dispatch" (K.Contract_spec.version frozen=6);
+    comparison frozen "valid") in
+  let json=K.Input.parse (to_json rows) in
+  check "v6 evaluator retains format2 and exact collection-write profile"
+    (exit_code rows=0 && field "experimental_format_version" json=`Number "2"
+     && field "profile" json=`String K.Assurance.collection_write_profile_id);
+  List.iter (fun prior_profile ->
+    List.iter (fun (label,forge) ->
+      let rows=evaluate_suite collection_suite (fun frozen ~before:_ ~after:_->forge (comparison frozen "valid")) in
+      check ("v6 evaluator rejects "^label^" downgrade to "^prior_profile)
+        ((first_attempt rows).failure=Some Report_mismatch && exit_code rows=1))
+      ["both profiles",map_reports (with_profile prior_profile);
+       "candidate profile",(fun (r:K.Verify.comparison)->
+         {r with candidate_report=Option.map (with_profile prior_profile) r.candidate_report});
+       "final profile",(fun (r:K.Verify.comparison)->{r with report=with_profile prior_profile r.report})])
+    [K.Assurance.profile_id;K.Assurance.read_profile_id;K.Assurance.write_profile_id;
+     K.Assurance.scoped_profile_id;K.Assurance.resource_profile_id];
+  List.iter (fun mode ->
+    let rows=evaluate_suite collection_suite (fun frozen ~before:_ ~after:_->comparison frozen mode) in
+    check ("v6 evaluator retains uncertainty "^mode)
+      ((first_attempt rows).failure=None && (first_attempt rows).repair_result=Some "unknown"
+       && exit_code rows=3 && (List.hd rows).profile=Some K.Assurance.collection_write_profile_id))
+    ["unsupported";"candidate-unknown";"preservation-unknown"];
+  let upgraded=evaluate_suite resource_suite (fun frozen ~before:_ ~after:_->
+    map_reports (with_profile K.Assurance.collection_write_profile_id) (comparison frozen "valid")) in
+  check "v5 evaluator cannot silently upgrade to collection-write profile"
+    ((first_attempt upgraded).failure=Some Report_mismatch && exit_code upgraded=1);
   Printf.printf "All %d RBAC submitted-repair unit checks passed.\n" !checks

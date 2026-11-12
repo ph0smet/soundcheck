@@ -1,0 +1,68 @@
+{
+  "change_scope": [
+    {
+      "api_group": "",
+      "names": {
+        "empty": true
+      },
+      "namespace": "team-a",
+      "resource": "pods",
+      "subject": "app",
+      "verb": "deletecollection"
+    }
+  ],
+  "clauses": [
+    {
+      "api_group": "",
+      "kind": "must_allow",
+      "name": "required-create",
+      "names": {
+        "empty": true
+      },
+      "namespace": "team-a",
+      "resource": "pods",
+      "subject": "app",
+      "verb": "create"
+    },
+    {
+      "api_group": "",
+      "kind": "must_allow",
+      "name": "required-read",
+      "names": [
+        "settings"
+      ],
+      "namespace": "team-a",
+      "resource": "configmaps",
+      "subject": "app",
+      "verb": "get"
+    },
+    {
+      "api_group": "",
+      "kind": "must_not_grant",
+      "name": "forbidden-bulk-delete",
+      "names": null,
+      "namespace": "team-a",
+      "resource": "pods",
+      "subject": "app",
+      "verb": "deletecollection"
+    }
+  ],
+  "context": {
+    "identities": [
+      {
+        "groups": [],
+        "username": "app"
+      },
+      {
+        "groups": [
+          "operators"
+        ],
+        "username": "ops"
+      }
+    ],
+    "schema_version": 1,
+    "snapshot_complete": true
+  },
+  "kind": "kubernetes-rbac-access",
+  "schema_version": 6
+}

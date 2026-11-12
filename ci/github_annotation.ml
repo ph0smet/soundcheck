@@ -67,6 +67,9 @@ let counterexample (value : Report.counterexample) =
             else "with effective name " ^ object_request.name in
           Printf.sprintf "%s %s %s %s %s" value.principal value.action
             object_request.resource_kind scope names
+        else if object_request.name = "" then
+          Printf.sprintf "%s %s %s %s with empty authorization name"
+            value.principal value.action object_request.resource_kind scope
         else Printf.sprintf "%s %s %s/%s %s" value.principal
             value.action object_request.resource_kind object_request.name
             scope in

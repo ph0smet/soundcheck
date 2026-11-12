@@ -13,6 +13,7 @@ let report ?clause ?unsupported spec result : Report.t =
    property_description=(match Contract_spec.version spec with
      | 1 -> description
      | 2 -> "The frozen get/list/watch requirements hold within the static RBAC read profile; absence of a grant is NoOpinion, not final API-server denial."
+     | 6 -> "The frozen read, named-write and collection-write requirements hold within the static RBAC profile; grants describe initial authorization, not object contents, deletion targets or successful mutation, and NoOpinion is not final API-server denial."
      | _ -> "The frozen read and named-write requirements hold within the static RBAC profile; write grants describe authorization, not successful mutation, and NoOpinion is not final API-server denial.");
    assurance=Some (Assurance.assessment ~version:(Contract_spec.version spec) ?reason:unsupported ());clause;
    frozen_spec=Some (Contract_spec.frozen_spec spec)}
@@ -49,7 +50,9 @@ let request_description model =
       (Option.get model.principal_name) model.method_ resource coordinates.name location
   else Printf.sprintf "%S %s %s %s (%s)"
     (Option.get model.principal_name) model.method_ resource location
-    (if coordinates.name = "" then "no effective exact-name restriction"
+    (if model.method_ = "create" || model.method_ = "deletecollection" then
+       "empty authorization name; object contents and deletion targets are not constrained"
+     else if coordinates.name = "" then "no effective exact-name restriction"
      else Printf.sprintf "effective authorization name %S" coordinates.name)
 
 let contract_report_of_result spec policy = function
@@ -120,6 +123,7 @@ let compare_with_trace ?z3 spec ~before ~after =
          property_description=(match Contract_spec.version spec with
            | 1 -> "The candidate satisfies the frozen access requirements and preserves every RBAC decision outside the approved change scope, within the fixed identity and named-get domain."
            | 2 -> "The candidate satisfies the frozen access requirements and preserves every RBAC decision outside the approved change scope, within the fixed identity and get/list/watch domain."
+           | 6 -> "The candidate satisfies the frozen access requirements and preserves every RBAC decision outside the approved change scope, across all eight verbs and all eight resources for every frozen identity. This concerns initial authorization, not successful mutation, object contents or deletion targets."
            | _ -> "The candidate satisfies the frozen access requirements and preserves every RBAC decision outside the approved change scope, within the fixed identity and read/named-write domain. This does not assert successful mutation or preservation of object contents.")},
         Contract_verify.Executed answer
       | _ -> candidate,Contract_verify.Not_executed in

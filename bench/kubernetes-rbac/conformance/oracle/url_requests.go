@@ -30,6 +30,7 @@ type urlRequest struct {
 	Groups   []string `json:"groups"`
 	Method   string   `json:"method"`
 	URL      string   `json:"url"`
+	Body     string   `json:"body,omitempty"`
 }
 
 // Every field is explicit: empty name and namespace have authorization meaning.
@@ -122,6 +123,9 @@ func decodeURLRequests(data []byte) ([]urlRequest, []string) {
 				errors = append(errors, prefix+"."+field+": required non-null field")
 			}
 		}
+		if body, exists := fields["body"]; exists && bytes.Equal(bytes.TrimSpace(body), []byte("null")) {
+			errors = append(errors, prefix+".body: must be a string when supplied")
+		}
 		if req.ID == "" || seen[req.ID] || req.Username == "" {
 			errors = append(errors, prefix+": nonempty unique ID and nonempty username required")
 		}
@@ -163,7 +167,10 @@ func evaluateURLs(manifestJSON, requestsJSON []byte) urlResult {
 	factory := apirequest.RequestInfoFactory{APIPrefixes: sets.NewString("api", "apis"),
 		GrouplessAPIPrefixes: sets.NewString("api")}
 	for _, req := range requests {
-		httpRequest, err := http.NewRequest(req.Method, req.URL, nil)
+		// A body is deliberately carried as raw text. RequestInfoFactory must
+		// derive initial authorization attributes from the request target, not
+		// infer an object name from metadata.name or metadata.generateName.
+		httpRequest, err := http.NewRequest(req.Method, req.URL, strings.NewReader(req.Body))
 		if err != nil {
 			out.ValidationErrors = append(out.ValidationErrors, req.ID+": "+err.Error())
 			continue
