@@ -807,6 +807,10 @@ audience authorization. These checks and operational effects are outside this
 profile. CLI/library, review, evidence, frozen MCP, trusted-base CI and
 submitted-repair evaluation all use the same selected contract and catalogue.
 
+The [synthetic subresource corpus](../bench/kubernetes-rbac/subresources/README.md)
+compares frozen expectations with native Kubernetes, concrete lowering and SMT,
+including URL/body controls and contract/preservation witness replay.
+
 ## Supported profiles
 
 The profile IDs for schemas 1–4 end in `-v3`. This revision accepts already-resolved,
