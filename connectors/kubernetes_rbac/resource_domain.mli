@@ -16,8 +16,18 @@ val kind : t -> string
 val of_kind : version:int -> string -> t option
 val description : t -> string
 
-(** Per-entry operations, not a Cartesian product of verbs and resources. *)
+(** Per-entry native initial verbs. Never includes synthetic operation IDs. *)
 val verbs : version:int -> t -> string list
+
+(** Contract operation catalogue, including the two conditional SSA branches
+    for base resources in schema 8. *)
+val operations : version:int -> t -> string list
+
+(** Native RBAC prerequisites at the same request coordinates. Callers first
+    check membership in the operation catalogue. State denotes a hypothetical
+    storage branch; it is not an observation of live object existence. *)
+val checks : operation:string -> string list
+val object_state : operation:string -> string option
 
 (** Authorization attribute domains: named, empty, or empty-or-named. *)
 val name_domain : t -> verb:string -> string

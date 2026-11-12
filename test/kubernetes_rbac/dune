@@ -206,6 +206,23 @@
  (modules subresources_t)
  (libraries soundcheck_core soundcheck_kubernetes_rbac))
 
+(test
+ (name apply_t)
+ (modules apply_t)
+ (libraries soundcheck_core soundcheck_kubernetes_rbac))
+
+(executable
+ (name apply_adapters_t)
+ (modules apply_adapters_t)
+ (libraries soundcheck_core soundcheck_kubernetes_rbac unix))
+
+(rule
+ (alias runtest)
+ (deps ../../scripts/verify-approved-contract.sh)
+ (action
+  (run %{exe:apply_adapters_t.exe} %{exe:../../cli/main.exe}
+   ../../scripts/verify-approved-contract.sh %{exe:../../bench/repair/rbac_main.exe})))
+
 (executable
  (name subresource_adapters_t)
  (modules subresource_adapters_t)

@@ -15,6 +15,7 @@ let report ?clause ?unsupported spec result : Report.t =
      | 2 -> "The frozen get/list/watch requirements hold within the static RBAC read profile; absence of a grant is NoOpinion, not final API-server denial."
      | 6 -> "The frozen read, named-write and collection-write requirements hold within the static RBAC profile; grants describe initial authorization, not object contents, deletion targets or successful mutation, and NoOpinion is not final API-server denial."
      | 7 -> "The frozen requirements hold within the explicit base-resource and subresource operation catalogue; grants describe initial RBAC authorization, not successful execution, token issuance, response contents, admission or additional authorization, and NoOpinion is not final API-server denial."
+     | 8 -> "The frozen initial RBAC and conditional server-side apply requirements hold within the explicit operation catalogue. Apply requires every modeled prerequisite at the same target; the object-state branch is hypothetical, not observed. NoOpinion means at least one prerequisite lacks an RBAC grant, not final API-server denial; Allow does not establish API success."
      | _ -> "The frozen read and named-write requirements hold within the static RBAC profile; write grants describe authorization, not successful mutation, and NoOpinion is not final API-server denial.");
    assurance=Some (Assurance.assessment ~version:(Contract_spec.version spec) ?reason:unsupported ());clause;
    frozen_spec=Some (Contract_spec.frozen_spec spec)}
@@ -39,7 +40,7 @@ let counterexample spec policy ~note model : Report.counterexample =
 
 let request_description model =
   let coordinates = Option.get model.Solve.object_request in
-  let entry = Resource_domain.of_kind ~version:7 coordinates.resource_kind in
+  let entry = Resource_domain.of_kind ~version:8 coordinates.resource_kind in
   let resource = match entry with Some entry -> Resource_domain.description entry
     | None -> coordinates.resource_kind in
   let location =
@@ -49,6 +50,10 @@ let request_description model =
   if Option.fold ~none:false ~some:(fun entry -> entry.Resource_domain.subresource<>"") entry then
     Printf.sprintf "%S %s %s on parent %S %s"
       (Option.get model.principal_name) model.method_ resource coordinates.name location
+  else if List.mem model.method_ ["apply-existing";"apply-missing"] then
+    Printf.sprintf "%S %s %s %S %s (conditional %s-object storage branch)"
+      (Option.get model.principal_name) model.method_ resource coordinates.name location
+      (Option.get (Resource_domain.object_state ~operation:model.method_))
   else if List.mem model.method_ ["get";"update";"patch";"delete"] then
     Printf.sprintf "%S %s %s %S %s"
       (Option.get model.principal_name) model.method_ resource coordinates.name location
@@ -59,6 +64,17 @@ let request_description model =
      else if coordinates.name = "" then "no effective exact-name restriction"
      else Printf.sprintf "effective authorization name %S" coordinates.name)
 
+let prerequisite_description policy request =
+  Lower.authorization_checks policy request |> List.map (fun (verb,grants) ->
+    verb ^ "=" ^ if grants=[] then "NoOpinion (missing grant)" else "Allow")
+  |> String.concat ", "
+
+let apply_note policy model =
+  match Resource_domain.object_state ~operation:model.Solve.method_ with
+  | None -> ""
+  | Some _ -> "; prerequisite evaluation (not an execution trace): "
+      ^ prerequisite_description policy (Witness.request_of_model model)
+
 let contract_report_of_result spec policy = function
   | Contract_verify.Proved -> report spec Report.Proved
   | Vacuous clause -> report ~clause:(report_clause clause) spec Report.Vacuous
@@ -68,9 +84,13 @@ let contract_report_of_result spec policy = function
         (Contract.name left) (Contract.name right)))
   | Unknown reason -> report spec (Report.Unknown reason)
   | Violated (clause,model) ->
-    let decision = match clause with Contract.Must_allow _ -> "NoOpinion (required RBAC grant is absent)"
+    let compound = Option.is_some (Resource_domain.object_state ~operation:model.method_) in
+    let decision = match clause with
+      | Contract.Must_allow _ when compound -> "NoOpinion (a required RBAC prerequisite is absent)"
+      | Contract.Must_deny _ when compound -> "Allow (every forbidden operation prerequisite grants)"
+      | Contract.Must_allow _ -> "NoOpinion (required RBAC grant is absent)"
       | Contract.Must_deny _ -> "Allow (forbidden RBAC grant exists)" in
-    let note = request_description model ^ " => " ^ decision in
+    let note = request_description model ^ " => " ^ decision ^ apply_note policy model in
     report ~clause:(report_clause clause) spec
       (Report.Violated (counterexample spec policy ~note model))
 
@@ -120,7 +140,11 @@ let compare_with_trace ?z3 spec ~before ~after =
             let request = Witness.request_of_model model in
             let decision policy = if Ir.possibly_allows policy request then "Allow" else "NoOpinion" in
             let note = Printf.sprintf "%s changed from %s to %s outside the approved change scope"
-              (request_description model) (decision before) (decision after) in
+              (request_description model) (decision before) (decision after)
+              ^ (match Resource_domain.object_state ~operation:request.action with
+                 | None -> ""
+                 | Some _ -> Printf.sprintf "; prerequisite evaluations (not execution traces): baseline [%s]; candidate [%s]"
+                     (prerequisite_description before request) (prerequisite_description after request)) in
             Report.Violated (counterexample spec after ~note model),
             Some {Report.name=id;description=note;kind=Report.Must_preserve} in
         {candidate with result;clause;property_name="rbac-repair-preservation";
@@ -129,6 +153,7 @@ let compare_with_trace ?z3 spec ~before ~after =
            | 2 -> "The candidate satisfies the frozen access requirements and preserves every RBAC decision outside the approved change scope, within the fixed identity and get/list/watch domain."
            | 6 -> "The candidate satisfies the frozen access requirements and preserves every RBAC decision outside the approved change scope, across all eight verbs and all eight resources for every frozen identity. This concerns initial authorization, not successful mutation, object contents or deletion targets."
            | 7 -> "The candidate satisfies the frozen access requirements and preserves every initial RBAC decision outside the approved change scope, over all supported base-resource and subresource operations for every frozen identity. This does not assert successful execution, token issuance, response contents or final authorization."
+           | 8 -> "The candidate satisfies the frozen requirements and preserves every aggregate initial or conditional-apply operation decision outside the exact approved scope for every frozen identity. Equivalent patch/apply-existing predicates remain distinct operation classes. This does not preserve every intermediate grant or assert live object state, successful API execution or final authorization."
            | _ -> "The candidate satisfies the frozen access requirements and preserves every RBAC decision outside the approved change scope, within the fixed identity and read/named-write domain. This does not assert successful mutation or preservation of object contents.")},
         Contract_verify.Executed answer
       | _ -> candidate,Contract_verify.Not_executed in

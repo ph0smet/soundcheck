@@ -593,4 +593,89 @@ let () =
     check "external submissions cannot select subresource or frozen schema"
       (Result.is_error (parse_submissions subresource_suite bytes)))
     ["\"subresource\":\"\"";"\"schema_version\":6";"\"change_scope\":[]"];
+  let apply_contract ?(required_operation="apply-missing") ?(changes=true) () = Printf.sprintf {|{
+    "schema_version":8,"kind":"kubernetes-rbac-access",
+    "context":{"schema_version":1,"snapshot_complete":true,
+      "identities":[{"username":%S,"groups":["operators"]}]},
+    "clauses":[
+      {"name":"required","kind":"must_allow","subject":%S,"operation":%S,
+       "api_group":"apps","resource":"deployments","subresource":"",
+       "namespace":"frontend","names":["web"]},
+      {"name":"forbidden","kind":"must_not_grant","subject":%S,"operation":"apply-missing",
+       "api_group":"","resource":"pods","subresource":"",
+       "namespace":"frontend","names":["worker"]}],
+    "change_scope":%s}|} secret secret required_operation secret
+    (if changes then Printf.sprintf {|[{"subject":%S,"operation":"apply-missing","api_group":"",
+      "resource":"pods","subresource":"","namespace":"frontend","names":["worker"]}]|} secret
+     else "[]") in
+  let apply_profile="kubernetes-rbac-v1.34-apply-v1" in
+  let apply_source=apply_contract () in
+  let apply_spec=ok (K.Contract_spec.of_string apply_source) in
+  let apply_suite=freeze_contract apply_source in
+  let rows=evaluate_suite apply_suite (fun frozen ~before:_ ~after:_->
+    check "apply operations frozen before evaluator dispatch" (K.Contract_spec.version frozen=8);
+    check "required apply branch survives dispatch"
+      (K.Contract_spec.canonical frozen=K.Contract_spec.canonical apply_spec);
+    comparison frozen "valid") in
+  let json=K.Input.parse (to_json rows) in
+  check "v8 submitted evaluation retains format2 and exact apply profile"
+    (exit_code rows=0 && field "experimental_format_version" json=`Number "2"
+     && field "profile" json=`String apply_profile
+     && (List.hd rows).frozen_contract_sha256=Some (Sha256.string (K.Contract_spec.canonical apply_spec)));
+  List.iter (fun prior_profile ->
+    List.iter (fun (label,forge) ->
+      let rows=evaluate_suite apply_suite (fun frozen ~before:_ ~after:_->forge (comparison frozen "valid")) in
+      check ("v8 evaluator rejects "^label^" downgrade to "^prior_profile)
+        ((first_attempt rows).failure=Some Report_mismatch && exit_code rows=1))
+      ["both profiles",map_reports (with_profile prior_profile);
+       "candidate profile",(fun (r:K.Verify.comparison)->
+         {r with candidate_report=Option.map (with_profile prior_profile) r.candidate_report});
+       "final profile",(fun (r:K.Verify.comparison)->{r with report=with_profile prior_profile r.report})])
+    (List.init 7 (fun i -> K.Assurance.id_for_version (i+1)));
+  List.iter (fun (label,source) ->
+    let forged_spec=ok (K.Contract_spec.of_string source) in
+    List.iter (fun (stage,forge) ->
+      let rows=evaluate_suite apply_suite (fun frozen ~before:_ ~after:_->
+        forge (fun (report:Report.t) -> {report with frozen_spec=Some (K.Contract_spec.frozen_spec forged_spec)})
+          (comparison frozen "valid")) in
+      check ("v8 evaluator rejects "^stage^" "^label)
+        ((first_attempt rows).failure=Some Report_mismatch && exit_code rows=1))
+      ["both stages",map_reports;
+       "candidate stage",(fun transform (r:K.Verify.comparison) ->
+         {r with candidate_report=Option.map transform r.candidate_report});
+       "final stage",(fun transform (r:K.Verify.comparison) -> {r with report=transform r.report})])
+    ["schema downgrade",subresource_source;
+     "hypothetical state substitution",apply_contract ~required_operation:"apply-existing" ();
+     "native patch substitution",apply_contract ~required_operation:"patch" ();
+     "approved-scope substitution",apply_contract ~changes:false ()];
+  List.iter (fun mode ->
+    let rows=evaluate_suite apply_suite (fun frozen ~before:_ ~after:_->comparison frozen mode) in
+    check ("v8 evaluator retains uncertainty "^mode)
+      ((first_attempt rows).failure=None && (first_attempt rows).repair_result=Some "unknown"
+       && exit_code rows=3 && (List.hd rows).profile=Some apply_profile))
+    ["unsupported";"candidate-unknown";"preservation-unknown"];
+  let rows=evaluate_suite apply_suite (fun frozen ~before:_ ~after:_->
+    map_reports (with_profile subresource_profile) (comparison frozen "unsupported")) in
+  check "unsupported apply result cannot downgrade its profile"
+    ((first_attempt rows).failure=Some Report_mismatch && exit_code rows=1);
+  let rows=evaluate_suite subresource_suite (fun frozen ~before:_ ~after:_->
+    map_reports (with_profile apply_profile) (comparison frozen "valid")) in
+  check "schema7 result cannot silently opt into apply"
+    ((first_attempt rows).failure=Some Report_mismatch && exit_code rows=1);
+  let source=ref apply_source and read_count=ref 0 in
+  let suite=freeze ~read_suite:(fun path -> incr read_count;
+      Ok (if path="contract.json" then !source else "original baseline"))
+    ~suite_root:"unused" [task ()] in
+  source:=apply_contract ~required_operation:"patch" ~changes:false ();
+  let rows=evaluate_suite suite (fun frozen ~before ~after:_ ->
+    check "candidate cannot replace frozen apply branch or approved changes"
+      (before="original baseline" && K.Contract_spec.canonical frozen=K.Contract_spec.canonical apply_spec);
+    comparison frozen "valid") in
+  check "schema8 sources read only at freeze" (!read_count=2 && exit_code rows=0);
+  List.iter (fun extra ->
+    let bytes={|{"format_version":1,"attempts":[{"task":"task","id":"a","config":"candidate.json",|}^extra^"}]}" in
+    check "external submissions cannot select operation, state or frozen version"
+      (Result.is_error (parse_submissions apply_suite bytes)))
+    ["\"operation\":\"patch\"";"\"object_state\":\"existing\"";
+     "\"schema_version\":7";"\"contract_version\":7";"\"change_scope\":[]"];
   Printf.printf "All %d RBAC submitted-repair unit checks passed.\n" !checks

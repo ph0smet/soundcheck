@@ -321,7 +321,7 @@ dune exec soundcheck -- rbac check-contract \
 ```
 
 This read-only command uses the same strict contract reader as verification and
-prints a human-readable review of schemas 1–7: the selected profile, exact declared
+prints a human-readable review of schemas 1–8: the selected profile, exact declared
 identities and groups, ordered clause meanings, approved changes, and separate
 SHA-256 hashes for the raw artifact and canonical frozen contract. Artifact counts
 are reported after normalization; they measure size, not human authoring effort.
@@ -811,6 +811,122 @@ The [synthetic subresource corpus](../bench/kubernetes-rbac/subresources/README.
 compares frozen expectations with native Kubernetes, concrete lowering and SMT,
 including URL/body controls and contract/preservation witness replay.
 
+## Server-side apply contracts (schema 8)
+
+An identity may be allowed to patch an existing Deployment without being allowed
+to recreate it if missing. Schema 8 checks these two conditional server-side
+apply (SSA) branches independently:
+
+| `operation` | RBAC prerequisites at the same caller and target |
+| --- | --- |
+| `apply-existing` | Named `patch` |
+| `apply-missing` | Named `patch` **and** named `create` |
+
+These labels describe the branch taken by storage, not live object existence
+discovered by Soundcheck. A proof establishes the RBAC prerequisites for that
+branch, assuming the complete static snapshot and trusted identities. It does
+not establish that an apply request will succeed.
+
+The scope is the eight existing base resources: core ConfigMaps, Secrets, Pods,
+Services, Endpoints and Nodes, apps Deployments, and discovery.k8s.io EndpointSlices.
+SSA requires `subresource: ""` and a nonempty target name. Namespaced resources
+require nonempty namespace scopes; Nodes require `namespace: null`.
+Existing name/namespace sets and complements work within those domains.
+`names: null` selects every supported nonempty target name; empty-name selectors
+and complements with `include_empty: true` reject for SSA.
+
+For example, this complete contract requires applying updates to `web` while
+forbidding its recreation in `frontend`:
+
+```json
+{
+  "schema_version": 8,
+  "kind": "kubernetes-rbac-access",
+  "context": {
+    "schema_version": 1,
+    "snapshot_complete": true,
+    "identities": [{"username": "deployer", "groups": []}]
+  },
+  "clauses": [
+    {
+      "name": "update-existing-web", "kind": "must_allow",
+      "subject": "deployer", "operation": "apply-existing",
+      "api_group": "apps", "resource": "deployments", "subresource": "",
+      "namespace": "frontend", "names": ["web"]
+    },
+    {
+      "name": "do-not-recreate-web", "kind": "must_not_grant",
+      "subject": "deployer", "operation": "apply-missing",
+      "api_group": "apps", "resource": "deployments", "subresource": "",
+      "namespace": "frontend", "names": ["web"]
+    }
+  ],
+  "change_scope": [
+    {
+      "subject": "deployer", "operation": "apply-missing",
+      "api_group": "apps", "resource": "deployments", "subresource": "",
+      "namespace": "frontend", "names": ["web"]
+    }
+  ]
+}
+```
+
+The additional SSA `create` authorization uses the **named URL target**.
+A policy rule granting `create` with `resourceNames: ["web"]` can satisfy it,
+although that rule cannot grant ordinary collection creation, whose initial
+authorization name is empty. Patch and create may come from different bindings
+or roles, but must both match the same frozen identity and target coordinates.
+There is no added caller `get` or `update` prerequisite.
+
+`must_allow` on `apply-missing` requires both checks to grant. `must_not_grant`
+requires at least one to lack a grant; it does not forbid patch and create
+individually. In the example, removing a local, named create grant can stop
+recreation while retaining patch access. Removing a broader grant may change
+other permissions and fail preservation.
+
+Schema 8 uses `operation` **instead of** `verb` in every clause and change scope,
+including retained operations such as `"get"`, `"patch"` and `"create"`.
+Mixed fields and arbitrary operation IDs reject. All previous base/subresource
+request classes remain in its domain, for 99 resource/operation combinations.
+Schemas 1–7 keep their syntax, domains, profiles and canonical identities;
+changing the contract version requires separate review of intent.
+
+Preservation covers every supported operation for every frozen identity,
+including dimensions absent from clauses. Ordinary `patch` and `apply-existing`
+have the same authorization predicate but are separate approved-change classes.
+Allowing a patch permission change does not automatically allow an apply-existing
+change. Preservation compares **aggregate operation decisions**, not intermediate
+grants: if patch remains absent, a named-create change does not by itself change
+the `apply-missing` result.
+
+```sh
+dune exec soundcheck -- profile kubernetes-rbac --contract-version 8
+dune exec soundcheck -- profile kubernetes-rbac --contract-version 8 --format json
+```
+
+Profile `kubernetes-rbac-v1.34-apply-v1` uses profile JSON schema 5. Its per-resource
+operations name the native `checks`, hypothetical `object_state` (null for
+initial operations), and name/namespace domains. Concrete evaluation inputs
+also require `operation` instead of `verb` for schema 8. Report schema 10 and
+evidence formats stay unchanged. Counterexample `action` is the operation ID;
+successful SSA `granting_rules` identify source rules with `patch:`/`create:`
+prefixes. A partial compound grant has `granting_rules: []`; human/GitHub output
+explains the missing prerequisites. These explanations are conditional
+evaluations, not execution traces: an ungranted initial patch prevents the
+handler from reaching additional create authorization.
+
+The [pinned-source scope record](plans/2026-11-rbac-apply-authorization.md) describes
+the actual Kubernetes v1.34 handler/store checks and independent conformance
+requirements. CLI, library, frozen MCP, trusted-base CI, evidence and submitted
+repair evaluation share the same contract. Candidate configuration cannot choose
+a different operation branch, change scope or contract version.
+
+The model excludes body validation, field ownership conflicts, admission, other
+authorizers, live existence, races, mutation success and resulting workload
+effects. SSA on subresources, PUT create-on-update, unsafe deletion and other
+operation-specific checks remain separately scoped. The retained native request
+operations still describe initial RBAC authorization only.
+
 ## Supported profiles
 
 The profile IDs for schemas 1–4 end in `-v3`. This revision accepts already-resolved,
@@ -864,6 +980,11 @@ request classes described above. Existing profiles do not gain these verbs.
 `kubernetes-rbac-v1.34-subresources-v1` retains the schema-6 base domain and adds
 the eight subresource entries above. Its operation catalogue is explicit in
 profile JSON schema 4. Existing profiles do not gain subresource obligations.
+
+`kubernetes-rbac-v1.34-apply-v1` retains every schema-7 operation and adds the
+conditional SSA branches for the eight base resources. Profile JSON schema 5
+enumerates the prerequisite checks and hypothetical object states. Earlier
+profiles remain initial-RBAC-only and do not gain compound obligations.
 
 All supplied objects are checked, including unbound roles and unrelated
 bindings. Malformed input, unknown fields, duplicate identities, missing
@@ -957,7 +1078,8 @@ does not delete omitted live bindings. Deployment reconciliation must establish
 the state that was verified.
 
 **No grant is not final denial.** The decision is RBAC `Allow` versus
-`NoOpinion`. Other authorizers, authentication, impersonation, admission, object
+`NoOpinion`; for schema-8 SSA, `Allow` requires every modeled prerequisite and
+`NoOpinion` means at least one lacks a grant. Other authorizers, authentication, impersonation, admission, object
 existence, live aggregation/reconciliation controllers, mutation effects and escalation
 checks are outside these models. Schema-1 restrictions on `get` do not rule out
 Secret exposure through `list` or `watch`. Schema 2 can cover those direct read
@@ -968,7 +1090,8 @@ frozen identities, not just namespaces present in the input. Schema 2 includes
 the all-namespace collection endpoint; schema 3 also includes named writes.
 Schema 5 includes every entry in its fixed resource catalogue, including Nodes.
 Schema 6 adds base collection writes; schema 7 adds every listed subresource
-operation, including operations absent from the clauses.
+operation; schema 8 also adds both conditional SSA branches over every base
+resource, including operations absent from the clauses.
 All exclude identities, verbs, resources and control planes outside their
 selected profile.
 
@@ -982,6 +1105,9 @@ for example `pods/exec`, `serviceaccounts/token` and `deployments/scale.apps`.
 Decode by exact lookup in the profile catalogue, rather than splitting arbitrary
 strings or assuming every request belongs to the core API group. For subresource
 operations, `object_request.name` is the parent authorization name.
+For SSA, `action` is `apply-existing` or `apply-missing`, and the object name
+is the common target for its prerequisite checks. These are operation IDs,
+not literal Kubernetes RBAC verbs.
 Preservation uses a `must_preserve` clause with before/after RBAC decisions in
 its description. Only `proved` exits `0`; violation/unknown/vacuous/inconsistent
 exit `3`/`4`/`5`/`6`. I/O and usage failures exit `1` and `2`.

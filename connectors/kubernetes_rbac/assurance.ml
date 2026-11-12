@@ -7,11 +7,13 @@ let scoped_profile_id = "kubernetes-rbac-v1.34-scoped-read-write-v3"
 let resource_profile_id = "kubernetes-rbac-v1.34-resource-read-write-v1"
 let collection_write_profile_id = "kubernetes-rbac-v1.34-collection-write-v1"
 let subresource_profile_id = "kubernetes-rbac-v1.34-subresources-v1"
+let apply_profile_id = "kubernetes-rbac-v1.34-apply-v1"
 let id_for_version = function
   | 1 -> profile_id | 2 -> read_profile_id | 3 -> write_profile_id | 4 -> scoped_profile_id
   | 5 -> resource_profile_id
   | 6 -> collection_write_profile_id
   | 7 -> subresource_profile_id
+  | 8 -> apply_profile_id
   | _ -> invalid_arg "unsupported RBAC contract version"
 let assumptions = [
   "The input is the complete static desired RBAC snapshot, including every applicable binding and the complete ClusterRole inventory with labels, even unbound aggregation contributors.";
@@ -122,9 +124,47 @@ let subresource_assumptions = [
   "Raw HTTP/body/selector parsing, unlisted subresources or operations, base ServiceAccounts, Namespaces and custom resources are outside this catalogue. Unsupported request classes are rejected, not modeled as denied.";
   "Applying a partial manifest does not remove omitted live bindings; deployment reconciliation must establish the assumed snapshot." ]
 
+let apply_assumptions = [
+  "The input is the complete static desired RBAC snapshot, including every applicable binding and the complete ClusterRole inventory with labels, even unbound aggregation contributors.";
+  "Aggregated ClusterRoles must have acyclic dependencies (self-matches ignored) and stored full rule sets equal to recursively selected rules. Completeness is assumed; no controller reconciliation, rollout or future label/object changes are verified.";
+  "The contract's fixed usernames and groups are trusted request attributes; authentication is not verified.";
+  "Schema 8 retains every schema-7 initial RBAC request class and adds apply-existing and apply-missing for the eight base resources only. The explicit resource_domains catalogue enumerates operations; operation IDs are not necessarily Kubernetes RBAC verbs.";
+  "For each operation, checks lists the native RBAC prerequisites at the same identity/groups, API group, resource, subresource, namespace and name. Every listed check must grant. Different bindings or rules may grant different prerequisites.";
+  "object_state is a hypothetical conditional storage branch, not an observation or assertion of live object existence. apply-existing requires named patch; apply-missing requires named patch AND named create. Neither adds caller get or update prerequisites.";
+  "SSA's additional create check uses the nonempty URL target name, so resourceNames can constrain it. Ordinary base create/deletecollection retain their empty initial authorization name; request-body names and deletion targets never replace it.";
+  "For SSA, both name and namespaced namespace are nonempty. Nodes remain cluster-scoped with empty namespace and can receive only cluster-wide binding grants. The existing subresource catalogue retains its named-parent and per-operation domains.";
+  "Nonempty effective names are DNS1123 subdomains of at most 253 characters; nonempty namespaces are DNS1123 labels of at most 63 characters. These are bounded authorization attributes, not HTTP or object-body validation.";
+  "Only base list/watch permit empty namespaced authorization namespaces or empty-or-named effective names. Their names are effective authorization attributes after request interpretation, not returned object names. Empty names do not imply absence of selectors.";
+  "Namespace and name selectors retain their declared domains. Schema 8 uses operation instead of verb in clauses, change_scope and evaluation inputs. api_group/resource/subresource remain separate exact fields; empty subresource denotes a base resource. Unsupported operations reject, not prove denial.";
+  "Policy matching uses exact combined resource/subresource, whole *, or */ followed by an exact subresource. Parent/* and */* are not general globs. API groups and native verbs match independently. resourceNames are literals, including literal star and empty string.";
+  "Allow means every modeled RBAC prerequisite grants. NoOpinion means at least one supplies no grant; neither is a final API-server authorization decision or a guarantee of operation success. Prerequisite diagnostics are conditional evaluations, not an execution trace; an ungranted initial patch stops the handler before create authorization.";
+  "Preservation quantifies all initial and SSA operations for every frozen identity, including dimensions absent from clauses. Ordinary patch and apply-existing are distinct operation classes even though their grant predicates coincide; approved scope never widens automatically. Preservation compares aggregate operation decisions, not every intermediate grant.";
+  "Schemas 1-7 retain their original domains, profiles and canonical identities. Counterexample action is an operation ID; resource_kind uses the fixed injective resource[/subresource][.group] catalogue. Successful SSA grants identify source rules by native check; derived rules are not source grants.";
+  "Validated non-resource URL rules are retained but cannot grant resource requests. Non-resource URL authorization and preservation remain outside this profile.";
+  "The reference is Kubernetes v1.34.0. Initial operations remain initial-RBAC-only. SSA verifies conditional RBAC prerequisites, not body validity, field ownership/conflicts, admission, other authorizers, runtime object existence, retries/races, response contents, mutation success or workload/controller effects.";
+  "SSA on subresources, PUT create-on-update, unsafe deletion, newer exec WebSocket authorization, token-audience checks, base ServiceAccounts, Namespaces, custom resources and indirect privilege escalation remain outside the model.";
+  "Applying a partial manifest does not remove omitted live bindings; deployment reconciliation must establish the assumed snapshot." ]
+
 let profile_json ?(version=1) () =
   let id = id_for_version version in
-  if version=7 then
+  if version=8 then
+    Input.json (`O ["schema_version",`Number "5";"id",`String id;
+      "connector",`String "kubernetes-rbac";"reference_version",`String "v1.34.0";
+      "contract_schema_version",`Number "8";
+      "input_format",`String "strict-json-kubernetes-list";"decision",`String "Allow|NoOpinion";
+      "resource_domains",`A (List.map (fun (entry : Resource_domain.t) -> `O [
+        "api_group",`String entry.api_group;"resource",`String entry.resource;
+        "subresource",`String entry.subresource;
+        "scope",`String (if entry.namespaced then "namespaced" else "cluster");
+        "resource_kind",`String (Resource_domain.kind entry);
+        "operations",`A (List.map (fun operation -> `O ["operation",`String operation;
+          "checks",`A (List.map (fun verb -> `String verb) (Resource_domain.checks ~operation));
+          "object_state",(match Resource_domain.object_state ~operation with None -> `Null | Some state -> `String state);
+          "name_domain",`String (Resource_domain.name_domain entry ~verb:operation);
+          "namespace_domain",`String (Resource_domain.namespace_domain entry ~verb:operation)])
+          (Resource_domain.operations ~version entry))]) (Resource_domain.for_version version));
+      "assumptions",`A (List.map (fun s -> `String s) apply_assumptions)])
+  else if version=7 then
     Input.json (`O ["schema_version",`Number "4";"id",`String id;
       "connector",`String "kubernetes-rbac";"reference_version",`String "v1.34.0";
       "contract_schema_version",`Number "7";
@@ -182,11 +222,15 @@ let profile_human ?(version=1) () =
        (List.map (fun (entry : Resource_domain.t) -> Printf.sprintf "- %s (%s; resource_kind %S)"
          (Resource_domain.description entry) (if entry.namespaced then "namespaced" else "cluster-scoped")
          (Resource_domain.kind entry)
-         ^ (if version=7 then "; operations: " ^ String.concat ", "
+         ^ (if version>=7 then "; operations: " ^ String.concat ", "
              (List.map (fun verb -> Printf.sprintf "%s [name=%s; namespace=%s]" verb
-               (Resource_domain.name_domain entry ~verb) (Resource_domain.namespace_domain entry ~verb))
-               (Resource_domain.verbs ~version entry)) else "")) (Resource_domain.for_version version)) ^ "\n"
+               (Resource_domain.name_domain entry ~verb) (Resource_domain.namespace_domain entry ~verb)
+               ^ (if version>=8 then "; checks=" ^ String.concat " AND " (Resource_domain.checks ~operation:verb)
+                  ^ (match Resource_domain.object_state ~operation:verb with None -> ""
+                     | Some state -> "; hypothetical " ^ state ^ " storage branch") else ""))
+               (Resource_domain.operations ~version entry)) else "")) (Resource_domain.for_version version)) ^ "\n"
      else "")
   ^ String.concat "\n" (List.map (fun s -> "- " ^ s)
       (match version with 1 -> assumptions | 2 -> read_assumptions | 3 -> write_assumptions
-       | 4 -> scoped_assumptions | 6 -> collection_write_assumptions | 7 -> subresource_assumptions | _ -> resource_assumptions))
+       | 4 -> scoped_assumptions | 6 -> collection_write_assumptions | 7 -> subresource_assumptions
+       | 8 -> apply_assumptions | _ -> resource_assumptions))

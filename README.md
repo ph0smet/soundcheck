@@ -193,9 +193,12 @@ also checks creation and bulk-deletion authorization, so a repair can remove
 unwanted collection deletion while preserving required creation.
 [Schema 7](docs/kubernetes-rbac.md#subresource-contracts-schema-7) distinguishes
 Pod log access from exec grants and adds named token, status and scaling
-authorization. Existing contracts keep their meaning. All profiles require
+authorization. [Schema 8](docs/kubernetes-rbac.md#server-side-apply-contracts-schema-8)
+distinguishes permission to apply to an existing object from permission to
+recreate it when missing, checking the required `patch` and named `create`
+grants together. Existing contracts keep their meaning. All profiles require
 a complete static desired snapshot and trusted, fixed usernames/groups.
-`NoOpinion` means RBAC supplies no grant; other authorizers, admission, indirect
+`NoOpinion` means a required RBAC check supplies no grant; other authorizers, admission, indirect
 access and runtime deployment behavior remain outside this claim.
 See the [RBAC guide](docs/kubernetes-rbac.md) for the supported input,
 deny-all and operator-regression examples, and exact assumptions.
@@ -513,13 +516,17 @@ and precise name selectors over the same authorization domain. Schema 5 opts
 into the [eight-resource catalogue](docs/kubernetes-rbac.md#resource-and-api-group-contracts-schema-5),
 with explicit API groups and cluster-scoped Node requests. Schema 6 adds
 `create`/`deletecollection` over that catalogue, using empty authorization names
-independently of object bodies and deletion filters. Older contracts keep their
+independently of object bodies and deletion filters. Schema 7 adds the explicit
+subresource catalogue. Schema 8 adds conditional server-side apply prerequisites
+for the eight base resources. Older contracts keep their
 original domains. Inspect the
 default with `soundcheck profile kubernetes-rbac`, or select a version with
-`--contract-version 2`, `3`, `4`, `5` or `6`.
+`--contract-version 2`, `3`, `4`, `5`, `6`, `7` or `8`.
 Review the [RBAC boundaries](docs/kubernetes-rbac.md#supported-profiles) before
-interpreting a proof. Write verification concerns the initial RBAC grant, not
-successful mutation or preserved object contents.
+interpreting a proof. Native request operations concern initial RBAC grants;
+schema-8 apply operations compose the modeled prerequisite checks for a
+hypothetical existing/missing branch. Neither proves successful mutation or
+preserved object contents.
 ClusterRoles may contain separate non-resource URL rules alongside resource
 rules. Those rules are retained, while URL access and URL-preservation claims
 remain outside RBAC verification.

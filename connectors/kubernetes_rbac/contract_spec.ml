@@ -31,7 +31,7 @@ type t = {
 let kind = "kubernetes-rbac-access"
 let scope_fields version =
   ["subject";"namespace";"resource";"names"]
-  @ (if version >= 2 then ["verb"] else [])
+  @ (if version >= 8 then ["operation"] else if version >= 2 then ["verb"] else [])
   @ (if version >= 5 then ["api_group"] else [])
   @ (if version >= 7 then ["subresource"] else [])
 
@@ -107,12 +107,14 @@ let parse_scope version identities path fields =
   let subject = string_field path "subject" fields in
   if not (List.exists (fun (i : Identity.identity) -> i.username = subject) identities) then
     reject (path ^ ".subject") (Printf.sprintf "%S must exactly match a frozen context.identities[].username; review the caller identity independently, without inferring it or its groups from grants" subject);
-  let verb = if version = 1 then "get" else string_field path "verb" fields in
+  let operation_field = if version>=8 then "operation" else "verb" in
+  let verb = if version = 1 then "get" else string_field path operation_field fields in
   let verbs = if version >= 6 then ["get";"list";"watch";"update";"patch";"delete";"create";"deletecollection"]
     else if version >= 3 then ["get";"list";"watch";"update";"patch";"delete"]
     else ["get";"list";"watch"] in
+  let verbs = verbs @ if version>=8 then ["apply-existing";"apply-missing"] else [] in
   if not (List.mem verb verbs) then
-    reject (path ^ ".verb") (Printf.sprintf "%S is outside contract schema %d; supported verbs: %s. Do not substitute a different operation to make the contract pass" verb version (String.concat ", " verbs));
+    reject (path ^ "." ^ operation_field) (Printf.sprintf "%S is outside contract schema %d; supported %s: %s. Do not substitute a different operation to make the contract pass" verb version (if version>=8 then "operations" else "verbs") (String.concat ", " verbs));
   let resource = string_field path "resource" fields in
   let api_group = if version>=5 then string_field path "api_group" fields else "" in
   let subresource = if version>=7 then string_field path "subresource" fields else "" in
@@ -124,10 +126,11 @@ let parse_scope version identities path fields =
         (Printf.sprintf "API group %S, resource %S and subresource %S are outside contract schema %d's fixed catalogue; use separate exact fields, with subresource:\"\" for base resources. Policy wildcard syntax is not a contract selector" api_group resource subresource version)
     | None -> reject (path ^ ".resource")
         (Printf.sprintf "API group %S and resource %S are outside contract schema %d's fixed resource catalogue; use separate exact api_group/resource fields in schema %d, with no wildcard, qualified alias or subresource. A contract upgrade needs separate requirement review" api_group resource version version) in
-  if not (List.mem verb (Resource_domain.verbs ~version entry)) then
-    reject (path ^ ".verb")
-      (Printf.sprintf "%S is outside the supported operations for %s; supported verbs: %s. Other operations are not modeled as denied"
-        verb (Resource_domain.description entry) (String.concat ", " (Resource_domain.verbs ~version entry)));
+  if not (List.mem verb (Resource_domain.operations ~version entry)) then
+    reject (path ^ "." ^ operation_field)
+      (Printf.sprintf "%S is outside the supported operations for %s; supported %s: %s. Other operations are not modeled as denied"
+        verb (Resource_domain.description entry) (if version>=8 then "operations" else "verbs")
+        (String.concat ", " (Resource_domain.operations ~version entry)));
   let ns_value = field path "namespace" fields in
   let ns = if entry.namespaced then parse_namespace version verb (path ^ ".namespace") ns_value
     else match ns_value with
@@ -151,8 +154,8 @@ let parse_value value =
   let path = "contract" in
   let fields = obj path ["schema_version";"kind";"context";"clauses";"change_scope"] value in
   let version = match field path "schema_version" fields with
-   | `Number "1" -> 1 | `Number "2" -> 2 | `Number "3" -> 3 | `Number "4" -> 4 | `Number "5" -> 5 | `Number "6" -> 6 | `Number "7" -> 7
-   | _ -> reject path "schema_version must be integer 1, 2, 3, 4, 5, 6 or 7" in
+   | `Number "1" -> 1 | `Number "2" -> 2 | `Number "3" -> 3 | `Number "4" -> 4 | `Number "5" -> 5 | `Number "6" -> 6 | `Number "7" -> 7 | `Number "8" -> 8
+   | _ -> reject path "schema_version must be integer 1, 2, 3, 4, 5, 6, 7 or 8" in
   require_equal (path ^ ".kind") (string_field path "kind" fields) kind;
   let identities = Identity.parse_context (field path "context" fields)
     |> List.sort (fun (a : Identity.identity) b -> String.compare a.username b.username) in
@@ -207,7 +210,7 @@ let names_condition = function
     Ir.Not (member Ir.Object_name (if include_empty then excluded else "" :: excluded))
 
 let scope_condition scope =
-  let entry = Resource_domain.find_subresource ~version:7 ~api_group:scope.api_group ~resource:scope.resource ~subresource:scope.subresource in
+  let entry = Resource_domain.find_subresource ~version:8 ~api_group:scope.api_group ~resource:scope.resource ~subresource:scope.subresource in
   Ir.And [Ir.Principal_is scope.subject;Ir.Method_is scope.verb;
           namespace_condition scope.namespace;
           (match entry with None -> Ir.Or [] | Some entry -> Ir.Object_is (Ir.Object_kind,Resource_domain.kind entry));
@@ -218,7 +221,7 @@ let approved_changes spec = Ir.Or (List.map scope_condition spec.change_scope)
 let quoted values = String.concat ", " (List.map (Printf.sprintf "%S") values)
 
 let describe_scope scope =
-  let entry = Resource_domain.find_subresource ~version:7 ~api_group:scope.api_group ~resource:scope.resource ~subresource:scope.subresource in
+  let entry = Resource_domain.find_subresource ~version:8 ~api_group:scope.api_group ~resource:scope.resource ~subresource:scope.subresource in
   Printf.sprintf "%s for %S on %s %s (%s)"
     scope.verb scope.subject
     (match entry with Some entry -> Resource_domain.description entry | None -> "unsupported resource")
@@ -240,6 +243,10 @@ let describe_scope scope =
      | Other_names {excluded;include_empty} ->
        (if include_empty then "empty or any valid effective authorization name" else "any valid nonempty name")
        ^ (if excluded=[] then "" else " except " ^ quoted excluded))
+  ^ (match Resource_domain.object_state ~operation:scope.verb with
+     | None -> ""
+     | Some state -> Printf.sprintf "; conditional %s-object storage branch, requiring RBAC %s at the same named target"
+         state (String.concat " AND " (Resource_domain.checks ~operation:scope.verb)))
 
 let description clause =
   "RBAC " ^ (match clause.kind with Must_allow -> "must grant " | Must_not_grant -> "must not grant ")
@@ -253,6 +260,7 @@ let to_contract spec : Contract.t =
      | 4 -> "Frozen read and named-write RBAC requirements with explicit scope selectors"
      | 6 -> "Frozen read, named-write and collection-write RBAC requirements over the explicit resource catalogue"
      | 7 -> "Frozen RBAC requirements over the explicit base-resource and subresource operation catalogue"
+     | 8 -> "Frozen initial RBAC and conditional server-side apply prerequisite requirements"
      | _ -> "Frozen read and named-write RBAC requirements over the explicit resource catalogue");
    clauses=List.map (fun clause ->
        let make = match clause.kind with
@@ -273,7 +281,8 @@ let scope_json version scope =
      | All_names -> `Null | Names xs -> values xs
      | Empty_name -> `O ["empty",`Bool true]
      | Other_names {excluded;include_empty} -> `O ["exclude",values excluded;"include_empty",`Bool include_empty])]
-  @ (if version >= 2 then ["verb",`String scope.verb] else [])
+  @ (if version >= 8 then ["operation",`String scope.verb]
+     else if version >= 2 then ["verb",`String scope.verb] else [])
   @ (if version >= 5 then ["api_group",`String scope.api_group] else [])
   @ (if version >= 7 then ["subresource",`String scope.subresource] else [])
 

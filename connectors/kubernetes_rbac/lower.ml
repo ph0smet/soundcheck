@@ -44,7 +44,8 @@ let legacy_domain spec =
     kind resources]
 
 let domain spec =
-  if Contract_spec.version spec<>7 then legacy_domain spec else
+  let version = Contract_spec.version spec in
+  if version<7 then legacy_domain spec else
   let named coordinate regex length = Ir.And [Ir.Object_matches (coordinate,regex);
       Ir.Object_length_at_most (coordinate,length)] in
   let attribute coordinate nonempty = function
@@ -54,7 +55,7 @@ let domain spec =
     | _ -> invalid_arg "unregistered RBAC attribute domain" in
   let namespace = named Ir.Object_namespace dns_label 63
   and name = named Ir.Object_name dns_name 253 in
-  let operations entry = Resource_domain.verbs ~version:7 entry |> List.map (fun verb ->
+  let operations entry = Resource_domain.operations ~version entry |> List.map (fun verb ->
       Ir.And [Ir.Method_is verb;
         attribute Ir.Object_namespace namespace (Resource_domain.namespace_domain entry ~verb);
         attribute Ir.Object_name name (Resource_domain.name_domain entry ~verb)]) in
@@ -63,7 +64,7 @@ let domain spec =
       (Contract_spec.identities spec));
     Ir.Or (List.map (fun entry -> Ir.And [
       Ir.Object_is (Ir.Object_kind,Resource_domain.kind entry);Ir.Or (operations entry)])
-      (Resource_domain.for_version 7))]
+      (Resource_domain.for_version version))]
 
 let wildcard_or values value = List.mem "*" values || List.mem value values
 
@@ -94,6 +95,28 @@ let rule_condition resources verbs = function
 let grant_id binding index =
   Printf.sprintf "%s -> %s/rules/%d" (Snapshot.binding_label binding) (Snapshot.role_label binding) index
 
+(* The raw rules are exact additive Allow predicates. Specialize only their
+   action coordinate; preserve caller and target constraints under every boolean
+   connective. Named additional create must not use the standalone request
+   domain, which correctly permits only an empty name for base collection POST. *)
+let rec at_verb verb = function
+  | Ir.Method_is value -> if verb=value then Ir.True else Ir.Or []
+  | Ir.And conditions ->
+    let conditions = List.map (at_verb verb) conditions in
+    if List.mem (Ir.Or []) conditions then Ir.Or []
+    else Ir.And (List.filter ((<>) Ir.True) conditions)
+  | Ir.Or conditions ->
+    let conditions = List.map (at_verb verb) conditions in
+    if List.mem Ir.True conditions then Ir.True
+    else Ir.Or (List.filter ((<>) (Ir.Or [])) conditions)
+  | Ir.Not condition -> Ir.Not (at_verb verb condition)
+  | condition -> condition
+
+let allow_rule id match_ : Ir.rule =
+  {id;match_;match_complete=true;guard=Ir.True;guard_complete=true;
+   priority={comparable=true;key=[]};decision=Ir.Allow;
+   rate_limited=false;targets_admin=false}
+
 let policy spec snapshot : Ir.policy =
   let identities = Contract_spec.identities spec in
   let resources = Resource_domain.for_version (Contract_spec.version spec) in
@@ -107,15 +130,35 @@ let policy spec snapshot : Ir.policy =
             Some (Ir.Principal_is identity.username) else None) identities) in
       let where = if binding.binding_kind = "RoleBinding" then
           Ir.Object_is (Ir.Object_namespace,binding.binding_namespace) else Ir.True in
-      List.mapi (fun index rule : Ir.rule ->
-          {id=grant_id binding index;
-           match_=Ir.And [who;where;rule_condition resources verbs rule];
-           match_complete=true;guard=Ir.True;guard_complete=true;
-           priority={comparable=true;key=[]};decision=Ir.Allow;
-           rate_limited=false;targets_admin=false}) grant.bound_rules) in
+      List.mapi (fun index rule ->
+          allow_rule (grant_id binding index)
+            (Ir.And [who;where;rule_condition resources verbs rule])) grant.bound_rules) in
+  let rules = if Contract_spec.version spec<8 then rules else
+    let native_grant verb = Ir.Or (List.map (fun (rule : Ir.rule) -> at_verb verb rule.match_) rules) in
+    let derived = List.map (fun operation ->
+        allow_rule ("conditional RBAC prerequisites: " ^ operation)
+          (Ir.And (Ir.Method_is operation :: List.map native_grant (Resource_domain.checks ~operation))))
+        ["apply-existing";"apply-missing"] in
+    rules @ derived in
   {request_domain=domain spec;rules;default=Ir.Deny}
+
+let matching_grants policy request =
+  policy.Ir.rules |> List.filter (Ir.selected policy request)
+    |> List.map (fun (rule : Ir.rule) -> rule.id) |> List.sort_uniq String.compare
+
+let authorization_checks policy request =
+  if not (Ir.matches policy.Ir.request_domain request) then [] else
+  Resource_domain.checks ~operation:request.Ir.action |> List.map (fun verb ->
+    (* The enclosing operation domain is checked above. Deliberately replay the
+       exact raw rules without the standalone verb's domain: additional create
+       has a named target. Derived SSA rules cannot match native stage verbs. *)
+    verb,matching_grants policy {request with action=verb})
 
 let granting_rules policy request =
   if not (Ir.matches policy.Ir.request_domain request) then []
-  else policy.rules |> List.filter (Ir.selected policy request)
-    |> List.map (fun (rule : Ir.rule) -> rule.id) |> List.sort_uniq String.compare
+  else match Resource_domain.object_state ~operation:request.Ir.action with
+    | None -> matching_grants policy request
+    | Some _ ->
+      let checks = authorization_checks policy request in
+      if List.exists (fun (_,grants) -> grants=[]) checks then [] else
+      List.concat_map (fun (verb,grants) -> List.map (fun id -> verb ^ ": " ^ id) grants) checks
