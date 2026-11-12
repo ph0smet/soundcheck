@@ -653,9 +653,9 @@
     "sha256": "fb37eeff636bb987e379724ac4dfe6b2a7d668dff562f25cb3be3d7f5c9b66cd"
   },
   "35-aggregation-control": {
-    "description": "35 aggregation control",
-    "expected_contract": null,
-    "expected_preparation": "rejected",
+    "description": "Empty aggregate selects no contributors; complete policy remains unchanged.",
+    "expected_contract": "proved",
+    "expected_preparation": "prepared",
     "expected_preservation": null,
     "reference_valid": true,
     "removed_fields": [],
@@ -714,5 +714,14 @@
     "reference_valid": false,
     "removed_fields": [],
     "sha256": "cf10cc343c25c113243e1b048fd6f862545b3610f55122b1ff81b3d836006ef9"
+  },
+  "42-stale-aggregation": {
+    "description": "A selected Secret-reading role is missing from the aggregate stored rules; preparation must reject without rewriting policy.",
+    "expected_contract": null,
+    "expected_preparation": "rejected",
+    "expected_preservation": null,
+    "reference_valid": true,
+    "removed_fields": [],
+    "sha256": "dc31ce3c04d5bca64b90355a3628bf45303b6e1d34eeb4309390df64dbd6d5c4"
   }
 }

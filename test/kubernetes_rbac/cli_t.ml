@@ -63,7 +63,7 @@ let () =
       let result = invoke ["verify";fixture name] 4 in
       check "unsupported is unknown" (assoc "result" result = `String "unknown");
       check "unsupported assurance" (assoc "status" (assoc "assurance" result) = `String "unsupported"))
-    ["17-missing-reference";"18-aggregation-boundary";"26-trailing-json-document"];
+    ["17-missing-reference";"30-stale-aggregation";"26-trailing-json-document"];
   let github command expected fragments =
     let code,output,error = run binary ("rbac" :: command @ ["--contract";contract;"--format";"github"]) in
     check ("GitHub exit: " ^ String.concat " " command ^ error) (code=expected);
@@ -77,7 +77,7 @@ let () =
             ["::error file=";"NoOpinion";"granting rules []";"must_allow"]);
   ignore (github ["verify";fixture "03-valid-repair"] 0
             ["::notice file=";"proved";"frozen spec ";Assurance.profile_id]);
-  ignore (github ["verify";fixture "18-aggregation-boundary"] 4
+  ignore (github ["verify";fixture "30-stale-aggregation"] 4
             ["::error file=";"unknown";"unsupported"]);
   ignore (github ["compare";fixture "01-unsafe";fixture "03-valid-repair"] 0
             ["::notice file=" ^ fixture "03-valid-repair";"rbac-repair-preservation proved"]);

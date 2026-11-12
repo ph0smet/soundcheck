@@ -246,7 +246,7 @@ let () =
       ["proved",padded,contract_path,spec,"proved",0,[Some "sat";Some "sat";Some "unsat";Some "unsat";Some "unsat"];
        "unsafe",fixture "01-unsafe",contract_path,spec,"violated",3,[Some "sat";Some "sat";Some "unsat";Some "unsat";Some "sat"];
        "deny-all",fixture "02-delete-workload-grants",contract_path,spec,"violated",3,[Some "sat";Some "sat";Some "unsat";Some "sat";None];
-       "unsupported",fixture "18-aggregation-boundary",contract_path,spec,"unknown",4,[];
+       "unsupported",fixture "30-stale-aggregation",contract_path,spec,"unknown",4,[];
        "inconsistent",padded,conflict_path,conflict_spec,"inconsistent",6,[Some "sat";Some "sat";Some "sat";None;None]] in
     List.iter (fun (name,source_path,contract,spec,outcome,exit,statuses) ->
       let target = Filename.concat directory name in

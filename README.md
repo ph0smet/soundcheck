@@ -210,6 +210,11 @@ SHA-256-pinned local sources and reports every unresolved role reference.
 usernames, groups and subject-matching bindings before verification. Both keep
 inventory completeness and identity trust as explicit external assumptions.
 
+[Aggregated ClusterRoles](docs/kubernetes-rbac.md#already-resolved-aggregated-clusterroles)
+are supported when their dependencies are acyclic and stored rules agree with
+the complete selected policy. Stale rules and cycles return `unknown`; Soundcheck
+does not reconcile a live controller or rewrite the supplied policy.
+
 ## What Soundcheck establishes
 
 Schema validation checks a document's structure. Request tests exercise selected

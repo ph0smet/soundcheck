@@ -18,7 +18,7 @@ from run_read_access import (URL_KEYS, request_attributes, scope_matches, valida
                              request_url as read_request_url, validate_contract as validate_read_contract,
                              validate_request as validate_read_request)
 
-PROFILE = 'kubernetes-rbac-v1.34-read-write-v2'
+PROFILE = 'kubernetes-rbac-v1.34-read-write-v3'
 WRITES = {'update': 'PUT', 'patch': 'PATCH', 'delete': 'DELETE'}
 
 

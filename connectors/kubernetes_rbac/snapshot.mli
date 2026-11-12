@@ -1,6 +1,8 @@
 (** A complete static desired RBAC snapshot in one strict JSON Kubernetes List.
     Unsupported fields, invalid accepted fields, duplicate identities and
-    unresolved role references fail closed. No live cluster is consulted. *)
+    unresolved role references fail closed. Aggregate roles must have acyclic
+    dependencies and stored full rules equal to their recursively selected rules.
+    No live cluster is consulted or reconciliation performed. *)
 type resource_rule = {
   verbs : string list;
   api_groups : string list;
@@ -26,9 +28,10 @@ type t
 type missing_reference = { binding_index : int; binding_label : string; role_label : string }
 
 val unresolved_references : string -> (missing_reference list, string) result
-(** Validate the entire strict inventory, including unsupported rules and duplicate
-    identities, then enumerate every missing reference. This does not construct
-    a verified/closed [t]; [of_string] continues to reject missing roles. *)
+(** Validate object structure, including unsupported rules and duplicate identities,
+    then enumerate every missing reference. Fragment sources may omit contributors;
+    this does not check aggregation consistency or construct a closed [t].
+    [of_string] checks the complete assembled inventory. *)
 
 val of_string : string -> (t, string) result
 val grants : t -> bound_grant list

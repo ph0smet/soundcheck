@@ -106,7 +106,7 @@ def audit_inspection(inspected, snapshot, contract_bytes, case):
         'completeness_established', 'authorization_evaluated', 'verification_performed'}, 'Inspection shape')
     require(type(inspected['schema_version']) is int and inspected['schema_version'] == 1
             and inspected['kind'] == 'rbac-identity-inspection' and inspected['contract_version'] == 3
-            and inspected['target_profile'] == 'kubernetes-rbac-v1.34-read-write-v2', 'Inspection protocol')
+            and inspected['target_profile'] == 'kubernetes-rbac-v1.34-read-write-v3', 'Inspection protocol')
     require(inspected['snapshot'] == identity(snapshot) and inspected['contract'] == identity(contract_bytes), 'Inspection identities')
     require(inspected['canonical_contract_sha256'] == byte_hash(inspected['canonical_contract'].encode())
             and normalize_contract(strict_json(inspected['canonical_contract'])) == normalize_contract(contract), 'Inspection frozen contract')

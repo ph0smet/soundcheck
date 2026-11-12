@@ -278,7 +278,7 @@ let () =
       ["safe",before_path,after_path,"proved",Some "proved",0,[Some "sat";Some "sat";Some "unsat";Some "unsat";Some "unsat";Some "unsat"];
        "regression",before_path,fixture "16-operator-regression","violated",Some "proved",3,[Some "sat";Some "sat";Some "unsat";Some "unsat";Some "unsat";Some "sat"];
        "candidate-failure",before_path,fixture "02-delete-workload-grants","violated",Some "violated",3,[Some "sat";Some "sat";Some "unsat";Some "sat";None;None];
-       "unsupported-before",fixture "18-aggregation-boundary",after_path,"unknown",None,4,[];
+       "unsupported-before",fixture "30-stale-aggregation",after_path,"unknown",None,4,[];
        "unsupported-after",before_path,fixture "26-trailing-json-document","unknown",None,4,[]];
     let code,plain,_=run binary (arguments before_path after_path contract_path "json" []) in
     check "JSON report/exit unchanged by evidence" (code=0 && plain= !safe_stdout);
@@ -305,8 +305,8 @@ let () =
     List.iter (fun (target,left) ->
       let code,stdout,stderr=run binary (arguments left after_path contract_path "json" ["--evidence-dir";target]) in
       check "evidence I/O error prevents success output" (code=1 && stdout="" && contains stderr "evidence error"))
-      [existing,before_path;occupied,fixture "18-aggregation-boundary";link,fixture "18-aggregation-boundary";
-       Filename.concat directory "missing-parent/bundle",fixture "18-aggregation-boundary"];
+      [existing,before_path;occupied,fixture "30-stale-aggregation";link,fixture "30-stale-aggregation";
+       Filename.concat directory "missing-parent/bundle",fixture "30-stale-aggregation"];
     check "existing complete bundle not overwritten" (read (Filename.concat existing "manifest.json")=original_manifest);
     check "occupied file and symlink unchanged" (read occupied="keep" && Unix.readlink link=occupied);
     check "failed new destination has no completion marker" (not (Sys.file_exists (Filename.concat directory "missing-parent/bundle/manifest.json")));

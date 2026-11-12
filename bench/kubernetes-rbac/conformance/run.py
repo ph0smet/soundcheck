@@ -20,7 +20,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 CORPUS = HERE.parent
 EXIT_CODES = {'proved': 0, 'violated': 3, 'unknown': 4, 'vacuous': 5, 'inconsistent': 6}
-PROFILE = 'kubernetes-rbac-v1.34-get-v2'
+PROFILE = 'kubernetes-rbac-v1.34-get-v3'
 DNS_LABEL = r'[a-z0-9](?:[a-z0-9-]*[a-z0-9])?'
 DNS_SUBDOMAIN = DNS_LABEL + r'(?:\.' + DNS_LABEL + r')*'
 

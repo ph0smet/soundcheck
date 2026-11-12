@@ -91,8 +91,8 @@ These checks follow the pinned [Kubernetes metadata types](https://github.com/ku
 Without `--input-format`, input remains one strict JSON `apiVersion: v1`,
 `kind: List`. Use the [explicit manifest mode](#prepare-rendered-manifests)
 below for YAML streams, typed Lists or individual objects.
-The 16 MiB input limit and all existing policy checks still apply, including
-aggregation rules, invalid mixed resource/URL rules, duplicate identities and unresolved
+The 16 MiB input limit and all policy checks still apply, including
+[aggregate consistency](#already-resolved-aggregated-clusterroles), invalid mixed resource/URL rules, duplicate identities and unresolved
 references. An ordinary whole-cluster export may therefore remain unsupported.
 Do not filter out objects or fields simply to obtain an accepted snapshot.
 
@@ -355,7 +355,7 @@ deny-all and operator-regression snapshots.
 Schema 2 keeps the same `kind`, frozen identity context, paired clause kinds and
 approved `change_scope`. Every clause and change-scope entry also requires a
 singular `verb`: `get`, `list` or `watch`. The contract selects the
-`kubernetes-rbac-v1.34-read-v2` profile. Existing schema-1 artifacts, canonical
+`kubernetes-rbac-v1.34-read-v3` profile. Existing schema-1 artifacts, canonical
 identities and get-only preservation semantics keep their meaning;
 upgrading a contract requires separate requirement review.
 
@@ -423,7 +423,7 @@ includes an incomplete repair, required manager writes and an unrelated
 Secret-rotation regression caught only by repair comparison.
 
 Schema 3 retains the schema-2 fields and adds `update`, `patch` and `delete` to
-the allowed verbs. It selects `kubernetes-rbac-v1.34-read-write-v2`. Existing
+the allowed verbs. It selects `kubernetes-rbac-v1.34-read-write-v3`. Existing
 schema-1/2 contracts keep their meaning; selecting schema 3 is a
 separate requirement change, not an automatic upgrade.
 
@@ -465,7 +465,7 @@ dune exec soundcheck -- profile kubernetes-rbac --contract-version 3 --format js
 
 ## Namespace and name selectors (schema 4)
 
-Schema 4 selects `kubernetes-rbac-v1.34-scoped-read-write-v2`. It retains the
+Schema 4 selects `kubernetes-rbac-v1.34-scoped-read-write-v3`. It retains the
 schema-3 authorization model and six verbs, and adds the following selectors
 to **both clauses and `change_scope`**. Existing literal/null selectors keep
 their meaning; schemas 1–3 reject the new syntax and retain their profiles.
@@ -522,13 +522,14 @@ finite reference checks do not independently prove universal selector coverage.
 
 ## Supported profiles
 
-The current profile IDs end in `-v2`. This revision accepts validated ClusterRole
-non-resource rules alongside resource rules. Contract schemas 1–4, canonical
-contract identities and quantified request domains are unchanged. Older `-v1`
-profile IDs describe the earlier input boundary; report/evidence/receipt schemas
+The current profile IDs end in `-v3`. This revision accepts already-resolved,
+acyclic aggregated ClusterRoles alongside the resource/URL rule coexistence
+introduced in `-v2`. Contract schemas 1–4, canonical contract identities and
+quantified request domains are unchanged. Older profile IDs describe earlier
+input boundaries; report/evidence/receipt schemas
 retain their existing shapes and now identify the revised profile.
 
-`kubernetes-rbac-v1.34-get-v2` references Kubernetes v1.34.0 and supports:
+`kubernetes-rbac-v1.34-get-v3` references Kubernetes v1.34.0 and supports:
 
 - One strict JSON Kubernetes `v1/List` of RBAC v1 Roles, ClusterRoles,
   RoleBindings and ClusterRoleBindings. Direct verification does not accept general
@@ -544,23 +545,25 @@ retain their existing shapes and now identify the revised profile.
   cluster-wide bindings, literal resourceNames and supported wildcards.
 - Separate non-resource URL rules in ClusterRoles, retained as policy content
   with no grants in the quantified resource-request domain.
+- Already-resolved acyclic aggregated ClusterRoles, checked against their full
+  selected policy and the explicit complete-inventory assumption described below.
 - Named `get` requests for core ConfigMaps/Secrets. Namespaces are DNS1123 labels
   of 1..63 bytes; object names are DNS1123 subdomains of 1..253 bytes.
 
-`kubernetes-rbac-v1.34-read-v2` uses the same snapshot/identity boundary, adding
+`kubernetes-rbac-v1.34-read-v3` uses the same snapshot/identity boundary, adding
 the schema-2 list/watch request classes described above. Get still requires a
 nonempty namespace and name. List/watch additionally permit empty effective
 namespace and/or name. Other verbs, resources, API groups, subresources and
 nonempty names outside the DNS bounds are outside the request domain.
 
-`kubernetes-rbac-v1.34-read-write-v2` retains the read domain and adds named
+`kubernetes-rbac-v1.34-read-write-v3` retains the read domain and adds named
 update/patch/delete for those same resources. The snapshot and identity boundary
 is unchanged. Other write verbs, resources, API groups and subresources remain
 outside the request domain.
 
 All supplied objects are checked, including unbound roles and unrelated
 bindings. Malformed input, unknown fields, duplicate identities, missing
-references, aggregation rules and invalid URL/resource mixtures return `unknown`. Escaped
+references, unsupported aggregate states and invalid URL/resource mixtures return `unknown`. Escaped
 NULs remain distinct; duplicate JSON keys, invalid Unicode and trailing data
 are rejected. Unsupported forms are never silently discarded.
 
@@ -599,15 +602,59 @@ The changed snapshot still has a different hash. Use a separate review for that
 URL change; this feature adds coexistence, not URL contracts or URL equivalence.
 The request adapter continues to reject `resourceRequest: false`.
 
-**Completeness is an external assumption.** Resolving every supplied role
-reference does not establish that all applicable bindings were included. The
+### Already-resolved aggregated ClusterRoles
+
+Soundcheck accepts an aggregate only when its **stored rules already agree with
+the rules selected from the complete ClusterRole inventory**. Kubernetes uses
+stored rules for authorization and a separate controller fills them from selected
+roles. An aggregate with `rules: []` can therefore gain permissions after
+reconciliation. Soundcheck rejects this stale state when matching roles contribute
+rules; it does not treat it as a safety proof or fill in the rules for you.
+
+The check follows the pinned
+[aggregation controller](https://github.com/kubernetes/kubernetes/blob/v1.34.0/pkg/controller/clusterroleaggregation/clusterroleaggregation_controller.go)
+and [selector validation](https://github.com/kubernetes/kubernetes/blob/v1.34.0/pkg/apis/rbac/validation/validation.go):
+
+- `matchLabels` and `matchExpressions` support `In`, `NotIn`, `Exists` and
+  `DoesNotExist`. Requirements inside one selector are ANDed; multiple selectors
+  are ORed. An empty selector matches every role. `NotIn` also matches a missing
+  label. Keys, values, operators and their value counts are validated.
+- A role never selects itself. Other cycles between aggregates are rejected,
+  including unbound cycles: controller ordering can affect which grants survive.
+- Nested acyclic aggregates are supported. Expected rules come recursively from
+  nonaggregate leaves, never from an aggregate's existing rules. Every aggregate
+  must agree, even when no binding currently references it.
+- Equality covers the **entire policy**: all verbs, API groups, resources, names
+  and non-resource URLs. List order and duplicates do not affect this comparison;
+  differently structured but equivalent rules are not merged. Missing and stale
+  additional grants both cause rejection. Original rules and evidence indices
+  are retained.
+- A missing/null `aggregationRule` is ordinary policy. A nonnull rule needs at
+  least one selector. An aggregate whose selectors contribute no rules is valid
+  only with an empty stored rule set.
+- When aggregates are present, the limit is 512 ClusterRoles, 1,024 selector units
+  (one per selector, label pair, expression and expression value), and 100,000
+  child-rule contributions across aggregate dependencies. Exceeding a limit
+  rejects the snapshot without truncating it.
+
+Preparation preserves labels, aggregate fields and rules. Multiple source files
+may supply contributors through `rbac inventory`; consistency is checked after
+assembly. This feature does not establish live controller convergence, safe
+intermediate rollout states, future label/object changes or successful apply.
+Verification and repair comparison still quantify only their selected resource
+domain; aggregate consistency is not a URL-authorization or URL-preservation claim.
+
+**Completeness is an external assumption.** Supply all applicable bindings and
+the complete ClusterRole inventory with labels, including unbound roles that
+selectors can match. Resolving every supplied role reference does not establish
+that inventory completeness. The
 input describes complete desired policy state: applying a partial manifest
 does not delete omitted live bindings. Deployment reconciliation must establish
 the state that was verified.
 
 **No grant is not final denial.** The decision is RBAC `Allow` versus
 `NoOpinion`. Other authorizers, authentication, impersonation, admission, object
-existence, aggregation/reconciliation controllers, mutation effects and escalation
+existence, live aggregation/reconciliation controllers, mutation effects and escalation
 checks are outside these models. Schema-1 restrictions on `get` do not rule out
 Secret exposure through `list` or `watch`. Schema 2 can cover those direct read
 grants, but pod creation and other indirect exposure paths remain outside it.

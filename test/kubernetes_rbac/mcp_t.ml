@@ -335,7 +335,7 @@ let process_checks directory binary root spec =
     "verify","03-valid-repair",0,"proved";
     "verify","01-unsafe",3,"violated";
     "verify","02-delete-workload-grants",3,"violated";
-    "verify","18-aggregation-boundary",4,"unknown";
+    "verify","30-stale-aggregation",4,"unknown";
     "verify","23-nul-verb-literal",3,"violated";
     "compare","03-valid-repair",0,"proved";
     "compare","16-operator-regression",3,"violated"] in
@@ -435,7 +435,7 @@ let startup_checks directory binary root =
   let invalid_contract=Filename.concat directory "bad-contract.json" in
   write invalid_contract (read contract ^ "{}");
   rejected 2 ["mcp";"--connector";"kubernetes-rbac";"--contract";invalid_contract];
-  rejected 2 (base @ ["--baseline";Filename.concat root "fixtures/18-aggregation-boundary.json"]);
+  rejected 2 (base @ ["--baseline";Filename.concat root "fixtures/30-stale-aggregation.json"]);
   rejected 1 (base @ ["--baseline";Filename.concat directory "missing-baseline"]);
   rejected 1 ["mcp";"--connector";"kubernetes-rbac";"--contract";Filename.concat directory "missing-contract"];
   check "rejected path arguments cannot create files"
@@ -450,7 +450,7 @@ let () =
     let spec=ok (K.Contract_spec.of_string (read (Filename.concat root "contracts/frontend-access.json"))) in
     let source name=read (Filename.concat root ("fixtures/" ^ name ^ ".json")) in
     check "unsupported startup baseline is rejected"
-      (Result.is_error (M.create ~contract:spec ~baseline:(source "18-aggregation-boundary") ()));
+      (Result.is_error (M.create ~contract:spec ~baseline:(source "30-stale-aggregation") ()));
     direct_checks directory spec (source "01-unsafe") (source "03-valid-repair") (source "01-unsafe");
     process_checks directory binary root spec;
     startup_checks directory binary root);

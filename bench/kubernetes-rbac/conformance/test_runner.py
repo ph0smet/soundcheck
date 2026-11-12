@@ -34,7 +34,7 @@ class ProtocolChecks(unittest.TestCase):
             {'id': 'second', 'decision': 'NoOpinion', 'grants': []}]}}
         self.report = {'returncode': 0, 'data': {
             'schema_version': 10, 'result': 'proved', 'counterexample': None,
-            'assurance': {'profile': 'kubernetes-rbac-v1.34-get-v2', 'status': 'within_profile'},
+            'assurance': {'profile': 'kubernetes-rbac-v1.34-get-v3', 'status': 'within_profile'},
             'frozen_spec': {'schema_version': 1, 'kind': 'kubernetes-rbac-access',
                             'canonical': json.dumps(self.contract)}}}
 

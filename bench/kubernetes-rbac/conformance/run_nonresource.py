@@ -18,7 +18,7 @@ from run_preparation import byte_hash, validate_policy_comparison, validate_rece
 from run_read_access import scope_matches
 from run_write_access import normalize_contract, validate_contract, validate_request, witness_request
 
-PROFILE = 'kubernetes-rbac-v1.34-read-write-v2'
+PROFILE = 'kubernetes-rbac-v1.34-read-write-v3'
 API = 'rbac.authorization.k8s.io'
 VERBS = ['get', 'list', 'watch', 'update', 'patch', 'delete']
 READS = ['list', 'watch']

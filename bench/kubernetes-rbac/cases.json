@@ -102,8 +102,8 @@
     "sha256": "fb37eeff636bb987e379724ac4dfe6b2a7d668dff562f25cb3be3d7f5c9b66cd"
   },
   "18-aggregation-boundary": {
-    "description": "Aggregation-controller semantics are outside this prototype.",
-    "expected_contract": "unknown",
+    "description": "An empty aggregate selects no roles; its stored and selected permissions agree.",
+    "expected_contract": "proved",
     "expected_preservation": null,
     "sha256": "4a9c086a2e2c2ae9536752c37e6a34dbfcfc4f253dc83239516009b793034377"
   },
@@ -172,5 +172,11 @@
     "expected_contract": "proved",
     "expected_preservation": null,
     "sha256": "c5e9fe5f4836ea0e85d9dce6786359656f56fa162e5247f76d065e1518eb28ab"
+  },
+  "30-stale-aggregation": {
+    "description": "An empty aggregate selects a Secret-reading leaf; stale stored rules must not yield a safety proof.",
+    "expected_contract": "unknown",
+    "expected_preservation": null,
+    "sha256": "dc31ce3c04d5bca64b90355a3628bf45303b6e1d34eeb4309390df64dbd6d5c4"
   }
 }
