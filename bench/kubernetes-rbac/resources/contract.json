@@ -1,0 +1,45 @@
+{
+  "change_scope": [],
+  "clauses": [
+    {
+      "api_group": "",
+      "kind": "must_allow",
+      "name": "required",
+      "names": [
+        "settings"
+      ],
+      "namespace": "team-a",
+      "resource": "configmaps",
+      "subject": "app",
+      "verb": "get"
+    },
+    {
+      "api_group": "",
+      "kind": "must_not_grant",
+      "name": "forbidden",
+      "names": null,
+      "namespace": "team-a",
+      "resource": "secrets",
+      "subject": "app",
+      "verb": "get"
+    }
+  ],
+  "context": {
+    "identities": [
+      {
+        "groups": [],
+        "username": "app"
+      },
+      {
+        "groups": [
+          "operators"
+        ],
+        "username": "ops"
+      }
+    ],
+    "schema_version": 1,
+    "snapshot_complete": true
+  },
+  "kind": "kubernetes-rbac-access",
+  "schema_version": 5
+}

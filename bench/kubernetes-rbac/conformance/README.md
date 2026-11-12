@@ -37,6 +37,12 @@ ClusterRole URL rules alongside resource rules. It preserves the full source
 policy while checking only the existing resource domain. Native URL controls
 show why resource preservation does not establish URL-permission preservation.
 
+The [resource-catalogue suite](../resources/README.md) checks schema 5's eight
+resource/API-group pairs. It compares literal grants, concrete and SMT decisions
+with native RBAC; extracts grouped, namespaced and Node request attributes;
+and replays contract/preservation counterexamples. A paired v4/v5 comparison
+checks that adding this catalogue does not change earlier frozen domains.
+
 Run from the repository root:
 
 ```sh

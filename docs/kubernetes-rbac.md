@@ -603,6 +603,9 @@ dune exec soundcheck -- profile kubernetes-rbac --contract-version 5 --format js
 
 Profile JSON schema 3 exposes each `resource_domains` entry's group, resource,
 scope and discriminator. Report schema 10 and evidence shapes remain unchanged.
+The [synthetic resource corpus](../bench/kubernetes-rbac/resources/README.md)
+compares literal expectations, concrete/SMT decisions and pinned Kubernetes
+authorization, including replay of grouped and cluster-scoped witnesses.
 
 Namespaces need separate modeling: named Namespace paths carry their name in
 the authorization namespace attribute, unlike Nodes. They remain excluded,
