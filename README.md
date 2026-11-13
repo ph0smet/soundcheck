@@ -36,9 +36,10 @@ frozen verification interface keeps the requirement fixed.
 
 Today, Soundcheck verifies **decK-style Kong OSS 3.9.3 configurations** under the
 `traditional` and `traditional_compatible` HTTP routers, and **static Kubernetes
-RBAC snapshots** with bounded read and write authorization profiles for
-ConfigMaps, Secrets, Pods, Services, Endpoints, EndpointSlices, Deployments and
-Nodes, plus selected log, exec, token, status and scale subresource operations.
+RBAC snapshots** with versioned read/write authorization, selected subresources,
+conditional apply/PUT checks, independently frozen custom APIs and non-resource
+URL requirements. The [coverage guide](docs/kubernetes-rbac.md#static-coverage-contracts-schema-9)
+spells out the supported resources and boundaries.
 Kong is the first connector;
 RBAC adds individual identities, resource permissions, and repair preservation
 to the shared verification core. The verifier is AI-model agnostic.
@@ -196,12 +197,19 @@ Pod log access from exec grants and adds named token, status and scaling
 authorization. [Schema 8](docs/kubernetes-rbac.md#server-side-apply-contracts-schema-8)
 distinguishes permission to apply to an existing object from permission to
 recreate it when missing, checking the required `patch` and named `create`
-grants together. Existing contracts keep their meaning. All profiles require
+grants together. [Schema 9](docs/kubernetes-rbac.md#static-coverage-contracts-schema-9)
+extends controller/operator resource coverage, checks URL requirements and
+conditional PUT grants, and preserves access across a frozen custom-resource
+catalogue. Existing contracts keep their meaning. All profiles require
 a complete static desired snapshot and trusted, fixed usernames/groups.
 `NoOpinion` means a required RBAC check supplies no grant; other authorizers, admission, indirect
 access and runtime deployment behavior remain outside this claim.
 See the [RBAC guide](docs/kubernetes-rbac.md) for the supported input,
 deny-all and operator-regression examples, and exact assumptions.
+
+The [coverage repair demo](bench/kubernetes-rbac/workflows/static-coverage/README.md)
+removes an unwanted URL grant while preserving Lease, custom-resource and
+operator access.
 
 The [read-access repair demo](bench/kubernetes-rbac/workflows/read-access/README.md)
 shows why removing only `get` can leave Secret read access, and checks a repair
@@ -518,18 +526,21 @@ with explicit API groups and cluster-scoped Node requests. Schema 6 adds
 `create`/`deletecollection` over that catalogue, using empty authorization names
 independently of object bodies and deletion filters. Schema 7 adds the explicit
 subresource catalogue. Schema 8 adds conditional server-side apply prerequisites
-for the eight base resources. Older contracts keep their
-original domains. Inspect the
+for the eight base resources. Schema 9 adds the wider static catalogue,
+reviewed custom APIs, non-resource URLs and Service/Endpoints PUT prerequisites.
+Older contracts keep their original domains. Inspect the
 default with `soundcheck profile kubernetes-rbac`, or select a version with
-`--contract-version 2`, `3`, `4`, `5`, `6`, `7` or `8`.
+`--contract-version 2`, `3`, `4`, `5`, `6`, `7`, `8` or `9`.
 Review the [RBAC boundaries](docs/kubernetes-rbac.md#supported-profiles) before
 interpreting a proof. Native request operations concern initial RBAC grants;
-schema-8 apply operations compose the modeled prerequisite checks for a
+schema-8 apply and schema-9 PUT operations compose prerequisite checks for a
 hypothetical existing/missing branch. Neither proves successful mutation or
 preserved object contents.
 ClusterRoles may contain separate non-resource URL rules alongside resource
-rules. Those rules are retained, while URL access and URL-preservation claims
-remain outside RBAC verification.
+rules. URL access and preservation require an explicit schema-9 contract;
+older schemas retain their resource-only request domains.
+Use `rbac coverage` to review a contract’s domain and policy references, and
+`rbac catalogue` to extract custom API metadata from pinned local CRDs for review.
 Use `soundcheck rbac check-contract CONTRACT.json` to review declared intent
 before choosing a candidate; it parses structure without verifying access.
 The [authoring walkthrough](bench/kubernetes-rbac/workflows/authoring/README.md)
@@ -577,9 +588,10 @@ evidence to the shared verification core.
 - **Deepen Kong assurance and usability.** Expand semantic coverage and target
   conformance, improve contract authoring and diagnostics, and evaluate useful
   coverage through small authorized deployment pilots.
-- **Expand RBAC carefully.** The static RBAC connector has CLI, frozen MCP,
-  CI and submitted-repair workflows. Broader verbs/resources, input formats and
-  integrations need separate semantic boundaries and reference evidence.
+- **Evaluate RBAC on real workflows.** The static connector covers controller
+  resources, reviewed custom APIs, URLs and bounded mutation prerequisites.
+  Evaluate repair usefulness on public inputs and authorized deployments;
+  privilege transitions, impersonation and runtime effects need separate models.
 - **Extend to more policy systems.** Additional gateways, OPA/Rego, IAM, and
   application authorization remain future targets. Each target needs precise
   properties and independently justified semantics.

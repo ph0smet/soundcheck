@@ -7,6 +7,8 @@ let usage () =
      usage: soundcheck rbac prepare MANIFEST --input-format json|yaml [--namespace NAME] [--rbac-only] [--receipt NEW_FILE]\n\
      usage: soundcheck rbac inventory PLAN.json [--receipt NEW_FILE]\n\
      usage: soundcheck rbac inspect SNAPSHOT.json --contract CONTRACT.json\n\
+     usage: soundcheck rbac coverage SNAPSHOT.json --contract CONTRACT.json\n\
+     usage: soundcheck rbac catalogue CRDS --input-format json|yaml [--crd-only] [--receipt NEW_FILE]\n\
      usage: soundcheck rbac check-contract CONTRACT.json\n\
      usage: soundcheck rbac verify SNAPSHOT.json --contract CONTRACT.json [--format human|json|github] [--evidence-dir NEW_DIRECTORY]\n\
      usage: soundcheck rbac compare BEFORE.json AFTER.json --contract CONTRACT.json [--format human|json|github] [--evidence-dir NEW_DIRECTORY]\n\
@@ -14,7 +16,7 @@ let usage () =
      The contract freezes identities, groups, access requirements and approved change scope.\n\
      Preparation emits a supported snapshot, not a verification result or completeness proof.\n\
      check-contract reviews structure and declared intent only; exit 0 is not a verification gate.\n\
-     Use soundcheck profile kubernetes-rbac --contract-version 1|2|3|4|5|6|7|8 for the exact model and assumptions.";
+     Use soundcheck profile kubernetes-rbac --contract-version 1|2|3|4|5|6|7|8|9 for the exact model and assumptions.";
   exit 2
 
 let options args =
@@ -162,8 +164,9 @@ let run_offline_workflow operation args =
            flush stdout;
            Printf.eprintf "Assembled %d RBAC objects from explicitly pinned sources. No verification or completeness claim.\n" inventory.object_count;
            Ok ())
-      | "inspect",[snapshot;"--contract";contract] when argument snapshot && argument contract ->
-        (match K.Inspect.run ~snapshot:(regular snapshot) ~contract:(regular contract) with
+      | ("inspect"|"coverage"),[snapshot;"--contract";contract] when argument snapshot && argument contract ->
+        let run = if operation="inspect" then K.Inspect.run else K.Coverage.run in
+        (match run ~snapshot:(regular snapshot) ~contract:(regular contract) with
          | Error reason -> Error reason
          | Ok report -> print_endline report;Ok ())
       | _ -> usage () in
@@ -186,8 +189,33 @@ let run_check_contract = function
        Printf.eprintf "contract check I/O error: %s: %S (%s)\n" action path (Unix.error_message error);exit 1)
   | _ -> usage ()
 
+let run_catalogue args =
+  let argument value = value<>"" && not (String.starts_with ~prefix:"-" value) in
+  let path,rest = match args with path::rest when argument path -> path,rest | _ -> usage () in
+  let rec options format crd_only receipt = function
+    | [] -> (match format with Some format -> format,crd_only,receipt | None -> usage ())
+    | "--input-format"::("json"|"yaml" as value)::rest when format=None ->
+      options (Some (if value="json" then K.Manifest_input.Json else Yaml)) crd_only receipt rest
+    | "--crd-only"::rest when not crd_only -> options format true receipt rest
+    | "--receipt"::path::rest when receipt=None && argument path -> options format crd_only (Some path) rest
+    | _ -> usage () in
+  let format,crd_only,receipt_path = options None false None rest in
+  try match K.Catalogue_prepare.run ~crd_only ~format (read path) with
+    | Error reason -> Printf.eprintf "catalogue preparation error: %s\n" reason;exit 2
+    | Ok prepared ->
+      Option.iter (fun path -> write_receipt path prepared.receipt) receipt_path;
+      output_string stdout prepared.catalogue;
+      flush stdout;
+      Printf.eprintf "Prepared metadata from %d CRDs; explicitly excluded %d objects. Review before freezing; no verification or completeness claim.\n"
+        prepared.object_count prepared.excluded_count
+  with
+  | Sys_error reason -> Printf.eprintf "catalogue I/O error: %s\n" reason;exit 1
+  | Unix.Unix_error (error,action,path) ->
+    Printf.eprintf "catalogue I/O error: %s: %s (%s)\n" action (Unix.error_message error) path;exit 1
+
 let run = function
+  | "catalogue" :: args -> run_catalogue args
   | "prepare" :: args -> run_prepare args
   | "check-contract" :: args -> run_check_contract args
-  | ("inventory" | "inspect" as operation) :: args -> run_offline_workflow operation args
+  | ("inventory" | "inspect" | "coverage" as operation) :: args -> run_offline_workflow operation args
   | args -> run_verification args

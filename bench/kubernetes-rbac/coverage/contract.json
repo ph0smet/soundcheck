@@ -1,0 +1,69 @@
+{
+  "change_scope": [],
+  "clauses": [
+    {
+      "api_group": "",
+      "kind": "must_allow",
+      "name": "required-config",
+      "names": [
+        "settings"
+      ],
+      "namespace": "team-a",
+      "operation": "get",
+      "request_kind": "resource",
+      "resource": "configmaps",
+      "subject": "app",
+      "subresource": ""
+    },
+    {
+      "api_group": "",
+      "kind": "must_not_grant",
+      "name": "forbidden-secrets",
+      "names": null,
+      "namespace": "team-a",
+      "operation": "get",
+      "request_kind": "resource",
+      "resource": "secrets",
+      "subject": "app",
+      "subresource": ""
+    }
+  ],
+  "context": {
+    "identities": [
+      {
+        "groups": [],
+        "username": "app"
+      },
+      {
+        "groups": [
+          "operators"
+        ],
+        "username": "ops"
+      }
+    ],
+    "schema_version": 1,
+    "snapshot_complete": true
+  },
+  "custom_resources": [
+    {
+      "api_group": "widgets.example.test",
+      "resource": "widgets",
+      "scope": "Namespaced",
+      "subresources": [
+        "status",
+        "scale"
+      ]
+    },
+    {
+      "api_group": "widgets.example.test",
+      "resource": "clusterwidgets",
+      "scope": "Cluster",
+      "subresources": [
+        "status",
+        "scale"
+      ]
+    }
+  ],
+  "kind": "kubernetes-rbac-access",
+  "schema_version": 9
+}

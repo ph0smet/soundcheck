@@ -11,6 +11,9 @@ and preservation. Schema 6 adds `create` and `deletecollection` over that
 catalogue, with empty authorization names and explicit namespace scope.
 Schema 7 adds a fixed catalogue of Pod log/exec, ServiceAccount token and
 selected status/scale subresource operations, each with its own allowed verbs.
+Schema 8 adds conditional server-side apply prerequisites. Schema 9 adds wider
+static resource coverage, frozen custom APIs, non-resource URL requirements and
+conditional PUT authorization for Services and Endpoints.
 Older contracts keep their original domains.
 CLI and library workflows share the decision IR,
 encoder, Z3 backend and witness validation with the Kong connector.
@@ -321,7 +324,7 @@ dune exec soundcheck -- rbac check-contract \
 ```
 
 This read-only command uses the same strict contract reader as verification and
-prints a human-readable review of schemas 1–8: the selected profile, exact declared
+prints a human-readable review of schemas 1–9: the selected profile, exact declared
 identities and groups, ordered clause meanings, approved changes, and separate
 SHA-256 hashes for the raw artifact and canonical frozen contract. Artifact counts
 are reported after normalization; they measure size, not human authoring effort.
@@ -923,13 +926,168 @@ a different operation branch, change scope or contract version.
 
 The model excludes body validation, field ownership conflicts, admission, other
 authorizers, live existence, races, mutation success and resulting workload
-effects. SSA on subresources, PUT create-on-update, unsafe deletion and other
-operation-specific checks remain separately scoped. The retained native request
+effects. SSA on subresources and unsafe deletion remain outside these profiles.
+Schema 9 separately adds PUT create-on-update for Services and Endpoints. The retained native request
 operations still describe initial RBAC authorization only.
 
 The [synthetic apply corpus](../bench/kubernetes-rbac/apply/README.md) compares
 conditional authorization, frozen repair decisions and counterexample replays
 with pinned Kubernetes. It is separate from the external public-config pilot.
+
+## Static coverage contracts (schema 9)
+
+The [runnable coverage example](../bench/kubernetes-rbac/workflows/static-coverage/README.md)
+repairs URL access while preserving a controller Lease and custom API access.
+Schema 9 brings more controller and operator permissions into one frozen repair
+review. It retains the previous domains and adds 15 base resources:
+
+| API group | Additional resources |
+| --- | --- |
+| Core (`""`) | ServiceAccounts, Events, Namespaces, PersistentVolumeClaims, PersistentVolumes |
+| `events.k8s.io` | Events |
+| `apps` | ReplicaSets, StatefulSets, DaemonSets |
+| `batch` | Jobs, CronJobs |
+| `coordination.k8s.io` | Leases |
+| `networking.k8s.io` | Ingresses, IngressClasses |
+| `storage.k8s.io` | StorageClasses |
+
+These entries support initial get/list/watch/create/update/patch/delete/
+deletecollection authorization. They do not automatically acquire SSA or new
+subresources. The fixed catalogue now has 31 entries and 223 resource/operation
+classes. These are authorization attribute classes, not a discovery list of
+installed endpoints. For example, Kubernetes RequestInfo classifies collection
+DELETE for Namespaces as `deletecollection`, but Namespace REST does not install
+that handler. An authorization proof does not establish that the request runs.
+
+**Named Namespaces are special.** Their authorization namespace equals their
+name. A RoleBinding in `team-a` can therefore contribute to a named Namespace
+request for `team-a`. A contract for that request uses `namespace: "team-a"` and
+`names: ["team-a"]`. Namespace collection requests use `namespace: null`; their
+name is empty or the list/watch effective-name selector. This is distinct from
+ordinary cluster resources such as Nodes.
+
+Every schema-9 contract requires `custom_resources` (an empty array is allowed),
+and every clause/change scope requires a `request_kind`. A resource scope keeps
+the schema-8 fields and adds `"request_kind": "resource"`. URL scopes use a
+separate shape:
+
+```json
+{
+  "name": "health-required",
+  "kind": "must_allow",
+  "request_kind": "non_resource",
+  "subject": "app",
+  "operation": "get",
+  "paths": {"exact": "/healthz"}
+}
+```
+
+Pair requirements with a `must_not_grant` clause, for example to prohibit
+`GET /metrics`. `paths` takes exactly one `exact` or `prefix` selector. A prefix
+is a string prefix: `/healthz` also includes `/healthzish`; `/healthz/` does not
+include bare `/healthz`. Supported operations are get/head/post/put/patch/delete/
+options, with HEAD distinct from GET. The request domain consists of canonical
+absolute ASCII paths with unreserved characters in nonempty segments, optional
+trailing slash and no dot segments, escaping, query or fragment. Discovery paths
+such as `/api/v1` remain URLs; resource paths such as `/api/v1/pods` are excluded.
+Exact unsupported paths reject; a prefix with no supported paths is vacuous.
+
+Native URL grants use exact matches or prefixes after stripping all trailing
+stars. Only ClusterRoleBindings grant these non-resource requests. Wildcard
+resource rules never grant URLs, and URL rules never grant resource requests.
+URL counterexamples have `object_request: null`, the actual `path`, lowercase
+HTTP `action`, and frozen `identity_groups`. Resource counterexamples retain
+object coordinates and an empty report path.
+
+### Freeze custom API metadata
+
+Add independently reviewed entries to `custom_resources`:
+
+```json
+[
+  {"api_group":"example.test","resource":"widgets","scope":"Namespaced","subresources":["status","scale"]}
+]
+```
+
+The catalogue allows at most 64 base resources. Groups/plurals must be literal
+validated DNS names; native groups, duplicates and conflicting scopes reject.
+`scope` is exactly `Namespaced` or `Cluster`; `subresources` is a duplicate-free
+subset of status/scale. Bases support the eight initial verbs; explicit status
+and scale support get/update/patch. No custom SSA or other handler behavior is
+inferred. Catalogue order is normalized into the canonical frozen contract.
+All entries participate in preservation, including those absent from clauses.
+Candidate RBAC cannot supply or shrink this metadata.
+
+Prepare a catalogue from pinned, local v1 CRDs for review:
+
+```sh
+dune exec soundcheck -- rbac catalogue operator-crds.yaml \
+  --input-format yaml --crd-only --receipt /tmp/catalogue-receipt.json \
+  > /tmp/custom-resources.json
+```
+
+The command accepts CRDs, generic/CRD Lists with explicit item types, and YAML
+streams. Mixed bundles require `--crd-only`; excluded objects are recorded.
+Duplicate entries, incomplete pagination, unsupported List wrappers and served
+versions that disagree on status/scale availability reject. Versions must have
+unique names, at least one served version and exactly one storage version.
+Version-specific scale paths remain in the receipt; their schemas are not
+validated. Full CRD bodies, conversion, lifecycle, deployed availability and
+controller behavior are outside this metadata extraction.
+
+The receipt records the original source hash, parsed-object hashes, version
+metadata and exact output hash, including its final newline. Receipt creation
+is exclusive and private, as with `rbac prepare`. Exit 0 means extraction
+succeeded; 2 means unsupported input/usage; 1 means I/O failure. Review the
+catalogue before incorporating it into the separately approved contract. The
+command never changes a contract or infers required access from existing grants.
+
+### Conditional PUT authorization
+
+Services and Endpoints add two hypothetical storage branches:
+
+| Operation | Required RBAC grants at the same caller and named target |
+| --- | --- |
+| `update-existing` | update |
+| `update-missing` | update **and** named create |
+
+The grants may come from different roles. A `must_not_grant` clause on
+`update-missing` requires at least one prerequisite to lack a grant. These
+branches do not prove body validity, live object existence, successful storage,
+Service allocation, admission acceptance or resulting effects. Other resources
+retain their previous initial update and SSA meanings.
+
+Preservation compares aggregate operation decisions for every frozen identity
+across the entire resource and URL domain. An approved `update` change does not
+implicitly approve `update-existing`; `patch` does not approve `apply-existing`.
+Changing a named create grant can affect **both** PUT-missing and SSA-missing.
+The approved change scope must cover each intended decision change explicitly.
+
+### Review coverage before verification
+
+```sh
+dune exec soundcheck -- rbac coverage snapshot.json --contract contract.json
+dune exec soundcheck -- profile kubernetes-rbac --contract-version 9 --format json
+```
+
+`rbac coverage` lists the exact frozen catalogue, operation classes and URL
+methods, together with source rule references, including unbound roles. It marks
+references outside the catalogue and exposes wildcard limits. A matched entry
+is not a grant: verbs, names, namespaces, bindings and identities still matter.
+Review is bounded to 10,000 group/resource references and 100,000 catalogue
+associations; exceeding a limit fails without emitting a partial report.
+This solver-free report neither infers requirements nor verifies access or
+completeness. Its JSON has `verification_performed: false`; it is not a gate.
+
+The profile is `kubernetes-rbac-v1.34-static-coverage-v1`, with profile JSON schema
+6 and report JSON schema 10. Custom entries are carried in the frozen contract;
+the generic profile describes their source and limits. CLI/library, contract
+review, evidence, MCP, trusted-base CI and submitted-repair evaluation share the
+same domain. Schemas 1–8 retain their canonical identities and profile JSON.
+The [native conformance corpus](../bench/kubernetes-rbac/coverage/README.md)
+checks URL classification, resource scopes, PUT branches, preservation and
+witness replay against pinned Kubernetes. It is separate from public-config
+benchmark results and is not a universal proof of model correctness.
 
 ## Supported profiles
 
@@ -990,6 +1148,10 @@ conditional SSA branches for the eight base resources. Profile JSON schema 5
 enumerates the prerequisite checks and hypothetical object states. Earlier
 profiles remain initial-RBAC-only and do not gain compound obligations.
 
+`kubernetes-rbac-v1.34-static-coverage-v1` adds the schema-9 fixed and custom
+catalogues, URL domain and conditional Service/Endpoints PUT prerequisites.
+Its profile JSON uses schema 6.
+
 All supplied objects are checked, including unbound roles and unrelated
 bindings. Malformed input, unknown fields, duplicate identities, missing
 references, unsupported aggregate states and invalid URL/resource mixtures return `unknown`. Escaped
@@ -1025,11 +1187,11 @@ still names that resource grant's original `/rules/1` index. Preparation,
 inventory receipts and snapshot hashes retain the complete URL policy.
 Inspection counts every source rule; subject matches are not access decisions.
 
-**URL authorization and preservation remain outside the model.** A URL-only
+**Schemas 1–8 exclude URL authorization and preservation.** A URL-only
 change may pass resource repair-preservation while changing `/version` access.
 The changed snapshot still has a different hash. Use a separate review for that
-URL change; this feature adds coexistence, not URL contracts or URL equivalence.
-The request adapter continues to reject `resourceRequest: false`.
+URL change when using these older schemas. Schema 9 adds explicit URL contracts
+and preservation; its request adapter accepts a separate non-resource shape.
 
 ### Already-resolved aggregated ClusterRoles
 
@@ -1070,8 +1232,9 @@ Preparation preserves labels, aggregate fields and rules. Multiple source files
 may supply contributors through `rbac inventory`; consistency is checked after
 assembly. This feature does not establish live controller convergence, safe
 intermediate rollout states, future label/object changes or successful apply.
-Verification and repair comparison still quantify only their selected resource
-domain; aggregate consistency is not a URL-authorization or URL-preservation claim.
+Verification and repair comparison quantify only their selected request
+domain; aggregate consistency alone is not an access proof. URL authorization
+and preservation require schema 9 and its explicitly supported path domain.
 
 **Completeness is an external assumption.** Supply all applicable bindings and
 the complete ClusterRole inventory with labels, including unbound roles that
@@ -1082,7 +1245,7 @@ does not delete omitted live bindings. Deployment reconciliation must establish
 the state that was verified.
 
 **No grant is not final denial.** The decision is RBAC `Allow` versus
-`NoOpinion`; for schema-8 SSA, `Allow` requires every modeled prerequisite and
+`NoOpinion`; for SSA and conditional PUT, `Allow` requires every modeled prerequisite and
 `NoOpinion` means at least one lacks a grant. Other authorizers, authentication, impersonation, admission, object
 existence, live aggregation/reconciliation controllers, mutation effects and escalation
 checks are outside these models. Schema-1 restrictions on `get` do not rule out
@@ -1094,19 +1257,22 @@ frozen identities, not just namespaces present in the input. Schema 2 includes
 the all-namespace collection endpoint; schema 3 also includes named writes.
 Schema 5 includes every entry in its fixed resource catalogue, including Nodes.
 Schema 6 adds base collection writes; schema 7 adds every listed subresource
-operation; schema 8 also adds both conditional SSA branches over every base
-resource, including operations absent from the clauses.
+operation; schema 8 adds both conditional SSA branches over its eight bases.
+Schema 9 adds every fixed/custom entry, its supported URLs and conditional PUT,
+including operations absent from the clauses.
 All exclude identities, verbs, resources and control planes outside their
 selected profile.
 
 ## Output and integrations
 
 Both RBAC commands emit report schema 10. Violations include `object_request`,
-`identity_groups` and `granting_rules`; legacy HTTP fields are unused placeholders.
+`identity_groups` and `granting_rules`. Schema-9 URL witnesses use `path` and
+lowercase HTTP `action`, with `object_request: null`; other HTTP fields remain
+unused placeholders.
 The selected profile defines `resource_kind`: schemas 5 and 6 use qualified
 discriminators for noncore resources. Schema 7 also identifies subresources,
 for example `pods/exec`, `serviceaccounts/token` and `deployments/scale.apps`.
-Decode by exact lookup in the profile catalogue, rather than splitting arbitrary
+Decode by exact lookup in the profile plus frozen custom catalogue, rather than splitting arbitrary
 strings or assuming every request belongs to the core API group. For subresource
 operations, `object_request.name` is the parent authorization name.
 For SSA, `action` is `apply-existing` or `apply-missing`, and the object name

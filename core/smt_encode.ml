@@ -29,6 +29,8 @@ let rec cond (c : Ir.condition) : string =
   | Ir.Has_object_request -> "has_object_request"
   | Ir.Object_is (field, value) ->
     Printf.sprintf "(and has_object_request (= %s %s))" (object_symbol field) (smt_str value)
+  | Ir.Object_equal (left, right) ->
+    Printf.sprintf "(and has_object_request (= %s %s))" (object_symbol left) (object_symbol right)
   | Ir.Object_matches (field, regex) ->
     Printf.sprintf "(and has_object_request (str.in_re %s %s))"
       (object_symbol field) (Regex.to_smt regex)
@@ -127,7 +129,7 @@ let observations conditions =
   { headers = conditions |> List.concat_map header_atoms |> List.sort_uniq compare;
     principal_name = List.exists (needs (function Ir.Principal_is _ -> true | _ -> false)) conditions;
     object_request = List.exists (needs (function
-        | Ir.Has_object_request | Ir.Object_is _ | Ir.Object_matches _
+        | Ir.Has_object_request | Ir.Object_is _ | Ir.Object_equal _ | Ir.Object_matches _
         | Ir.Object_length_at_most _ -> true
         | _ -> false)) conditions }
 
@@ -153,11 +155,17 @@ let preamble b title observations =
   if observations.principal_name then
     Buffer.add_string b "(declare-const principal_name String)\n";
   if observations.object_request then
+    (* None has no object coordinates. Choose its unique empty representation
+       so unconstrained SMT Unicode strings cannot break byte-model decoding.
+       Every object predicate is presence-guarded, so this preserves the request
+       domain and every decision while retaining strict typed decoding. *)
     Buffer.add_string b
       "(declare-const has_object_request Bool)\n\
        (declare-const object_namespace String)\n\
        (declare-const object_kind String)\n\
-       (declare-const object_name String)\n";
+       (declare-const object_name String)\n\
+       (assert (=> (not has_object_request)\n\
+         (and (= object_namespace \"\") (= object_kind \"\") (= object_name \"\"))))\n";
   List.iter
     (fun (name, value) ->
       Buffer.add_string b

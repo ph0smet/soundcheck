@@ -35,7 +35,8 @@ type name_selector =
   | Names of string list
   | Empty_name
   | Other_names of { excluded:string list; include_empty:bool }
-type scope = { subject:string; verb:string; namespace:namespace_selector; resource:string; names:name_selector; api_group:string; subresource:string }
+type target = Resource_target of Resource_domain.t | Url_target of Url_domain.selector
+type scope = { subject:string; verb:string; namespace:namespace_selector; resource:string; names:name_selector; api_group:string; subresource:string; target:target }
 type kind = Must_allow | Must_not_grant
 type clause = { name:string; kind:kind; scope:scope }
 type t
@@ -45,6 +46,8 @@ val version : t -> int
 val identities : t -> Identity.identity list
 val clauses : t -> clause list
 val changes : t -> scope list
+val resources : t -> Resource_domain.t list
+val custom_resources : t -> Catalogue.t
 val scope_condition : scope -> Soundcheck_core.Ir.condition
 val approved_changes : t -> Soundcheck_core.Ir.condition
 

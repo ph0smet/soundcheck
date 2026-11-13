@@ -1,0 +1,88 @@
+{
+  "schema_version": 9,
+  "kind": "kubernetes-rbac-access",
+  "custom_resources": [
+    {
+      "api_group": "example.test",
+      "resource": "widgets",
+      "scope": "Namespaced",
+      "subresources": [
+        "status"
+      ]
+    }
+  ],
+  "context": {
+    "schema_version": 1,
+    "snapshot_complete": true,
+    "identities": [
+      {
+        "username": "app",
+        "groups": []
+      },
+      {
+        "username": "operator",
+        "groups": []
+      }
+    ]
+  },
+  "clauses": [
+    {
+      "name": "leader-required",
+      "kind": "must_allow",
+      "request_kind": "resource",
+      "subject": "app",
+      "operation": "get",
+      "api_group": "coordination.k8s.io",
+      "resource": "leases",
+      "subresource": "",
+      "namespace": "team-a",
+      "names": [
+        "leader"
+      ]
+    },
+    {
+      "name": "widget-required",
+      "kind": "must_allow",
+      "request_kind": "resource",
+      "subject": "app",
+      "operation": "get",
+      "api_group": "example.test",
+      "resource": "widgets",
+      "subresource": "",
+      "namespace": "team-a",
+      "names": [
+        "settings"
+      ]
+    },
+    {
+      "name": "health-required",
+      "kind": "must_allow",
+      "request_kind": "non_resource",
+      "subject": "app",
+      "operation": "get",
+      "paths": {
+        "exact": "/healthz"
+      }
+    },
+    {
+      "name": "metrics-forbidden",
+      "kind": "must_not_grant",
+      "request_kind": "non_resource",
+      "subject": "app",
+      "operation": "get",
+      "paths": {
+        "exact": "/metrics"
+      }
+    }
+  ],
+  "change_scope": [
+    {
+      "request_kind": "non_resource",
+      "subject": "app",
+      "operation": "get",
+      "paths": {
+        "exact": "/metrics"
+      }
+    }
+  ]
+}

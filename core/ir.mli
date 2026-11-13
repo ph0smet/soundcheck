@@ -78,6 +78,9 @@ type condition =
           never satisfies this condition, including for the empty string. *)
   | Has_object_request
   | Object_is of object_field * string
+  | Object_equal of object_field * object_field
+      (** Exact equality of two object-coordinate strings. Requires present
+          coordinates, even when both fields are the same. *)
   | Object_matches of object_field * Regex.t
   | Object_length_at_most of object_field * int
       (** Object predicates require present coordinates. Matching is full-string

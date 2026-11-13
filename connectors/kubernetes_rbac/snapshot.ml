@@ -25,6 +25,8 @@ type bound_grant = { binding : binding; bound_rules : rule list }
 type t = bound_grant list
 type resource_object = Role of role | Binding of binding
 type missing_reference = { binding_index : int; binding_label : string; role_label : string }
+type rule_source = { role_label : string; item_index : int; rule_index : int;
+  bound : bool; rule : rule }
 
 let binding_label b =
   if b.binding_kind = "RoleBinding" then
@@ -282,3 +284,18 @@ let grants snapshot = snapshot
 
 
 let of_string source = protect (fun () -> parse_manifest (parse source))
+
+let rule_inventory source = protect (fun () ->
+  let value = parse source in
+  ignore (parse_manifest value);
+  let objects,_ = parse_objects value in
+  let bound = Hashtbl.create (List.length objects) in
+  List.iter (function Binding b -> Hashtbl.replace bound (role_key b) () | Role _ -> ()) objects;
+  List.mapi (fun item_index -> function
+    | Binding _ -> []
+    | Role r ->
+      let role_label = r.role_kind ^ "/" ^
+        (if r.role_namespace="" then "" else r.role_namespace ^ "/") ^ r.role_name in
+      let bound = Hashtbl.mem bound (r.role_kind,r.role_namespace,r.role_name) in
+      List.mapi (fun rule_index rule -> {role_label;item_index;rule_index;bound;rule}) r.rules) objects
+  |> List.concat)

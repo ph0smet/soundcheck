@@ -8,12 +8,14 @@ let resource_profile_id = "kubernetes-rbac-v1.34-resource-read-write-v1"
 let collection_write_profile_id = "kubernetes-rbac-v1.34-collection-write-v1"
 let subresource_profile_id = "kubernetes-rbac-v1.34-subresources-v1"
 let apply_profile_id = "kubernetes-rbac-v1.34-apply-v1"
+let coverage_profile_id = "kubernetes-rbac-v1.34-static-coverage-v1"
 let id_for_version = function
   | 1 -> profile_id | 2 -> read_profile_id | 3 -> write_profile_id | 4 -> scoped_profile_id
   | 5 -> resource_profile_id
   | 6 -> collection_write_profile_id
   | 7 -> subresource_profile_id
   | 8 -> apply_profile_id
+  | 9 -> coverage_profile_id
   | _ -> invalid_arg "unsupported RBAC contract version"
 let assumptions = [
   "The input is the complete static desired RBAC snapshot, including every applicable binding and the complete ClusterRole inventory with labels, even unbound aggregation contributors.";
@@ -145,12 +147,31 @@ let apply_assumptions = [
   "SSA on subresources, PUT create-on-update, unsafe deletion, newer exec WebSocket authorization, token-audience checks, base ServiceAccounts, Namespaces, custom resources and indirect privilege escalation remain outside the model.";
   "Applying a partial manifest does not remove omitted live bindings; deployment reconciliation must establish the assumed snapshot." ]
 
+let coverage_assumptions = [
+  "The input is the complete static desired RBAC snapshot, including all applicable bindings and the complete ClusterRole inventory with labels. Completeness is assumed, not established by resolving references.";
+  "Aggregated ClusterRoles require acyclic dependencies (self-matches ignored) and stored rules equal to recursively selected rules. Controller convergence, future labels and object changes remain outside the model.";
+  "Every quantified identity and its exact groups are independently trusted frozen contract inputs. Authentication and impersonation are not inferred.";
+  "The fixed catalogue has 31 resource/subresource entries and 223 operation classes, plus every custom resource explicitly frozen in contract.custom_resources, including entries absent from clauses. Wildcards do not quantify future or unlisted APIs.";
+  "Resource names use the previous DNS1123 subdomain bound of 253 bytes; nonempty namespaces use DNS1123 labels of at most 63 bytes. Bounds describe authorization attributes, not complete object-body validation.";
+  "Named Namespace get/update/patch/delete have authorization namespace equal to target name, both DNS labels of at most 63 bytes. Collection requests have empty namespace; list/watch can retain an effective exact-name field selector. Matching RoleBindings can grant named Namespace requests.";
+  "Resource operation classes describe initial authorization requests, not installed-route availability. For example Namespace deletecollection has RequestInfo attributes even though the native Namespace REST does not install that operation.";
+  "New catalogue entries have initial request authorization only. SSA remains limited to the original eight base resources. Services and Endpoints additionally support conditional update-existing and update-missing for HTTP PUT.";
+  "apply-existing requires named patch; apply-missing requires patch AND named create. update-existing requires named update; update-missing requires update AND named create. All checks share identity and target; different bindings may supply different prerequisites.";
+  "Object state is a hypothetical storage branch, not observed cluster state. Allow means every modeled prerequisite grants. NoOpinion means at least one lacks a grant, not explicit denial or a final authorization-chain decision.";
+  "Custom resource group/plural/scope and explicit status/scale metadata are reviewed independently and frozen in the contract. Only initial authorization is checked; CRD lifecycle, schemas, admission, conversion and controller behavior are not modeled.";
+  "Non-resource methods are lowercase get/head/post/put/patch/delete/options; head is distinct from get. Paths are canonical absolute ASCII unreserved segments with optional trailing slash, no empty/dot/dot-dot segments, escaping, query or fragment. Quantified paths are not length-bounded; selector literals are limited to 2048 bytes.";
+  "Pinned api/apis RequestInfo classification separates resource paths from non-resource discovery paths. Matching a URL rule does not establish endpoint existence. Non-resource rules use exact matches or prefixes after stripping all trailing stars; only ClusterRoleBindings can grant these empty-namespace requests.";
+  "Repair preservation covers every frozen identity across every resource and URL domain. It compares aggregate operation decisions. Equivalent update/update-existing and patch/apply-existing remain separate scopes; PUT and SSA can share named-create prerequisites without sharing change approval.";
+  "Resource and non-resource clause shapes are disjoint. Resource witnesses use object_request; URL witnesses have object_request:null and the exact path. Report schema 10 and existing schemas 1–8 remain unchanged.";
+  "Native handler/store/strategy conformance is not complete Service REST execution: allocation and body validation can fail before additional authorization. Body validity, admission, ownership conflicts, other authorizers, races, successful mutation and workload effects are not proven.";
+  "Privilege-escalation transitions, unsafe deletion, newer-version exec/token checks, admission and network-policy behavior remain outside this profile. Applying partial manifests does not remove omitted live grants." ]
+
 let profile_json ?(version=1) () =
   let id = id_for_version version in
-  if version=8 then
-    Input.json (`O ["schema_version",`Number "5";"id",`String id;
+  if version>=8 then
+    Input.json (`O (["schema_version",`Number (if version=9 then "6" else "5");"id",`String id;
       "connector",`String "kubernetes-rbac";"reference_version",`String "v1.34.0";
-      "contract_schema_version",`Number "8";
+      "contract_schema_version",`Number (string_of_int version);
       "input_format",`String "strict-json-kubernetes-list";"decision",`String "Allow|NoOpinion";
       "resource_domains",`A (List.map (fun (entry : Resource_domain.t) -> `O [
         "api_group",`String entry.api_group;"resource",`String entry.resource;
@@ -163,7 +184,14 @@ let profile_json ?(version=1) () =
           "name_domain",`String (Resource_domain.name_domain entry ~verb:operation);
           "namespace_domain",`String (Resource_domain.namespace_domain entry ~verb:operation)])
           (Resource_domain.operations ~version entry))]) (Resource_domain.for_version version));
-      "assumptions",`A (List.map (fun s -> `String s) apply_assumptions)])
+      "assumptions",`A (List.map (fun s -> `String s) (if version=9 then coverage_assumptions else apply_assumptions))]
+      @ if version=9 then [
+        "custom_resource_catalogue",`O ["source",`String "frozen_contract.custom_resources";
+          "max_base_resources",`Number "64";"authorization",`String "initial-only"];
+        "non_resource_domain",`O ["methods",`A (List.map (fun s -> `String s) Url_domain.methods);
+          "path_domain",`String "canonical-absolute-ascii-unreserved-non-resource-paths";
+          "classification",`String "Kubernetes v1.34 RequestInfo with api/apis prefixes"]]
+      else []))
   else if version=7 then
     Input.json (`O ["schema_version",`Number "4";"id",`String id;
       "connector",`String "kubernetes-rbac";"reference_version",`String "v1.34.0";
@@ -233,4 +261,4 @@ let profile_human ?(version=1) () =
   ^ String.concat "\n" (List.map (fun s -> "- " ^ s)
       (match version with 1 -> assumptions | 2 -> read_assumptions | 3 -> write_assumptions
        | 4 -> scoped_assumptions | 6 -> collection_write_assumptions | 7 -> subresource_assumptions
-       | 8 -> apply_assumptions | _ -> resource_assumptions))
+       | 8 -> apply_assumptions | 9 -> coverage_assumptions | _ -> resource_assumptions))
