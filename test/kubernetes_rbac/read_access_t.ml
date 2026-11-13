@@ -104,7 +104,7 @@ let () =
   let value = contract () in
   List.iter (fun (label,changed) -> check label
       (Result.is_error (K.Contract_spec.of_string (K.Input.json changed)))) [
-    "unknown schema",replace "schema_version" (`Number "9") value;
+    "unknown schema",replace "schema_version" (`Number "10") value;
     "rounded schema",replace "schema_version" (`Number "2.0") value;
     "v2 requires verbs",replace "schema_version" (`Number "2") (contract ~version:1 ());
     "v1 rejects verb fields",replace "schema_version" (`Number "1") value;

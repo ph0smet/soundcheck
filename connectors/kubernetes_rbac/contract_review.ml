@@ -20,6 +20,15 @@ let run source =
     (String.length source) (List.length identities) groups (List.length clauses) required
     (List.length clauses-required) (List.length changes);
   line "";
+  if Contract_spec.version spec>=9 then begin
+    line "Frozen resource catalogue: %d entries including explicit custom resources."
+      (List.length (Contract_spec.resources spec));
+    line "Custom API metadata: %s" (Input.json (Catalogue.json (Contract_spec.custom_resources spec)));
+    line "Non-resource URL access and preservation are included within the profile's canonical path domain.";
+    line "Named Namespace authorization attributes have namespace equal to target name; collection requests have empty namespace.";
+    line "PUT and SSA are conditional prerequisites; a shared named-create grant can affect both operations.";
+    line ""
+  end;
   line "Declared identities (trusted input, not authentication findings):";
   List.iter (fun (identity : Identity.identity) ->
     line "  %S; groups: [%s]" identity.username

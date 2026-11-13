@@ -260,6 +260,16 @@ handler failure cannot be accepted as an RBAC denial. Apply results and their
 before-execution source/input/tool receipt live in `apply/results.json` and
 `apply/before-execution.json` alongside the independently counted older suites.
 
+The separate schema-9 [coverage corpus](../coverage/README.md) adds the reviewed
+builtin catalogue, frozen custom-resource scopes, canonical nonresource URL
+authorization and conditional Service/Endpoints PUT prerequisites. It uses the
+native RequestInfo filter and GetAuthorizerAttributes projection, with explicit
+Namespace named-versus-collection controls. PUT runs the native update handler
+and generic store. These remain authorization classes, not assertions that every
+route is installed or API operation succeeds. Its receipts and results live in
+`coverage/before-execution.json` and `coverage/results.json`; older input pins and
+counts are unchanged.
+
 RBAC `NoOpinion` means no RBAC grant for the request; it is not a final API-server
 denial. Missing role references may appear in upstream's reason string with an
 empty error field, and a later applicable grant may yield `Allow`. The connector
@@ -276,4 +286,5 @@ python3 bench/kubernetes-rbac/conformance/test_write_access_runner.py
 python3 bench/kubernetes-rbac/conformance/test_nonresource_runner.py
 python3 bench/kubernetes-rbac/conformance/test_aggregation_runner.py
 python3 bench/kubernetes-rbac/conformance/test_apply_runner.py
+python3 bench/kubernetes-rbac/conformance/test_coverage_runner.py
 ```

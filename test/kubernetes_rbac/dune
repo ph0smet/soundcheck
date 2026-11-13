@@ -211,6 +211,23 @@
  (modules apply_t)
  (libraries soundcheck_core soundcheck_kubernetes_rbac))
 
+(test
+ (name coverage_t)
+ (modules coverage_t)
+ (libraries soundcheck_core soundcheck_kubernetes_rbac))
+
+(executable
+ (name coverage_adapters_t)
+ (modules coverage_adapters_t)
+ (libraries soundcheck_core soundcheck_kubernetes_rbac unix))
+
+(rule
+ (alias runtest)
+ (deps ../../scripts/verify-approved-contract.sh)
+ (action
+  (run %{exe:coverage_adapters_t.exe} %{exe:../../cli/main.exe}
+   ../../scripts/verify-approved-contract.sh %{exe:../../bench/repair/rbac_main.exe})))
+
 (executable
  (name apply_adapters_t)
  (modules apply_adapters_t)
