@@ -38,6 +38,10 @@
  (libraries soundcheck_core unix))
 
 (test
+ (name object_equal_t)
+ (libraries soundcheck_core))
+
+(test
  (name report_schema_t)
  (libraries soundcheck_core))
 

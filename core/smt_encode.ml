@@ -29,6 +29,8 @@ let rec cond (c : Ir.condition) : string =
   | Ir.Has_object_request -> "has_object_request"
   | Ir.Object_is (field, value) ->
     Printf.sprintf "(and has_object_request (= %s %s))" (object_symbol field) (smt_str value)
+  | Ir.Object_equal (left, right) ->
+    Printf.sprintf "(and has_object_request (= %s %s))" (object_symbol left) (object_symbol right)
   | Ir.Object_matches (field, regex) ->
     Printf.sprintf "(and has_object_request (str.in_re %s %s))"
       (object_symbol field) (Regex.to_smt regex)
@@ -127,7 +129,7 @@ let observations conditions =
   { headers = conditions |> List.concat_map header_atoms |> List.sort_uniq compare;
     principal_name = List.exists (needs (function Ir.Principal_is _ -> true | _ -> false)) conditions;
     object_request = List.exists (needs (function
-        | Ir.Has_object_request | Ir.Object_is _ | Ir.Object_matches _
+        | Ir.Has_object_request | Ir.Object_is _ | Ir.Object_equal _ | Ir.Object_matches _
         | Ir.Object_length_at_most _ -> true
         | _ -> false)) conditions }
 

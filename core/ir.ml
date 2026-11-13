@@ -40,6 +40,7 @@ type condition =
   | Principal_is of string
   | Has_object_request
   | Object_is of object_field * string
+  | Object_equal of object_field * object_field
   | Object_matches of object_field * Regex.t
   | Object_length_at_most of object_field * int
   | Source_in   of Cidr.t
@@ -119,6 +120,10 @@ let rec matches (c : condition) (r : request) : bool =
   | Has_object_request -> Option.is_some r.object_request
   | Object_is (field, value) ->
     Option.fold ~none:false ~some:(fun object_request -> object_value field object_request = value)
+      r.object_request
+  | Object_equal (left, right) ->
+    Option.fold ~none:false
+      ~some:(fun object_request -> object_value left object_request = object_value right object_request)
       r.object_request
   | Object_matches (field, regex) ->
     Option.fold ~none:false
