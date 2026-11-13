@@ -1,0 +1,100 @@
+{
+  "apiVersion": "v1",
+  "kind": "List",
+  "items": [
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "Role",
+      "metadata": {
+        "name": "app",
+        "namespace": "team-a"
+      },
+      "rules": [
+        {
+          "apiGroups": [
+            "coordination.k8s.io"
+          ],
+          "resources": [
+            "leases"
+          ],
+          "verbs": [
+            "get"
+          ],
+          "resourceNames": [
+            "leader"
+          ]
+        },
+        {
+          "apiGroups": [
+            "example.test"
+          ],
+          "resources": [
+            "widgets"
+          ],
+          "verbs": [
+            "get"
+          ],
+          "resourceNames": [
+            "settings"
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "RoleBinding",
+      "metadata": {
+        "name": "app",
+        "namespace": "team-a"
+      },
+      "subjects": [
+        {
+          "kind": "User",
+          "apiGroup": "rbac.authorization.k8s.io",
+          "name": "app"
+        }
+      ],
+      "roleRef": {
+        "kind": "Role",
+        "apiGroup": "rbac.authorization.k8s.io",
+        "name": "app"
+      }
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "ClusterRole",
+      "metadata": {
+        "name": "endpoints"
+      },
+      "rules": [
+        {
+          "verbs": [
+            "get"
+          ],
+          "nonResourceURLs": [
+            "/healthz"
+          ]
+        }
+      ]
+    },
+    {
+      "apiVersion": "rbac.authorization.k8s.io/v1",
+      "kind": "ClusterRoleBinding",
+      "metadata": {
+        "name": "endpoints"
+      },
+      "subjects": [
+        {
+          "kind": "User",
+          "apiGroup": "rbac.authorization.k8s.io",
+          "name": "app"
+        }
+      ],
+      "roleRef": {
+        "kind": "ClusterRole",
+        "apiGroup": "rbac.authorization.k8s.io",
+        "name": "endpoints"
+      }
+    }
+  ]
+}

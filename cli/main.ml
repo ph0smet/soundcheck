@@ -38,6 +38,8 @@ let usage () =
      usage: soundcheck rbac prepare EXPORT.json [--receipt NEW_FILE]\n\
      usage: soundcheck rbac inventory PLAN.json [--receipt NEW_FILE]\n\
      usage: soundcheck rbac inspect SNAPSHOT.json --contract CONTRACT.json\n\
+     usage: soundcheck rbac coverage SNAPSHOT.json --contract CONTRACT.json\n\
+     usage: soundcheck rbac catalogue CRDS --input-format json|yaml [--crd-only] [--receipt NEW_FILE]\n\
     \  Prepare supported static JSON exports; this is not verification or a completeness check.\n\
      usage: soundcheck rbac verify SNAPSHOT.json --contract CONTRACT.json [--format human|json|github] [--evidence-dir NEW_DIRECTORY]\n\
      usage: soundcheck rbac compare BEFORE.json AFTER.json --contract CONTRACT.json [--format human|json|github] [--evidence-dir NEW_DIRECTORY]\n\

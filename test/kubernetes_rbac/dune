@@ -296,3 +296,12 @@
 (test
  (name url_domain_t)
  (libraries soundcheck_kubernetes_rbac soundcheck_core))
+
+(executable
+ (name coverage_tools_t)
+ (modules coverage_tools_t)
+ (libraries soundcheck_kubernetes_rbac soundcheck_core unix))
+
+(rule
+ (alias runtest)
+ (action (run %{exe:coverage_tools_t.exe} %{exe:../../cli/main.exe})))

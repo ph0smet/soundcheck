@@ -13,7 +13,7 @@ type nonresource_rule = { verbs : string list; urls : string list }
 type rule = Resource of resource_rule | Non_resource of nonresource_rule
 (** Native rule domains remain distinct. URL rules are valid only on ClusterRole
     and cannot contain nonempty resource fields. Both variants retain their
-    original rule-array positions; URL authorization is outside verification. *)
+    original rule-array positions; URL authorization requires schema 9. *)
 type subject = User of string | Group of string | Service_account of string * string
 type role_ref = Local_role of string | Cluster_role of string
 type binding = {
@@ -26,6 +26,8 @@ type binding = {
 type bound_grant = { binding : binding; bound_rules : rule list }
 type t
 type missing_reference = { binding_index : int; binding_label : string; role_label : string }
+type rule_source = { role_label : string; item_index : int; rule_index : int;
+  bound : bool; rule : rule }
 
 val unresolved_references : string -> (missing_reference list, string) result
 (** Validate object structure, including unsupported rules and duplicate identities,
@@ -34,6 +36,12 @@ val unresolved_references : string -> (missing_reference list, string) result
     [of_string] checks the complete assembled inventory. *)
 
 val of_string : string -> (t, string) result
+
+val rule_inventory : string -> (rule_source list, string) result
+(** Validate the complete snapshot and retain every original rule, including
+    unbound roles. [bound] means referenced by a binding, not an effective grant
+    to any frozen identity. *)
+
 val grants : t -> bound_grant list
 val binding_label : binding -> string
 val role_label : binding -> string
