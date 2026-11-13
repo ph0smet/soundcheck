@@ -272,3 +272,6 @@
    %{exe:../../bench/repair/rbac_main.exe}
    ../../bench/kubernetes-rbac/workflows/write-access
    ../../scripts/verify-approved-contract.sh)))
+(test
+ (name catalogue_t)
+ (libraries soundcheck_kubernetes_rbac))

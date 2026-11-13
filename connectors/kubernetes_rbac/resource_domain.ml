@@ -18,15 +18,38 @@ let subresources = [
   {api_group="apps";resource="deployments";namespaced=true;subresource="status"};
   {api_group="apps";resource="deployments";namespaced=true;subresource="scale"} ]
 
+let coverage = [
+  core "serviceaccounts";core "events";{(core "namespaces") with namespaced=false};
+  core "persistentvolumeclaims";{(core "persistentvolumes") with namespaced=false};
+  {api_group="events.k8s.io";resource="events";namespaced=true;subresource=""};
+  {api_group="apps";resource="replicasets";namespaced=true;subresource=""};
+  {api_group="apps";resource="statefulsets";namespaced=true;subresource=""};
+  {api_group="apps";resource="daemonsets";namespaced=true;subresource=""};
+  {api_group="batch";resource="jobs";namespaced=true;subresource=""};
+  {api_group="batch";resource="cronjobs";namespaced=true;subresource=""};
+  {api_group="coordination.k8s.io";resource="leases";namespaced=true;subresource=""};
+  {api_group="networking.k8s.io";resource="ingresses";namespaced=true;subresource=""};
+  {api_group="networking.k8s.io";resource="ingressclasses";namespaced=false;subresource=""};
+  {api_group="storage.k8s.io";resource="storageclasses";namespaced=false;subresource=""} ]
+
+let custom ~api_group ~resource ~namespaced ~subresources =
+  {api_group;resource;namespaced;subresource=""}
+  :: List.map (fun subresource -> {api_group;resource;namespaced;subresource}) subresources
+
+let is_namespace entry = entry.api_group="" && entry.resource="namespaces"
+
 let for_version = function
   | 1 | 2 | 3 | 4 -> legacy
   | 5 | 6 -> expanded
   | 7 | 8 -> expanded @ subresources
+  | 9 -> expanded @ subresources @ coverage
   | _ -> invalid_arg "unsupported RBAC contract version"
 
-let find_subresource ~version ~api_group ~resource ~subresource =
+let find_in entries ~api_group ~resource ~subresource =
   List.find_opt (fun entry -> entry.api_group=api_group && entry.resource=resource && entry.subresource=subresource)
-    (for_version version)
+    entries
+
+let find_subresource ~version = find_in (for_version version)
 
 let find ~version ~api_group ~resource = find_subresource ~version ~api_group ~resource ~subresource:""
 
@@ -39,6 +62,8 @@ let kind entry =
 
 let of_kind ~version value =
   List.find_opt (fun entry -> kind entry=value) (for_version version)
+
+let of_kind_in entries value = List.find_opt (fun entry -> kind entry=value) entries
 
 let description entry =
   let resource = combined_resource entry in
@@ -59,16 +84,21 @@ let verbs ~version entry =
 
 let operations ~version entry =
   verbs ~version entry
-  @ (if version>=8 && entry.subresource="" then ["apply-existing";"apply-missing"] else [])
+  @ (if version>=8 && List.mem entry expanded then ["apply-existing";"apply-missing"] else [])
+  @ (if version>=9 && entry.api_group="" && entry.subresource=""
+        && List.mem entry.resource ["services";"endpoints"]
+     then ["update-existing";"update-missing"] else [])
 
 let checks ~operation = match operation with
   | "apply-existing" -> ["patch"]
   | "apply-missing" -> ["patch";"create"]
+  | "update-existing" -> ["update"]
+  | "update-missing" -> ["update";"create"]
   | verb -> [verb]
 
 let object_state ~operation = match operation with
-  | "apply-existing" -> Some "existing"
-  | "apply-missing" -> Some "missing"
+  | "apply-existing" | "update-existing" -> Some "existing"
+  | "apply-missing" | "update-missing" -> Some "missing"
   | _ -> None
 
 (* These classify authorization attributes, not names or namespaces in a body.
@@ -81,6 +111,8 @@ let name_domain entry ~verb =
     | _ -> "named"
 
 let namespace_domain entry ~verb =
-  if not entry.namespaced then "empty"
+  if is_namespace entry && not (List.mem verb ["list";"watch";"create";"deletecollection"])
+  then "same-as-name"
+  else if not entry.namespaced then "empty"
   else if entry.subresource="" && (verb="list" || verb="watch") then "empty-or-named"
   else "named"

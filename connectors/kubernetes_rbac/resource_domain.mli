@@ -5,6 +5,13 @@ type t = private { api_group : string; resource : string; namespaced : bool; sub
 val for_version : int -> t list
 val find : version:int -> api_group:string -> resource:string -> t option
 val find_subresource : version:int -> api_group:string -> resource:string -> subresource:string -> t option
+val find_in : t list -> api_group:string -> resource:string -> subresource:string -> t option
+val of_kind_in : t list -> string -> t option
+val is_namespace : t -> bool
+
+(** Construct entries only from an independently validated frozen catalogue.
+    This constructor does not validate names, provenance or metadata claims. *)
+val custom : api_group:string -> resource:string -> namespaced:bool -> subresources:string list -> t list
 val combined_resource : t -> string
 
 (** Injective, connector-defined IR/report discriminator. Core resources retain
@@ -19,8 +26,8 @@ val description : t -> string
 (** Per-entry native initial verbs. Never includes synthetic operation IDs. *)
 val verbs : version:int -> t -> string list
 
-(** Contract operation catalogue, including the two conditional SSA branches
-    for base resources in schema 8. *)
+(** Contract operation catalogue. SSA stays limited to schema 8's original
+    eight bases. Schema 9 adds two PUT branches for Services/Endpoints only. *)
 val operations : version:int -> t -> string list
 
 (** Native RBAC prerequisites at the same request coordinates. Callers first
@@ -29,6 +36,7 @@ val operations : version:int -> t -> string list
 val checks : operation:string -> string list
 val object_state : operation:string -> string option
 
-(** Authorization attribute domains: named, empty, or empty-or-named. *)
+(** Authorization attribute domains: named, empty, empty-or-named; Namespace
+    named endpoints additionally use same-as-name for the namespace attribute. *)
 val name_domain : t -> verb:string -> string
 val namespace_domain : t -> verb:string -> string
