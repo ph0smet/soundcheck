@@ -275,3 +275,7 @@
 (test
  (name catalogue_t)
  (libraries soundcheck_kubernetes_rbac))
+
+(test
+ (name url_domain_t)
+ (libraries soundcheck_kubernetes_rbac soundcheck_core))
