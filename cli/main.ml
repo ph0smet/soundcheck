@@ -43,7 +43,7 @@ let usage () =
      usage: soundcheck rbac compare BEFORE.json AFTER.json --contract CONTRACT.json [--format human|json|github] [--evidence-dir NEW_DIRECTORY]\n\
     \  Verify versioned static RBAC access requirements, or verify a repair and preserve other decisions.\n\
      usage: soundcheck profile kong|kubernetes-rbac [--format human|json]\n\
-    \  RBAC also accepts --contract-version 1|2|3|4|5|6|7 (default 1).\n\
+    \  RBAC also accepts --contract-version 1|2|3|4|5|6|7|8 (default 1).\n\
     \  Print the versioned connector assurance profile and exit.\n\
      \n\
      usage: soundcheck mcp [--connector kong] [--contract CONTRACT.yaml]\n\
@@ -411,7 +411,7 @@ let run_profile connector rest =
       Printf.eprintf "unknown --format %S (expected human|json)\n" other; exit 2
     | ["--format"] when format = None ->
       prerr_endline "--format requires human or json"; exit 2
-    | "--contract-version" :: ("1"|"2"|"3"|"4"|"5"|"6"|"7" as value) :: rest
+    | "--contract-version" :: ("1"|"2"|"3"|"4"|"5"|"6"|"7"|"8" as value) :: rest
         when connector = "kubernetes-rbac" && version = None ->
       options format (Some (int_of_string value)) rest
     | _ -> usage () in

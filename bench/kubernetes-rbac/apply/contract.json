@@ -1,0 +1,57 @@
+{
+  "change_scope": [
+    {
+      "api_group": "",
+      "names": null,
+      "namespace": "team-a",
+      "operation": "apply-missing",
+      "resource": "configmaps",
+      "subject": "app",
+      "subresource": ""
+    }
+  ],
+  "clauses": [
+    {
+      "api_group": "",
+      "kind": "must_allow",
+      "name": "required-apply-existing",
+      "names": [
+        "settings"
+      ],
+      "namespace": "team-a",
+      "operation": "apply-existing",
+      "resource": "configmaps",
+      "subject": "app",
+      "subresource": ""
+    },
+    {
+      "api_group": "",
+      "kind": "must_not_grant",
+      "name": "forbidden-apply-missing",
+      "names": null,
+      "namespace": "team-a",
+      "operation": "apply-missing",
+      "resource": "configmaps",
+      "subject": "app",
+      "subresource": ""
+    }
+  ],
+  "context": {
+    "identities": [
+      {
+        "groups": [],
+        "username": "app"
+      },
+      {
+        "groups": [
+          "operators"
+        ],
+        "username": "ops"
+      }
+    ],
+    "schema_version": 1,
+    "snapshot_complete": true
+  },
+  "kind": "kubernetes-rbac-access",
+  "schema_version": 8
+}

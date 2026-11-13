@@ -21,7 +21,11 @@
     V7 adds an explicit finite subresource operation catalogue. Every supported
     subresource operation has a nonempty parent authorization name, including
     create on pods/exec and serviceaccounts/token. Base collection writes retain
-    their empty-name domain. Older contract versions never gain subresources. *)
+    their empty-name domain. Older contract versions never gain subresources.
+    V8 replaces the public verb selector with operation. The OCaml [verb] field
+    holds that operation ID: existing native verbs plus apply-existing and
+    apply-missing for base resources. Both are named hypothetical storage branches;
+    the latter requires patch AND named create at the same coordinates. *)
 type namespace_selector =
   | Exact_namespace of string
   | Namespace_set of string list

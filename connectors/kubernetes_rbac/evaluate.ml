@@ -4,11 +4,12 @@ open Input
 type request = { id:string; request:Ir.request }
 
 let requests spec source = protect (fun () ->
+  let operation_field = if Contract_spec.version spec>=8 then "operation" else "verb" in
   let seen = Hashtbl.create 16 in
   arr "requests" (parse source) |> List.mapi (fun index value ->
     let path = Printf.sprintf "requests[%d]" index in
     let fields = obj path ["id";"username";"groups";"namespace";"resource";"name";
-                          "verb";"apiGroup";"resourceRequest";"subresource"] value in
+                          operation_field;"apiGroup";"resourceRequest";"subresource"] value in
     let id = string_field path "id" fields |> nonempty path in
     if Hashtbl.mem seen id then reject path "duplicate request id";
     Hashtbl.add seen id ();
@@ -17,7 +18,7 @@ let requests spec source = protect (fun () ->
     if not (List.exists (fun (identity : Identity.identity) ->
         identity.username = username && identity.groups = groups) (Contract_spec.identities spec))
     then reject path "username and exact groups must match the frozen context";
-    let verb = string_field path "verb" fields in
+    let verb = string_field path operation_field fields in
     (* Classify the request before interpreting resource coordinates. URL
        controls carry empty group/resource strings and must keep the explicit
        non-resource boundary, rather than fail catalogue lookup first. *)

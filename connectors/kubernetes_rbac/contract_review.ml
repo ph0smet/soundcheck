@@ -37,7 +37,11 @@ let run source =
      line "  Only these request classes may change; candidate access requirements still apply inside them.";
      line "  Preserve all other modeled decisions for every frozen identity, including identities without clauses.");
   line "";
-  line "NoOpinion means no RBAC grant, not final API-server denial.";
+  if Contract_spec.version spec>=8 then begin
+    line "Apply operations are conditional storage branches, not observations of object existence.";
+    line "NoOpinion means at least one RBAC prerequisite lacks a grant, not final API-server denial.";
+    line "Preservation compares aggregate operation decisions. Patch and apply-existing remain distinct scope classes."
+  end else line "NoOpinion means no RBAC grant, not final API-server denial.";
   line "Snapshot completeness is asserted by the contract, not established here.";
   line "These counts describe the artifact, not measured authoring effort.";
   line "Review and freeze intent independently of candidate grants. Use rbac verify/compare for solver-backed results.";

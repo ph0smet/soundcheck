@@ -21,7 +21,7 @@ let subresources = [
 let for_version = function
   | 1 | 2 | 3 | 4 -> legacy
   | 5 | 6 -> expanded
-  | 7 -> expanded @ subresources
+  | 7 | 8 -> expanded @ subresources
   | _ -> invalid_arg "unsupported RBAC contract version"
 
 let find_subresource ~version ~api_group ~resource ~subresource =
@@ -56,6 +56,20 @@ let verbs ~version entry =
   else ["get";"list";"watch"]
        @ (if version>=3 then ["update";"patch";"delete"] else [])
        @ (if version>=6 then ["create";"deletecollection"] else [])
+
+let operations ~version entry =
+  verbs ~version entry
+  @ (if version>=8 && entry.subresource="" then ["apply-existing";"apply-missing"] else [])
+
+let checks ~operation = match operation with
+  | "apply-existing" -> ["patch"]
+  | "apply-missing" -> ["patch";"create"]
+  | verb -> [verb]
+
+let object_state ~operation = match operation with
+  | "apply-existing" -> Some "existing"
+  | "apply-missing" -> Some "missing"
+  | _ -> None
 
 (* These classify authorization attributes, not names or namespaces in a body.
    Callers first check that the verb belongs to the entry's operation list. *)
