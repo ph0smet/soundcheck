@@ -65,6 +65,19 @@ let concrete_and_smt () =
       unsat "SMT symmetry" Ir.(And [predicate;Not (Object_equal (right,left))])) fields) fields;
   let absent = sat "negated equality permits absent coordinates" Ir.(And [Not Has_object_request;Not equal]) in
   check "absent stays absent after decoding" (absent.object_request=None);
+  (* Probe the SMT representation directly: inactive strings cannot carry
+     arbitrary Unicode, whereas the same nonempty byte values remain legal on
+     a present object. This must not relax malformed-model decoding. *)
+  List.iter (fun symbol ->
+      let source = query Ir.(Not Has_object_request) in
+      let marker = "(check-sat)" in
+      let rec index n = if String.sub source n (String.length marker)=marker then n else index (n+1) in
+      let n=index 0 in
+      let constrained = String.sub source 0 n ^
+        Printf.sprintf "(assert (not (= %s \"\")))\n" symbol ^
+        String.sub source n (String.length source-n) in
+      check "absent coordinate has one representation" (Solve.check constrained=Solve.Proved))
+    ["object_namespace";"object_kind";"object_name"];
   let empty = sat "empty fields are present and equal"
       Ir.(And [equal;Object_is (Object_namespace,"");Object_is (Object_name,"")]) in
   check "empty equal values retain object presence" (Option.is_some empty.object_request);

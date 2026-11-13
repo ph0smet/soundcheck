@@ -155,11 +155,17 @@ let preamble b title observations =
   if observations.principal_name then
     Buffer.add_string b "(declare-const principal_name String)\n";
   if observations.object_request then
+    (* None has no object coordinates. Choose its unique empty representation
+       so unconstrained SMT Unicode strings cannot break byte-model decoding.
+       Every object predicate is presence-guarded, so this preserves the request
+       domain and every decision while retaining strict typed decoding. *)
     Buffer.add_string b
       "(declare-const has_object_request Bool)\n\
        (declare-const object_namespace String)\n\
        (declare-const object_kind String)\n\
-       (declare-const object_name String)\n";
+       (declare-const object_name String)\n\
+       (assert (=> (not has_object_request)\n\
+         (and (= object_namespace \"\") (= object_kind \"\") (= object_name \"\"))))\n";
   List.iter
     (fun (name, value) ->
       Buffer.add_string b
