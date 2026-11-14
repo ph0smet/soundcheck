@@ -104,6 +104,20 @@
  (libraries soundcheck_core soundcheck_kubernetes_rbac))
 
 (test
+ (name bootstrap_t)
+ (modules bootstrap_t)
+ (libraries soundcheck_core soundcheck_kubernetes_rbac))
+
+(executable
+ (name bootstrap_cli_t)
+ (modules bootstrap_cli_t)
+ (libraries soundcheck_core soundcheck_kubernetes_rbac unix))
+
+(rule
+ (alias runtest)
+ (action (run %{exe:bootstrap_cli_t.exe} %{exe:../../cli/main.exe})))
+
+(test
  (name nonresource_t)
  (modules nonresource_t)
  (libraries soundcheck_core soundcheck_kubernetes_rbac))

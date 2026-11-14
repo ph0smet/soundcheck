@@ -228,6 +228,11 @@ SHA-256-pinned local sources and reports every unresolved role reference.
 [`rbac inspect`](docs/kubernetes-rbac.md#review-frozen-identities) shows the frozen
 usernames, groups and subject-matching bindings before verification. Both keep
 inventory completeness and identity trust as explicit external assumptions.
+[`rbac bootstrap`](docs/kubernetes-rbac.md#select-a-pinned-bootstrap-supplement)
+provides explicitly selected upstream role packs for reviewed offline assembly,
+with source/version receipts. It adds no bindings and does not establish the
+installed inventory. Custom API metadata can come from a separately reviewed
+CRD bundle through `rbac catalogue`.
 
 [Aggregated ClusterRoles](docs/kubernetes-rbac.md#already-resolved-aggregated-clusterroles)
 are supported when their dependencies are acyclic and stored rules agree with

@@ -61,6 +61,10 @@ type inventory struct {
 }
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "--bootstrap-pack-reference" {
+		bootstrapPackReferenceFiles(os.Args[2:])
+		return
+	}
 	if len(os.Args) == 2 && os.Args[1] == "--coverage-reference-info" {
 		if err := json.NewEncoder(os.Stdout).Encode(coverageRuntimeInfo()); err != nil {
 			panic(err)

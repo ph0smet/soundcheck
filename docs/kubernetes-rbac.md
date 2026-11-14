@@ -266,6 +266,49 @@ Use actual authorized inventory when available; do not replace an exported role
 with a same-name default to make assembly pass. The example is not the complete
 bootstrap policy, which includes semantics still outside this profile.
 
+### Select a pinned bootstrap supplement
+
+`rbac bootstrap` emits explicitly selected upstream policy assumptions for
+offline inventory assembly. It requires both an exact Kubernetes version and
+one or more pack names; it never looks up missing references or changes an
+existing inventory automatically.
+
+```sh
+bootstrap_dir=$(mktemp -d)
+dune exec soundcheck -- rbac bootstrap --kubernetes-version 1.34.0 \
+  --pack auth-delegator --pack extension-apiserver-authentication-reader \
+  --receipt "$bootstrap_dir/receipt.json" > "$bootstrap_dir/roles.json"
+```
+
+The four packs are `auth-delegator`, `cluster-admin`,
+`extension-apiserver-authentication-reader`, and `view`. Packs contain Roles or
+ClusterRoles, with no bindings or inferred identities/groups. `cluster-admin`
+retains its upstream wildcard permissions; selecting the pack does not bind it
+to anyone. `view` includes its selector and bootstrap aggregation contributor,
+with rules materialized by the pinned native controller. The source version and
+feature-gate assumptions are recorded; installed roles can differ.
+
+Review the generated policy and its source assumptions, then add its exact
+SHA-256 and path to an explicit inventory plan. Existing inventory assembly
+rejects duplicate role identities, conflicting supplied roles and aggregates
+made stale by additional contributors. A pinned default is never an automatic
+replacement for an exported or customized role. Prefer the actual reviewed
+inventory when it is available.
+
+Selection is offline, with no Go or network runtime dependency. Unsupported
+versions and empty, duplicate or unknown pack selections fail. The private,
+exclusively created receipt binds requested packs, dependency roles, native
+source/version configuration, embedded data and exact emitted bytes including
+the final newline. `installed_state_observed`, `completeness_established`, and
+`verification_performed` remain false. Exit 0 means selection succeeded; 2 is
+invalid input/usage and 1 is an I/O failure. See the
+[pack provenance and regeneration guide](../bench/kubernetes-rbac/bootstrap-packs/README.md).
+
+An application RBAC bundle may also omit its CRDs. Obtain the separately pinned,
+reviewed CRD bundle and use [`rbac catalogue`](#freeze-custom-api-metadata) to
+prepare that metadata. Neither a role's resource strings nor a bootstrap pack
+establishes custom API scope, subresources, installed availability or intent.
+
 ## Review frozen identities
 
 `rbac inspect SNAPSHOT.json --contract CONTRACT.json` reads the same strict

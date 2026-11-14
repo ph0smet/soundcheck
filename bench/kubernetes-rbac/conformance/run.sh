@@ -59,7 +59,16 @@ export CGO_ENABLED=0
 "$soundcheck_python" "$soundcheck_script_dir/test_subresources_runner.py"
 "$soundcheck_python" "$soundcheck_script_dir/test_apply_runner.py"
 "$soundcheck_python" "$soundcheck_script_dir/test_coverage_runner.py"
+"$soundcheck_python" "$soundcheck_script_dir/test_bootstrap_packs_runner.py"
 dune build bench/kubernetes-rbac/model_oracle.exe cli/main.exe
+
+# Explicit bootstrap assumptions retain native policy and every contributor;
+# selection and receipts do not establish installed state or completeness.
+"$soundcheck_python" "$soundcheck_script_dir/run_bootstrap_packs.py" \
+  --reference "$soundcheck_build_dir/reference-oracle" \
+  --soundcheck "$soundcheck_repo_root/_build/default/cli/main.exe" \
+  --module-metadata "$soundcheck_build_dir/kubernetes-module.json" \
+  --output "$soundcheck_build_dir/bootstrap-packs/results.json"
 
 # V9 expands the reviewed static request catalogue, canonical nonresource URLs,
 # frozen custom-resource scopes and conditional PUT prerequisites. Keep its

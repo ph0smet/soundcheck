@@ -6,6 +6,7 @@ let usage () =
     "usage: soundcheck rbac prepare EXPORT.json [--receipt NEW_FILE]\n\
      usage: soundcheck rbac prepare MANIFEST --input-format json|yaml [--namespace NAME] [--rbac-only] [--receipt NEW_FILE]\n\
      usage: soundcheck rbac inventory PLAN.json [--receipt NEW_FILE]\n\
+     usage: soundcheck rbac bootstrap --kubernetes-version 1.34.0 --pack NAME [--pack NAME...] [--receipt NEW_FILE]\n\
      usage: soundcheck rbac inspect SNAPSHOT.json --contract CONTRACT.json\n\
      usage: soundcheck rbac coverage SNAPSHOT.json --contract CONTRACT.json\n\
      usage: soundcheck rbac catalogue CRDS --input-format json|yaml [--crd-only] [--receipt NEW_FILE]\n\
@@ -15,6 +16,7 @@ let usage () =
      Verification/comparison input is a complete desired RBAC snapshot in one strict JSON Kubernetes v1/List.\n\
      The contract freezes identities, groups, access requirements and approved change scope.\n\
      Preparation emits a supported snapshot, not a verification result or completeness proof.\n\
+     Bootstrap packs: auth-delegator, cluster-admin, extension-apiserver-authentication-reader, view.\n\
      check-contract reviews structure and declared intent only; exit 0 is not a verification gate.\n\
      Use soundcheck profile kubernetes-rbac --contract-version 1|2|3|4|5|6|7|8|9|10 for the exact model and assumptions.";
   exit 2
@@ -213,7 +215,30 @@ let run_catalogue args =
   | Unix.Unix_error (error,action,path) ->
     Printf.eprintf "catalogue I/O error: %s: %s (%s)\n" action (Unix.error_message error) path;exit 1
 
+let run_bootstrap args =
+  let argument value = value<>"" && not (String.starts_with ~prefix:"-" value) in
+  let rec options version packs receipt = function
+    | [] -> (match version with Some version -> version,List.rev packs,receipt | None -> usage ())
+    | "--kubernetes-version" :: value :: rest when version=None && argument value ->
+      options (Some value) packs receipt rest
+    | "--pack" :: value :: rest when argument value -> options version (value::packs) receipt rest
+    | "--receipt" :: path :: rest when receipt=None && argument path -> options version packs (Some path) rest
+    | _ -> usage () in
+  let kubernetes_version,packs,receipt = options None [] None args in
+  try match K.Bootstrap.prepare ~kubernetes_version ~packs with
+    | Error reason -> Printf.eprintf "bootstrap selection error: %s\n" reason;exit 2
+    | Ok prepared ->
+      Option.iter (fun path -> write_receipt path prepared.receipt) receipt;
+      output_string stdout prepared.snapshot;flush stdout;
+      Printf.eprintf "Selected %d upstream bootstrap RBAC objects. Installed state and completeness were not established.\n"
+        prepared.object_count
+  with
+  | Sys_error reason -> Printf.eprintf "bootstrap I/O error: %s\n" reason;exit 1
+  | Unix.Unix_error (error,action,path) ->
+    Printf.eprintf "bootstrap I/O error: %s: %s (%s)\n" action (Unix.error_message error) path;exit 1
+
 let run = function
+  | "bootstrap" :: args -> run_bootstrap args
   | "catalogue" :: args -> run_catalogue args
   | "prepare" :: args -> run_prepare args
   | "check-contract" :: args -> run_check_contract args

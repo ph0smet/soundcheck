@@ -37,6 +37,7 @@ let usage () =
      \n\
      usage: soundcheck rbac prepare EXPORT.json [--receipt NEW_FILE]\n\
      usage: soundcheck rbac inventory PLAN.json [--receipt NEW_FILE]\n\
+     usage: soundcheck rbac bootstrap --kubernetes-version 1.34.0 --pack NAME [--pack NAME...] [--receipt NEW_FILE]\n\
      usage: soundcheck rbac inspect SNAPSHOT.json --contract CONTRACT.json\n\
      usage: soundcheck rbac coverage SNAPSHOT.json --contract CONTRACT.json\n\
      usage: soundcheck rbac catalogue CRDS --input-format json|yaml [--crd-only] [--receipt NEW_FILE]\n\
