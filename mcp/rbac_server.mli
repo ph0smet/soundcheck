@@ -7,6 +7,11 @@ val create : contract:Soundcheck_kubernetes_rbac.Contract_spec.t ->
 (** Capture immutable startup inputs. A supplied baseline must be a supported
     snapshot, but need not satisfy the contract (it may be the policy to repair). *)
 
+val create_change : contract:Soundcheck_kubernetes_rbac.Change_spec.t ->
+  baseline:string -> (t, string) result
+(** A separate frozen mode exposing only candidate-config [change]. Captures
+    actor, operation, target and nested requirements at startup. *)
+
 val max_message_bytes : int
 val handle_line : t -> string -> string option
 (** Strict JSON messages; initialization is required before tool requests.

@@ -4,18 +4,25 @@ module I = K.Input
 module J = Server.J
 
 type phase = New | Initializing | Ready
+type contract = Access of K.Contract_spec.t | Change of K.Change_spec.t
 type t = {
-  contract : K.Contract_spec.t;
+  contract : contract;
   baseline : string option;
   mutable phase : phase;
 }
 
 let create ~contract ?baseline () =
+  let contract = Access contract in
   match baseline with
   | Some source -> (match K.Snapshot.of_string source with
       | Error reason -> Error ("unsupported RBAC baseline: " ^ reason)
       | Ok _ -> Ok {contract;baseline;phase=New})
   | None -> Ok {contract;baseline;phase=New}
+
+let create_change ~contract ~baseline =
+  match K.Snapshot.of_string baseline with
+  | Error reason -> Error ("unsupported RBAC baseline: " ^ reason)
+  | Ok _ -> Ok {contract=Change contract;baseline=Some baseline;phase=New}
 
 let max_message_bytes = 16 * 1024 * 1024
 
@@ -27,6 +34,11 @@ let tool name description =
       "required",J.arr [J.str "config"];"additionalProperties","false"]]
 
 let tools state =
+  match state.contract with
+  | Change _ -> J.obj ["tools",J.arr [tool "change"
+      ("Check the single policy operation and frozen access/preservation requirements using original-snapshot authorization. Only config may be supplied. Immutable baseline SHA-256 " ^
+        Sha256.string (Option.get state.baseline))]]
+  | Access _ ->
   let verify = tool "verify"
       "Verify the candidate against the frozen RBAC contract and identity context loaded at startup. This does not check preservation against a baseline." in
   let compare = match state.baseline with
@@ -53,15 +65,20 @@ let tool_call state params =
    | None | Some (`O _) -> ()
    | _ -> invalid "protocol _meta must be an object");
   let name = string_field "tools/call" "name" fields in
-  if name <> "verify" && (name <> "compare" || state.baseline=None) then
+  let known = match state.contract with
+    | Change _ -> name="change"
+    | Access _ -> name="verify" || (name="compare" && state.baseline<>None) in
+  if not known then
     invalid ("unknown tool: " ^ name);
   let config = match List.assoc_opt "arguments" fields with
     | Some (`O ["config",`String config]) -> config
     | _ -> invalid "frozen RBAC tools accept only {config: string}; contract, identity context and baseline are immutable" in
-  let report = match name,state.baseline with
-    | "compare",Some before -> K.Verify.compare state.contract ~before ~after:config
-    | _ -> K.Verify.run state.contract config in
-  Report.to_json report |> Server.tool_ok
+  let report = match state.contract,name,state.baseline with
+    | Change contract,_,Some before -> K.Policy_change.run contract ~before ~after:config |> K.Policy_change.to_json
+    | Change _,_,None -> assert false
+    | Access contract,"compare",Some before -> K.Verify.compare contract ~before ~after:config |> Report.to_json
+    | Access contract,_,_ -> K.Verify.run contract config |> Report.to_json in
+  report |> Server.tool_ok
 
 let dispatch state method_ params =
   match method_ with
