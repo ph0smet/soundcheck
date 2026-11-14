@@ -347,3 +347,8 @@
 (rule
  (alias runtest)
  (action (run %{exe:coverage_tools_t.exe} %{exe:../../cli/main.exe})))
+
+(test
+ (name policy_coverage_t)
+ (modules policy_coverage_t)
+ (libraries soundcheck_core soundcheck_kubernetes_rbac))
