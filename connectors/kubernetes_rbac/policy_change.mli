@@ -10,6 +10,22 @@ type authorization = {
 val authorize : Change_spec.t -> before:string -> after:string -> (authorization, string) result
 val authorization_json : authorization -> string
 type t
+type outcome = Valid_change | Authorization_failed | Contract_failed | Out_of_scope_regression | Unknown
+type evaluation = {
+  outcome : outcome;
+  frozen_contract : string option;
+  before_sha256 : string;
+  after_sha256 : string;
+  authorization_allowed : bool option;
+  comparison : Verify.comparison option;
+}
+val profile_id : string
+val evaluation : t -> evaluation
+(** Read-only view of one completed run for trusted evaluators. Binds the outer
+    contract and exact inputs, retaining the original nested comparison/trace.
+    Does not rerun authorization or the solver. This view contains private
+    contract/report data; callers must minimize any published summary. *)
+
 val run : ?z3:string -> Change_spec.t -> before:string -> after:string -> t
 val invalid_contract : string -> before:string -> after:string -> t
 val to_json : t -> string

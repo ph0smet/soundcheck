@@ -1,10 +1,14 @@
 # Experimental submitted RBAC repairs
 
 Evaluate candidate static RBAC snapshots against an evaluator-owned baseline
-and access contract. The evaluator calls `Verify.compare_with_trace` once per
-candidate: required access must still hold, forbidden RBAC grants must be
+and frozen access or policy-change contract. Access tasks call
+`Verify.compare_with_trace` once per candidate: required access must still hold, forbidden RBAC grants must be
 absent, and every modeled decision outside the approved change scope must be
-preserved. It uses the same comparison as `soundcheck rbac compare`.
+preserved. They use the same comparison as `soundcheck rbac compare`.
+Policy-change tasks call `Policy_change.run` once, first checking the frozen
+actor's authority to make the edit from the original snapshot, then running
+that same access/preservation comparison. They use the `soundcheck rbac change`
+gate without reimplementing its authorization or solver logic.
 
 ```sh
 eval "$(opam env)"
@@ -39,7 +43,8 @@ The suite and submission metadata use the existing strict
 [repair benchmark formats](README.md#keep-tasks-outside-the-repairers-control).
 The separate `rbac_main.exe` command selects the connector; candidates cannot
 select it or supply a contract, baseline, identity context, change scope, solver,
-comparison mode or claimed outcome. Each suite `config` is the original baseline.
+comparison mode or claimed outcome. For policy-change tasks they also cannot
+replace the actor, operation, target or nested requirements. Each suite `config` is the original baseline.
 Paths are relative to their own metadata directory, with traversal and symlink
 components rejected by the existing regular-file reader.
 
@@ -54,6 +59,57 @@ No task or attempt disappears because evaluation failed.
 Keep the suite, baseline, contracts and evaluator under the operator's control,
 separate from candidate files. Inputs must remain stable while read. These local
 file checks are not a race-resistant sandbox or a contract-approval mechanism.
+
+## Policy-change repair evaluation
+
+Use the same command and metadata formats with an independently reviewed
+[`kubernetes-rbac-policy-change` contract](../../docs/rbac-policy-changes.md):
+
+```sh
+eval "$(opam env)"
+dune exec bench/repair/rbac_main.exe -- \
+  bench/kubernetes-rbac/workflows/policy-changes/suite.yaml \
+  bench/kubernetes-rbac/workflows/policy-changes/submissions.yaml
+```
+
+The two supplied tasks contain **seven hand-authored synthetic controls**:
+
+| Task / candidate | Expected `repair_result` |
+| --- | --- |
+| App reader: unchanged target | `unknown` (no-op update is unsupported) |
+| App reader: add an unowned Deployment deletion permission | `authorization_failed` |
+| App reader: remove required ConfigMap access | `contract_failed` |
+| App reader: remove unrelated Pod access | `out_of_scope_regression` |
+| App reader: remove only Secret access | `valid_change` |
+| Actor's own role: add `escalate` and an unowned deletion permission | `authorization_failed` |
+| Actor's own role: remove only Secret access | `valid_change` |
+
+The self-edit actor already holds `update` on its own Role through a frozen
+group membership. Newly added `escalate` cannot authorize that edit: every
+attempt uses the original permissions, even after an earlier successful attempt.
+The first valid attempts are 5 and 2 respectively. The aggregate exits 0 because
+both tasks have an accepted change and there are no input/tool errors. All seven
+attempts remain in the accounting; this is not an observed agent trajectory.
+
+The entire outer contract is frozen before submissions are read. Its canonical
+hash binds actor, groups, operation, target, access requirements and change scope.
+The returned gate result must match that identity and the exact before/after
+input hashes; an incoherent result is `report_mismatch`. Nested comparison
+reports and traces undergo the same checks as an access-only task. No stage is
+rerun to produce the summary.
+
+Authorization failure or an unsupported edit leaves `contract_result`,
+`contract_assurance` and `comparison_assurance` null because the nested verifier
+did not run. `authorization_result` is `allowed`, `not_authorized`, or null when
+authorization was unavailable. Once authorized, unsupported nested inputs or a
+solver failure still yield `unknown`; successful authorization alone earns no
+acceptance. `change_assurance` is the outer gate's `within_profile` or
+`unsupported_or_inconclusive` status; nested assurance retains its own meaning.
+
+The supported single-object create/update-existing boundary is unchanged.
+Native policy coverage is deterministic analysis; nested verification uses SMT.
+Neither stage establishes successful API mutation, admission or runtime effects.
+This extension does not run agents, contact a cluster, or rerun public benchmark v2.
 
 ## Interpretation and boundaries
 
@@ -75,7 +131,8 @@ All use complete static desired RBAC snapshots in strict JSON and fixed trusted
 usernames/groups. Preservation covers that profile's fixed domain outside the
 contract's `change_scope`. Both returned stages must match the frozen contract
 and its profile; candidate output cannot downgrade the expected profile.
-The supplied examples remain schema 1.
+The original `rbac-examples` access-only controls remain schema 1; the new
+policy-change examples nest schema 10.
 
 An omitted binding is assumed absent from the complete desired snapshot. Applying
 a partial manifest does not remove an existing live binding. Authentication,
@@ -88,7 +145,8 @@ create authorization, and special deletion paths can require other permissions.
 supplied no grant, not a final API-server denial. See the
 [connector guide](../../docs/kubernetes-rbac.md).
 
-Both snapshots must be supported before the comparison can plan its work. If
+For access-only tasks, or once a policy-change task reaches the nested
+comparison, both snapshots must be supported before it can plan its work. If
 either is unsupported, the candidate stage is unavailable: `contract_result`
 and `contract_assurance` are null, while `repair_result` is `unknown` and
 `comparison_assurance` is `unsupported`. This does not claim the candidate's
@@ -104,11 +162,26 @@ incoherent returned results have explicit fixed failure codes.
 ## Minimized summary
 
 The distinct experimental format is `kind: submitted_rbac_repair_evaluation`.
-Suites containing only schema-1 or invalid/unreadable contracts retain format 1,
+Suites containing only schema-1 access or invalid/unreadable contracts retain format 1,
 including existing fatal summaries. Any successfully frozen newer contract
-(schema 2, 3, 4 or 5) selects format 2:
+(access schema 2–10) selects format 2:
 each task includes its trusted `profile` (null for an invalid/unreadable contract),
 and the top-level `profile` is the sole known profile or null for mixed profiles.
+Any successfully frozen policy-change contract selects **format 3**, including
+mixed access/change suites and failed submission metadata. Formats 1 and 2 retain
+their existing fields and meanings. Format 3 adds:
+
+- Per-task `contract_kind` and `access_profile`; `profile` identifies the outer
+  gate for change tasks, while `access_profile` identifies their nested verifier.
+- Per-attempt `authorization_result` and `change_assurance` (null for access tasks).
+- Distinct `valid_change` and `authorization_failed` outcome counts.
+- `comparison: frozen_policy_change_and_scope_preservation`; each task's frozen
+  contract kind determines the actual gate. Access tasks still require no edit authority.
+
+For format 3, `tasks_with_valid_repair` and `first_valid_attempt` count either a
+`valid_repair` for an access task or a `valid_change` for a policy-change task.
+The top-level profile is null when outer/access task profiles differ. A failed
+contract has null kind/profile fields; the raw digest is retained when readable.
 The existing Kong format and report/evidence schemas are unchanged.
 The [named-write workflow](../kubernetes-rbac/workflows/write-access/README.md)
 provides schema-3 controls for partial fixes, required manager writes and a
@@ -125,8 +198,10 @@ Its fields include:
   assurance, input/tool failure category and elapsed reading/evaluation time.
 - Complete task and attempt counts, including missing tasks, unknowns and errors.
 
-The repair outcomes are `valid_repair`, `contract_failed`,
-`out_of_scope_regression` and `unknown`. A failure has no repair outcome and is
+Access-task repair outcomes are `valid_repair`, `contract_failed`,
+`out_of_scope_regression` and `unknown`. Policy-change tasks replace `valid_repair`
+with `valid_change` and can also return `authorization_failed`.
+A failure has no repair outcome and is
 counted separately. Invalid or unreadable submissions retain the frozen schedule
 with `submitted_attempts: null`; invalid suites have `scheduled_tasks: null`.
 
@@ -161,4 +236,7 @@ single comparison dispatch, stage classification, privacy and error accounting.
 Process checks evaluate the seven controls with Z3, compare their exact bytes
 with the reference corpus, and test unsupported baselines, missing attempts,
 invalid contracts, solver protocol failure and non-regular input rejection.
+Policy-change checks exercise both synthetic tasks, original-input authority,
+outer identity/input substitutions, skipped stages, mixed schedules, later
+errors after success, frozen hashes and solver failures after authorization.
 The same command also runs the existing Kong evaluator regressions.

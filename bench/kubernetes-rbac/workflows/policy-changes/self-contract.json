@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "kind": "kubernetes-rbac-policy-change",
+  "actor": "deployer",
+  "operation": "update-existing",
+  "target": {
+    "kind": "Role",
+    "namespace": "team-a",
+    "name": "self-reader"
+  },
+  "requirements": {
+    "schema_version": 10,
+    "kind": "kubernetes-rbac-access",
+    "context": {
+      "schema_version": 1,
+      "snapshot_complete": true,
+      "identities": [
+        {
+          "username": "deployer",
+          "groups": [
+            "operators"
+          ]
+        }
+      ]
+    },
+    "clauses": [
+      {
+        "name": "configmaps-required",
+        "kind": "must_allow",
+        "subject": "deployer",
+        "namespace": "team-a",
+        "resource": "configmaps",
+        "names": null,
+        "request_kind": "resource",
+        "operation": "get",
+        "api_group": "",
+        "subresource": ""
+      },
+      {
+        "name": "secrets-not-granted",
+        "kind": "must_not_grant",
+        "subject": "deployer",
+        "namespace": "team-a",
+        "resource": "secrets",
+        "names": null,
+        "request_kind": "resource",
+        "operation": "get",
+        "api_group": "",
+        "subresource": ""
+      }
+    ],
+    "change_scope": [
+      {
+        "subject": "deployer",
+        "namespace": "team-a",
+        "resource": "secrets",
+        "names": null,
+        "request_kind": "resource",
+        "operation": "get",
+        "api_group": "",
+        "subresource": ""
+      }
+    ],
+    "custom_resources": []
+  }
+}

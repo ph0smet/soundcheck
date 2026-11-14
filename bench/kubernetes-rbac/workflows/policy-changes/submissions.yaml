@@ -1,0 +1,24 @@
+# Hand-authored controls, not observed agent attempts or deployment results.
+format_version: 1
+attempts:
+  - task: app-reader
+    id: unchanged
+    config: before.json
+  - task: app-reader
+    id: unauthorized
+    config: authorization-failed.json
+  - task: app-reader
+    id: required-access-lost
+    config: contract-failed.json
+  - task: app-reader
+    id: unrelated-access-lost
+    config: out-of-scope-regression.json
+  - task: app-reader
+    id: repaired
+    config: repaired.json
+  - task: self-reader
+    id: self-escalation
+    config: self-escalation.json
+  - task: self-reader
+    id: repaired
+    config: self-repaired.json

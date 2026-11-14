@@ -594,7 +594,9 @@ commands, prerequisites, and serialization rules. The experimental
 only; it does not establish production accuracy or autonomous repair success.
 The experimental submitted-repair evaluators for [Kong](bench/repair/README.md)
 and [RBAC](bench/repair/RBAC.md) check candidate files against evaluator-owned
-frozen requirements and out-of-scope preservation. Their synthetic controls test
+frozen requirements and out-of-scope preservation. RBAC
+[policy-change tasks](bench/repair/RBAC.md#policy-change-repair-evaluation) also
+check whether the frozen actor is authorized to make the edit. Their synthetic controls test
 the evaluators; they are not live-agent results. See the [pilot protocol](docs/evaluation/pilot-protocol.md) for the
 separate authorization and review needed for deployment evaluation.
 

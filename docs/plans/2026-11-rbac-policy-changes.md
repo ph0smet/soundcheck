@@ -102,3 +102,17 @@ Verify frozen MCP and approved-base CI tamper resistance, full evidence hashes,
 and valid/unsafe/regressing synthetic workflow examples. Existing suites and
 expectations remain intact. Each commit passes clean-worktree build and forced
 full regressions; final acceptance includes all pinned native suites.
+
+## Approved evaluator extension
+
+Sourav approved adding submitted-repair evaluation to this same branch after
+the four-commit gate/conformance batch. Freeze the whole outer contract and
+original snapshot before reading candidates; dispatch each attempt through the
+existing gate once. Check returned outer identity/input hashes and nested
+comparison consistency. Keep authorization failures distinct from requirement
+failures, preservation regressions and unknowns, retaining every attempt/error.
+Preserve access-only evaluator formats 1/2; use experimental format 3 for change
+or mixed suites with explicit task kinds and stage outcomes. Add runnable
+synthetic controls, including a self-edit that cannot use newly added `escalate`
+authority. No new target semantics, live agent/deployment results or public
+benchmark rerun are part of this extension.

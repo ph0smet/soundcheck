@@ -28,3 +28,23 @@ The outer operation contract is schema 1; its nested access contract is schema
 policy rules, including permissions outside that nested domain. This is not a
 live deployment or public-config benchmark. See the
 [usage and trust boundary](../../../../docs/rbac-policy-changes.md).
+
+## Evaluate submitted attempts
+
+The same directory includes an evaluator-owned suite with the Role repair above
+and a self-edit task. Its actor already has `update` on its own Role through a
+trusted group. Adding `escalate` and unowned Deployment deletion rights fails;
+removing only Secret access succeeds. All authority comes from `self-before.json`.
+
+```sh
+eval "$(opam env)"
+dune exec bench/repair/rbac_main.exe -- \
+  bench/kubernetes-rbac/workflows/policy-changes/suite.yaml \
+  bench/kubernetes-rbac/workflows/policy-changes/submissions.yaml
+```
+
+Expected: two tasks, seven synthetic attempts, two `valid_change`, two
+`authorization_failed`, one `contract_failed`, one `out_of_scope_regression`,
+one `unknown`, zero errors; aggregate exit 0. No-op policy changes are unknown,
+even though an access-only comparison can evaluate an unchanged snapshot.
+See the [evaluator format and freeze boundary](../../../repair/RBAC.md#policy-change-repair-evaluation).

@@ -110,6 +110,17 @@ type outcome = Valid_change | Authorization_failed | Contract_failed | Out_of_sc
 type t = { outcome : outcome; reason : string; spec : Change_spec.t option;
   before : string; after : string; z3 : string option;
   authorization : authorization option; comparison : Verify.comparison option }
+type evaluation = {
+  outcome : outcome; frozen_contract : string option;
+  before_sha256 : string; after_sha256 : string;
+  authorization_allowed : bool option; comparison : Verify.comparison option;
+}
+let evaluation (t : t) : evaluation = {
+  outcome=t.outcome;frozen_contract=Option.map Change_spec.canonical t.spec;
+  before_sha256=Sha256.string t.before;after_sha256=Sha256.string t.after;
+  authorization_allowed=Option.map (fun a -> a.allowed) t.authorization;
+  comparison=t.comparison;
+}
 let result_name = function Valid_change -> "valid_change" | Authorization_failed -> "authorization_failed"
   | Contract_failed -> "contract_failed" | Out_of_scope_regression -> "out_of_scope_regression" | Unknown -> "unknown"
 let invalid_contract reason ~before ~after = {outcome=Unknown;reason;spec=None;before;after;z3=None;authorization=None;comparison=None}
@@ -129,7 +140,7 @@ let run ?z3 spec ~before ~after =
     make outcome reason (Some a) (Some comparison)
 
 let digest source = `O ["sha256",str (Sha256.string source);"bytes",number (String.length source)]
-let to_json t = I.json (`O ["schema_version",number 1;"kind",str Change_spec.kind;
+let to_json (t : t) = I.json (`O ["schema_version",number 1;"kind",str Change_spec.kind;
   "result",str (result_name t.outcome);"reason",str t.reason;
   "assurance",`O ["profile",str profile_id;"status",str (if t.outcome=Unknown then "unsupported_or_inconclusive" else "within_profile")];
   "frozen_spec",optional (fun spec -> `O ["schema_version",number 1;"kind",str Change_spec.kind;
@@ -138,11 +149,11 @@ let to_json t = I.json (`O ["schema_version",number 1;"kind",str Change_spec.kin
   "authorization",optional authorization_value t.authorization;
   "verification",optional (fun (c : Verify.comparison) -> `O ["comparison_report",I.parse (Report.to_json c.report);
     "candidate_report",optional (fun r -> I.parse (Report.to_json r)) c.candidate_report]) t.comparison])
-let to_human t = Printf.sprintf "rbac-policy-change %s [%s]\n%s\n%s"
+let to_human (t : t) = Printf.sprintf "rbac-policy-change %s [%s]\n%s\n%s"
   (result_name t.outcome) profile_id t.reason
   (match t.comparison with None -> "Access/preservation verification not executed.\n"
    | Some c -> Report.to_human c.report)
-let exit_code t = match t.outcome with
+let exit_code (t : t) = match t.outcome with
   | Valid_change -> 0 | Unknown -> 4
   | Contract_failed -> (match t.comparison with Some {report={result=Vacuous;_};_}->5
       | Some {report={result=Inconsistent _;_};_}->6 | _->3)

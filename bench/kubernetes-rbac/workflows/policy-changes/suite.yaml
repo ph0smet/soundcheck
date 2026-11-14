@@ -1,0 +1,11 @@
+# Evaluator-owned synthetic tasks. Freeze these inputs before reading submissions.
+format_version: 1
+cases:
+  - id: app-reader
+    provenance: synthetic
+    config: before.json
+    contract: contract.json
+  - id: self-reader
+    provenance: synthetic
+    config: self-before.json
+    contract: self-contract.json

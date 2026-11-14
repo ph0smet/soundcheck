@@ -53,6 +53,11 @@ These are synthetic complete snapshots under an explicit completeness
 assumption, not deployment measurements. `check-contract` reviews structure and
 declared intent; its successful exit is not a verification result.
 
+For external-agent attempts, the [submitted-repair evaluator](../bench/repair/RBAC.md#policy-change-repair-evaluation)
+freezes this whole operation contract and baseline before reading candidate
+files. Its two-task synthetic suite includes an attempted self-escalation and
+reports authorization, requirements and preservation outcomes separately.
+
 ## Freeze the operation separately from the candidate
 
 The change contract has its own schema version and kind:

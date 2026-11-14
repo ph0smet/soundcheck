@@ -4,6 +4,8 @@ The Kong evaluator below retains its existing command and summary format.
 For the bounded static Kubernetes RBAC connector, use the separate
 [RBAC submitted-repair evaluator](RBAC.md). It evaluates candidate access and
 preservation together with fixed identities and an approved change scope.
+Its [policy-change tasks](RBAC.md#policy-change-repair-evaluation) also check the
+frozen actor's authority to make an edit using the original permissions.
 
 Evaluate externally supplied candidate configurations against fixed requirements
 and an original baseline. The evaluator calls Soundcheck's existing
