@@ -1,0 +1,121 @@
+{
+  "schema_version": 10,
+  "kind": "kubernetes-rbac-access",
+  "context": {
+    "schema_version": 1,
+    "snapshot_complete": true,
+    "identities": [
+      {
+        "username": "controller",
+        "groups": [
+          "controller-team"
+        ]
+      },
+      {
+        "username": "reviewer",
+        "groups": []
+      }
+    ]
+  },
+  "custom_resources": [],
+  "clauses": [
+    {
+      "name": "submit-access-review",
+      "kind": "must_allow",
+      "request_kind": "resource",
+      "subject": "controller",
+      "operation": "create",
+      "api_group": "authorization.k8s.io",
+      "resource": "subjectaccessreviews",
+      "subresource": "",
+      "namespace": null,
+      "names": null
+    },
+    {
+      "name": "submit-token-review",
+      "kind": "must_allow",
+      "request_kind": "resource",
+      "subject": "controller",
+      "operation": "create",
+      "api_group": "authentication.k8s.io",
+      "resource": "tokenreviews",
+      "subresource": "",
+      "namespace": null,
+      "names": null
+    },
+    {
+      "name": "read-widget-definition",
+      "kind": "must_allow",
+      "request_kind": "resource",
+      "subject": "controller",
+      "operation": "get",
+      "api_group": "apiextensions.k8s.io",
+      "resource": "customresourcedefinitions",
+      "subresource": "",
+      "namespace": null,
+      "names": [
+        "widgets.acme.example"
+      ]
+    },
+    {
+      "name": "update-widget-status",
+      "kind": "must_allow",
+      "request_kind": "resource",
+      "subject": "controller",
+      "operation": "update",
+      "api_group": "apiextensions.k8s.io",
+      "resource": "customresourcedefinitions",
+      "subresource": "status",
+      "namespace": null,
+      "names": [
+        "widgets.acme.example"
+      ]
+    },
+    {
+      "name": "no-validating-webhook-patch",
+      "kind": "must_not_grant",
+      "request_kind": "resource",
+      "subject": "controller",
+      "operation": "patch",
+      "api_group": "admissionregistration.k8s.io",
+      "resource": "validatingwebhookconfigurations",
+      "subresource": "",
+      "namespace": null,
+      "names": null
+    },
+    {
+      "name": "no-mutating-webhook-patch",
+      "kind": "must_not_grant",
+      "request_kind": "resource",
+      "subject": "controller",
+      "operation": "patch",
+      "api_group": "admissionregistration.k8s.io",
+      "resource": "mutatingwebhookconfigurations",
+      "subresource": "",
+      "namespace": null,
+      "names": null
+    }
+  ],
+  "change_scope": [
+    {
+      "request_kind": "resource",
+      "subject": "controller",
+      "operation": "patch",
+      "api_group": "admissionregistration.k8s.io",
+      "resource": "validatingwebhookconfigurations",
+      "subresource": "",
+      "namespace": null,
+      "names": null
+    },
+    {
+      "request_kind": "resource",
+      "subject": "controller",
+      "operation": "patch",
+      "api_group": "admissionregistration.k8s.io",
+      "resource": "mutatingwebhookconfigurations",
+      "subresource": "",
+      "namespace": null,
+      "names": null
+    }
+  ]
+}

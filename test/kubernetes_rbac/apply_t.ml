@@ -135,7 +135,7 @@ let () =
     check "old concrete inputs reject operation key" (Result.is_error (evaluate old row))) goldens;
   let s=spec (contract ()) and old=spec (contract ~version:7 ()) in
   check "schema8 explicit assurance" (K.Assurance.id_for_version 8="kubernetes-rbac-v1.34-apply-v1");
-  check "future contract version fails closed" (Result.is_error (parse (contract ~version:9 ())));
+  check "schema8 payload lacks required schema9 fields" (Result.is_error (parse (contract ~version:9 ())));
   let identity operation=K.Contract_spec.canonical (spec (contract ~allow:(scope ~operation ()) ())) in
   check "frozen identity distinguishes raw patch and both hypothetical apply branches"
     (List.length (List.sort_uniq String.compare (List.map identity ["patch";"apply-existing";"apply-missing"]))=3);

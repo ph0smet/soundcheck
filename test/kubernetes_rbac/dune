@@ -217,6 +217,20 @@
  (libraries soundcheck_core soundcheck_kubernetes_rbac))
 
 (executable
+ (name controller_apis_t)
+ (modules controller_apis_t)
+ (libraries soundcheck_core soundcheck_kubernetes_rbac))
+
+(rule
+ (alias runtest)
+ (deps
+  ../../bench/kubernetes-rbac/workflows/static-coverage/contract.json
+  (source_tree ../../bench/kubernetes-rbac/workflows/controller-apis))
+ (action (run %{exe:controller_apis_t.exe}
+   ../../bench/kubernetes-rbac/workflows/static-coverage/contract.json
+   ../../bench/kubernetes-rbac/workflows/controller-apis)))
+
+(executable
  (name coverage_adapters_t)
  (modules coverage_adapters_t)
  (libraries soundcheck_core soundcheck_kubernetes_rbac unix))

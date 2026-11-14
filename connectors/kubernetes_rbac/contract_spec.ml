@@ -174,8 +174,8 @@ let parse_value value =
   let path = "contract" in
   let fields = obj path ["schema_version";"kind";"context";"clauses";"change_scope";"custom_resources"] value in
   let version = match field path "schema_version" fields with
-   | `Number "1" -> 1 | `Number "2" -> 2 | `Number "3" -> 3 | `Number "4" -> 4 | `Number "5" -> 5 | `Number "6" -> 6 | `Number "7" -> 7 | `Number "8" -> 8 | `Number "9" -> 9
-   | _ -> reject path "schema_version must be integer 1, 2, 3, 4, 5, 6, 7, 8 or 9" in
+   | `Number "1" -> 1 | `Number "2" -> 2 | `Number "3" -> 3 | `Number "4" -> 4 | `Number "5" -> 5 | `Number "6" -> 6 | `Number "7" -> 7 | `Number "8" -> 8 | `Number "9" -> 9 | `Number "10" -> 10
+   | _ -> reject path "schema_version must be integer 1, 2, 3, 4, 5, 6, 7, 8, 9 or 10" in
   if version<9 && List.mem_assoc "custom_resources" fields then reject path "unsupported field custom_resources";
   let custom_resources = Catalogue.parse (path ^ ".custom_resources")
     (if version>=9 then field path "custom_resources" fields else `A []) in
@@ -297,6 +297,7 @@ let to_contract spec : Contract.t =
      | 7 -> "Frozen RBAC requirements over the explicit base-resource and subresource operation catalogue"
      | 8 -> "Frozen initial RBAC and conditional server-side apply prerequisite requirements"
      | 9 -> "Frozen static RBAC resource, custom-resource and URL requirements with conditional SSA/PUT prerequisites"
+     | 10 -> "Frozen static RBAC requirements including controller APIs and initial caller authorization for review APIs"
      | _ -> "Frozen read and named-write RBAC requirements over the explicit resource catalogue");
    clauses=List.map (fun clause ->
        let make = match clause.kind with

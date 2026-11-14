@@ -29,6 +29,12 @@ let run source =
     line "PUT and SSA are conditional prerequisites; a shared named-create grant can affect both operations.";
     line ""
   end;
+  if Contract_spec.version spec>=10 then begin
+    line "Controller APIs are cluster-scoped: webhook configurations, CRDs and CRD/status, SubjectAccessReview and TokenReview.";
+    line "Review APIs allow only initial create with empty authorization name/namespace. Their body subjects, tokens and returned decisions are not the caller or an authorization guarantee.";
+    line "Webhook/CRD access does not establish admission behavior, schema validity or successful effects.";
+    line ""
+  end;
   line "Declared identities (trusted input, not authentication findings):";
   List.iter (fun (identity : Identity.identity) ->
     line "  %S; groups: [%s]" identity.username

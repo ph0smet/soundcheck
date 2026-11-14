@@ -167,7 +167,7 @@ let legacy_and_catalogue () =
       ["apply-existing";"apply-missing";"update-existing";"update-missing"];
     check "new resource cannot acquire unlisted status endpoint"
       (Result.is_error (parse (contract ~allow:(resource ~group ~raw ~sub:"status" ~ns:(if cluster then `Null else `String "team-a") ()) ())))) added;
-  check "future schema fails closed" (Result.is_error (parse (contract ~version:10 ())))
+  check "future schema fails closed" (Result.is_error (parse (contract ~version:11 ())))
 
 let strict_contracts_and_customs () =
   let value=contract () in

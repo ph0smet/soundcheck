@@ -16,7 +16,7 @@ let usage () =
      The contract freezes identities, groups, access requirements and approved change scope.\n\
      Preparation emits a supported snapshot, not a verification result or completeness proof.\n\
      check-contract reviews structure and declared intent only; exit 0 is not a verification gate.\n\
-     Use soundcheck profile kubernetes-rbac --contract-version 1|2|3|4|5|6|7|8|9 for the exact model and assumptions.";
+     Use soundcheck profile kubernetes-rbac --contract-version 1|2|3|4|5|6|7|8|9|10 for the exact model and assumptions.";
   exit 2
 
 let options args =
