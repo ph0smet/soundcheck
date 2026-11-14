@@ -352,3 +352,8 @@
  (name policy_coverage_t)
  (modules policy_coverage_t)
  (libraries soundcheck_core soundcheck_kubernetes_rbac))
+
+(test
+ (name policy_change_t)
+ (modules policy_change_t)
+ (libraries soundcheck_core soundcheck_kubernetes_rbac))
