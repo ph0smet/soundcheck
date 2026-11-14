@@ -1132,6 +1132,58 @@ checks URL classification, resource scopes, PUT branches, preservation and
 witness replay against pinned Kubernetes. It is separate from public-config
 benchmark results and is not a universal proof of model correctness.
 
+## Controller API contracts (schema 10)
+
+Schema 10 retains every schema-9 domain and adds these cluster-scoped APIs:
+
+| API group | Resource | Operations |
+| --- | --- | --- |
+| `admissionregistration.k8s.io` | `validatingwebhookconfigurations`, `mutatingwebhookconfigurations` | Initial get/list/watch/create/update/patch/delete/deletecollection |
+| `apiextensions.k8s.io` | `customresourcedefinitions` | Initial get/list/watch/create/update/patch/delete/deletecollection |
+| `apiextensions.k8s.io` | `customresourcedefinitions/status` | Initial get/update/patch |
+| `authorization.k8s.io` | `subjectaccessreviews` | Initial create only |
+| `authentication.k8s.io` | `tokenreviews` | Initial create only |
+
+The fixed catalogue contains 37 entries and 252 operation classes. New entries
+do not acquire SSA or conditional PUT operations. Use separate exact
+`api_group`, `resource` and `subresource` fields as in schema 9, with
+`namespace: null`. ClusterRoleBindings can grant these requests; namespaced
+RoleBindings cannot. Native API groups cannot enter the custom-resource
+catalogue as a workaround for unsupported operations.
+
+**Permission to submit a review is distinct from the review's answer.**
+SubjectAccessReview evaluates the subject and requested action in its body;
+TokenReview evaluates a supplied token. Soundcheck verifies the frozen caller's
+initial permission to submit those requests. It does not substitute the body's
+identity for the caller or promise an allowed/authenticated response. Both APIs
+are nonpersistent and support only initial `create`, with empty authorization
+name and namespace. Contract `names` must be null or `{"empty":true}`;
+named selectors cannot constrain a review's body or target subject.
+
+CRD/status instead has a nonempty URL authorization name. Initial names remain
+bounded DNS subdomains up to 253 bytes; this does not validate a CRD body's
+`plural.group` name. Webhook/CRD grants do not prove schema validity, admission
+behavior, conversion, establishment, successful mutation or controller effects.
+
+The [controller repair example](../bench/kubernetes-rbac/workflows/controller-apis/README.md)
+pairs required review/CRD access with forbidden webhook modification, catches
+leftover group grants and rejects an unrelated operator regression. Preservation
+covers every frozen identity and all resource/URL classes, including controller
+APIs absent from clauses. A schema upgrade therefore needs explicit review of
+the larger preservation domain; schemas 1–9 retain their original meanings.
+
+```sh
+dune exec soundcheck -- profile kubernetes-rbac --contract-version 10 --format json
+dune exec soundcheck -- rbac check-contract \
+  bench/kubernetes-rbac/workflows/controller-apis/contract.json
+```
+
+The profile is `kubernetes-rbac-v1.34-controller-apis-v1`; profile JSON remains
+schema 6 and report JSON schema 10. CLI/library, frozen MCP, trusted-base CI,
+evidence and submitted-repair evaluation use the same domain and contract.
+See the [scope record](plans/2026-11-rbac-controller-apis.md) and
+[independent native conformance](../bench/kubernetes-rbac/controller-apis/README.md).
+
 ## Supported profiles
 
 The profile IDs for schemas 1–4 end in `-v3`. This revision accepts already-resolved,
