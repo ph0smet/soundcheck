@@ -40,7 +40,7 @@ let run ~snapshot ~contract =
           ["request_kind",`String "non_resource";"verbs",strings r.verbs;
            "non_resource_urls",strings r.urls;
            "non_resource_verification_enabled",`Bool (version>=9);
-           "note",`String "Only schema 9 covers canonical non-resource paths and seven HTTP methods. Endpoint existence, escaped paths and other methods are not inferred."] in
+           "note",`String "Schemas 9 and later cover canonical non-resource paths and seven HTTP methods. Endpoint existence, escaped paths and other methods are not inferred."] in
       `O (["role",`String source.role_label;"item_index",number source.item_index;
            "rule_index",number source.rule_index;"referenced_by_binding",`Bool source.bound] @ details)) rules in
     let canonical = Contract_spec.canonical spec in

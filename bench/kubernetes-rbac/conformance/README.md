@@ -270,6 +270,20 @@ route is installed or API operation succeeds. Its receipts and results live in
 `coverage/before-execution.json` and `coverage/results.json`; older input pins and
 counts are unchanged.
 
+The schema-10 [controller API corpus](../controller-apis/README.md) checks the
+six additional cluster-scoped webhook/CRD/review entries. Native REST types and
+strategies run through APIInstaller with fixture object factories to validate
+routes, discovery and scope, without persistent storage. Real review handlers
+distinguish caller permission from the review body's authorization/authentication
+result. Native/concrete/SMT decisions, frozen requirements, preservation and
+typed witness replays have separate counts in `controller-apis/results.json`.
+
+The [bootstrap pack audit](../bootstrap-packs/README.md) regenerates the pinned
+policy and native aggregation, checks all 15 nonempty pack selections and compares
+each CLI output with native typed policy. Receipts bind source configuration,
+dependencies and exact output bytes. `bootstrap-packs/results.json` establishes
+reference selection correctness, not installed state or inventory completeness.
+
 RBAC `NoOpinion` means no RBAC grant for the request; it is not a final API-server
 denial. Missing role references may appear in upstream's reason string with an
 empty error field, and a later applicable grant may yield `Allow`. The connector
@@ -287,4 +301,6 @@ python3 bench/kubernetes-rbac/conformance/test_nonresource_runner.py
 python3 bench/kubernetes-rbac/conformance/test_aggregation_runner.py
 python3 bench/kubernetes-rbac/conformance/test_apply_runner.py
 python3 bench/kubernetes-rbac/conformance/test_coverage_runner.py
+python3 bench/kubernetes-rbac/conformance/test_bootstrap_packs_runner.py
+python3 bench/kubernetes-rbac/conformance/test_controller_apis_runner.py
 ```

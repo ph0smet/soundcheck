@@ -27,7 +27,9 @@ val description : t -> string
 val verbs : version:int -> t -> string list
 
 (** Contract operation catalogue. SSA stays limited to schema 8's original
-    eight bases. Schema 9 adds two PUT branches for Services/Endpoints only. *)
+    eight bases. Schema 9 adds two PUT branches for Services/Endpoints only.
+    Schema 10's controller APIs add initial operations; its review APIs are
+    create-only, with empty authorization name and namespace. *)
 val operations : version:int -> t -> string list
 
 (** Native RBAC prerequisites at the same request coordinates. Callers first

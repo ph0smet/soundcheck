@@ -1,0 +1,8 @@
+{
+  "pkg/controller/clusterroleaggregation/clusterroleaggregation_controller.go": "0da2f4b85af5e9147b8d453f57c8ff50739062c6eb7118f74c354d4decc5aee5",
+  "pkg/features/kube_features.go": "5d501b2932485d1f036db5a348cd8fb79b19f8946188aba393cb23ce6d3162d1",
+  "pkg/registry/rbac/rest/storage_rbac.go": "2542d558fc31501642b39b725be2a687d5e61267675b031ef3aa1deed028b148",
+  "plugin/pkg/auth/authorizer/rbac/bootstrappolicy/controller_policy.go": "fd09c565b24536040e0fc641b9e21216c6444694ccc31b8799844f75fd959eb2",
+  "plugin/pkg/auth/authorizer/rbac/bootstrappolicy/namespace_policy.go": "8728580f7a84ee3dba2101734dcc2361905c87b35f56e8318425077fceb681f3",
+  "plugin/pkg/auth/authorizer/rbac/bootstrappolicy/policy.go": "24837567e949b1a3b1d7a849b1f6214889c9ccb4f4dca40208971b17720c55f1"
+}

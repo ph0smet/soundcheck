@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "kind": "kubernetes-bootstrap-reference-packs-provenance",
+  "artifact": "kubernetes-v1.34.0.json",
+  "artifact_sha256": "c93d5dd57e7d5535dc2be074c2de12e7adec470da3cde23f9485c98db5599444",
+  "embedding": "connectors/kubernetes_rbac/bootstrap_data.ml",
+  "embedding_sha256": "0e00eb2b85fce0b769003bdf0bf089b3f13aea30666c82a2c05035c10d42b001",
+  "upstream": {
+    "commit": "f28b4c9efbca5c5c0af716d9f2d5702667ee8a45",
+    "license": "Apache-2.0",
+    "module": "k8s.io/kubernetes@v1.34.0",
+    "module_sum": "h1:NvUrwPAVB4W3mSOpJ/RtNGHWWYyUP/xPaX5rUSpzA0w="
+  },
+  "source_pins": "source-pins.json",
+  "source_pins_sha256": "de312346dfeda8492fdcd943919f8f13b759ffcde25ba6e3a326f121e3473008",
+  "configuration": {
+    "DynamicResourceAllocation": true,
+    "feature_gates": "upstream-defaults"
+  },
+  "source_catalogue": {
+    "cluster_role_count": 68,
+    "cluster_roles_sha256": "218810b8f27f17916184212b5ab9b01dccc72db825afd6f74ffab4f962d51ece",
+    "namespace_roles_sha256": "08162921ad6294154629ab37160a9b3024ea8a30fa6ac453c55b3fc78566cf7a"
+  },
+  "native_generator": "bench/kubernetes-rbac/conformance/oracle --bootstrap-pack-reference",
+  "generator": "bench/kubernetes-rbac/bootstrap-packs/generate.py",
+  "view_materialization": "production ClusterRole aggregation controller on the closure checked against all native bootstrap ClusterRoles and ControllerRoles; fake in-memory transport only",
+  "policy_transformation": "Only view.rules materialized by native controller; original role metadata and all other rules retained. Reference-only storage metadata is not copied.",
+  "generated_bindings": 0,
+  "installed_state_observed": false,
+  "complete_bootstrap_catalogue": false,
+  "license": "Apache-2.0",
+  "license_sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+}

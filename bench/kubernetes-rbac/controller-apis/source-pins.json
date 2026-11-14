@@ -1,0 +1,30 @@
+{
+  "apiextensions-apiserver": {
+    "pkg/apiserver/apiserver.go": "7c751a869b3b871111da4c2105f7ccf0fb8ee63582d19abe414b75df0a0b7056",
+    "pkg/registry/customresourcedefinition/etcd.go": "709c0c7ba28dc08c805705405c0d44cdbb44e20bde5c1797f98f1f5e948d9c5e",
+    "pkg/registry/customresourcedefinition/strategy.go": "16434f036df1a181ea10f801c3a119d443989b14e599767582dcc8700420fe63"
+  },
+  "apiserver": {
+    "pkg/endpoints/filters/authorization.go": "ecaa911bfee83cc5710e64081b8cc9fefbbe19885b62af7fa95ab2523185b4f0",
+    "pkg/endpoints/filters/requestinfo.go": "69ab6223dac69d8c311e0f4dd0673216208650eccfb01addc741faa1c5890c8c",
+    "pkg/endpoints/groupversion.go": "e669e71532052257d7d03797af09671e8a73f46b8d1ce35804ecf74720ef593c",
+    "pkg/endpoints/installer.go": "c75f072feb8daaf5d9f5add29120c4d01b5e8cd599e665c74b5cdf9fafdd1f9c",
+    "pkg/endpoints/request/requestinfo.go": "ae96b44fbfe3a39ba205ccc96cb28938179a41c515f7bddfb41e803a621db115",
+    "pkg/registry/generic/registry/store.go": "d7d0341f475e4de43a985419d15800ced365dafeafdee59269d8b687579d3ee3",
+    "pkg/registry/rest/rest.go": "e864a6fc796494a92c7fb28e0c749afd5c55e5e45062b73f972224af8715fd91"
+  },
+  "kubernetes": {
+    "pkg/apis/authorization/validation/validation.go": "3a0cff071811c45cd56e88560dd46df672f9d800023f8fb02b1cfd0f379af0cf",
+    "pkg/registry/admissionregistration/mutatingwebhookconfiguration/storage/storage.go": "2b9865c5967fc8df45f655fb3a53463fc85420a5c431ac6dab3fde13253b9892",
+    "pkg/registry/admissionregistration/mutatingwebhookconfiguration/strategy.go": "eaeb613c83ea057d986f35c8b12321cbc1cf26fdb2b8498512197f79bb3f55e5",
+    "pkg/registry/admissionregistration/rest/storage_apiserver.go": "2fedcc23db4e873349b2763d584900367023d125b3a6468dd7318326594674c3",
+    "pkg/registry/admissionregistration/validatingwebhookconfiguration/storage/storage.go": "4dc60a554befc55d03f5f2c5a0f32f5556a79c31a4a36ff346135ba28af0dfad",
+    "pkg/registry/admissionregistration/validatingwebhookconfiguration/strategy.go": "04fdafb5fbf88364700296f95dbe01897ad6e25285e6262b6be7ffecaff535f9",
+    "pkg/registry/authentication/rest/storage_authentication.go": "a6b571f224571391b657869217b90752336b3259094b986be3b9592c8ba65684",
+    "pkg/registry/authentication/tokenreview/storage.go": "8a850a8f91d2eaede6cc79ca89a6a3eb6932034a2ce0d512727d0e90c1c4fb9d",
+    "pkg/registry/authorization/rest/storage_authorization.go": "fb513c5ab2ada3a5feb52dc7b3c5eec0b2adc81e378fda120a28ef735b5f93ee",
+    "pkg/registry/authorization/subjectaccessreview/rest.go": "cf7fd5605139ebfad578121fb9d4b55736ee633f0517fc48646f437249a3c6fd",
+    "pkg/registry/rbac/validation/rule.go": "f0d54df76476a917ee9b2bc1a495b5a7aab55fbcf283a6283246735ebb783ec8",
+    "plugin/pkg/auth/authorizer/rbac/rbac.go": "64fb483dceb31028d2ddf7daffdaa2afbdd8e4c083b68f5f8fcfee42e951d95e"
+  }
+}

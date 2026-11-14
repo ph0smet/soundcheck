@@ -104,6 +104,20 @@
  (libraries soundcheck_core soundcheck_kubernetes_rbac))
 
 (test
+ (name bootstrap_t)
+ (modules bootstrap_t)
+ (libraries soundcheck_core soundcheck_kubernetes_rbac))
+
+(executable
+ (name bootstrap_cli_t)
+ (modules bootstrap_cli_t)
+ (libraries soundcheck_core soundcheck_kubernetes_rbac unix))
+
+(rule
+ (alias runtest)
+ (action (run %{exe:bootstrap_cli_t.exe} %{exe:../../cli/main.exe})))
+
+(test
  (name nonresource_t)
  (modules nonresource_t)
  (libraries soundcheck_core soundcheck_kubernetes_rbac))
@@ -217,9 +231,37 @@
  (libraries soundcheck_core soundcheck_kubernetes_rbac))
 
 (executable
+ (name controller_apis_t)
+ (modules controller_apis_t)
+ (libraries soundcheck_core soundcheck_kubernetes_rbac))
+
+(rule
+ (alias runtest)
+ (deps
+  ../../bench/kubernetes-rbac/workflows/static-coverage/contract.json
+  (source_tree ../../bench/kubernetes-rbac/workflows/controller-apis))
+ (action (run %{exe:controller_apis_t.exe}
+   ../../bench/kubernetes-rbac/workflows/static-coverage/contract.json
+   ../../bench/kubernetes-rbac/workflows/controller-apis)))
+
+(executable
  (name coverage_adapters_t)
  (modules coverage_adapters_t)
  (libraries soundcheck_core soundcheck_kubernetes_rbac unix))
+
+(executable
+ (name controller_adapters_t)
+ (modules controller_adapters_t)
+ (libraries soundcheck_core soundcheck_kubernetes_rbac unix))
+
+(rule
+ (alias runtest)
+ (deps
+  ../../scripts/verify-approved-contract.sh
+  (source_tree ../../bench/kubernetes-rbac/workflows/controller-apis))
+ (action (run %{exe:controller_adapters_t.exe} %{exe:../../cli/main.exe}
+   ../../scripts/verify-approved-contract.sh %{exe:../../bench/repair/rbac_main.exe}
+   ../../bench/kubernetes-rbac/workflows/controller-apis)))
 
 (rule
  (alias runtest)

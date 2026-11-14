@@ -38,7 +38,7 @@ Today, Soundcheck verifies **decK-style Kong OSS 3.9.3 configurations** under th
 `traditional` and `traditional_compatible` HTTP routers, and **static Kubernetes
 RBAC snapshots** with versioned read/write authorization, selected subresources,
 conditional apply/PUT checks, independently frozen custom APIs and non-resource
-URL requirements. The [coverage guide](docs/kubernetes-rbac.md#static-coverage-contracts-schema-9)
+URL requirements and selected controller APIs. The [coverage guide](docs/kubernetes-rbac.md#controller-api-contracts-schema-10)
 spells out the supported resources and boundaries.
 Kong is the first connector;
 RBAC adds individual identities, resource permissions, and repair preservation
@@ -200,7 +200,10 @@ recreate it when missing, checking the required `patch` and named `create`
 grants together. [Schema 9](docs/kubernetes-rbac.md#static-coverage-contracts-schema-9)
 extends controller/operator resource coverage, checks URL requirements and
 conditional PUT grants, and preserves access across a frozen custom-resource
-catalogue. Existing contracts keep their meaning. All profiles require
+catalogue. [Schema 10](docs/kubernetes-rbac.md#controller-api-contracts-schema-10)
+adds webhook/CRD permissions and the caller's permission to submit access/token
+reviews. It does not verify the review's answer or admission effects.
+Existing contracts keep their meaning. All profiles require
 a complete static desired snapshot and trusted, fixed usernames/groups.
 `NoOpinion` means a required RBAC check supplies no grant; other authorizers, admission, indirect
 access and runtime deployment behavior remain outside this claim.
@@ -210,6 +213,10 @@ deny-all and operator-regression examples, and exact assumptions.
 The [coverage repair demo](bench/kubernetes-rbac/workflows/static-coverage/README.md)
 removes an unwanted URL grant while preserving Lease, custom-resource and
 operator access.
+
+The [controller repair demo](bench/kubernetes-rbac/workflows/controller-apis/README.md)
+removes webhook modification while keeping required review/CRD access and an
+unrelated reviewer's permissions.
 
 The [read-access repair demo](bench/kubernetes-rbac/workflows/read-access/README.md)
 shows why removing only `get` can leave Secret read access, and checks a repair
@@ -228,6 +235,11 @@ SHA-256-pinned local sources and reports every unresolved role reference.
 [`rbac inspect`](docs/kubernetes-rbac.md#review-frozen-identities) shows the frozen
 usernames, groups and subject-matching bindings before verification. Both keep
 inventory completeness and identity trust as explicit external assumptions.
+[`rbac bootstrap`](docs/kubernetes-rbac.md#select-a-pinned-bootstrap-supplement)
+provides explicitly selected upstream role packs for reviewed offline assembly,
+with source/version receipts. It adds no bindings and does not establish the
+installed inventory. Custom API metadata can come from a separately reviewed
+CRD bundle through `rbac catalogue`.
 
 [Aggregated ClusterRoles](docs/kubernetes-rbac.md#already-resolved-aggregated-clusterroles)
 are supported when their dependencies are acyclic and stored rules agree with
@@ -528,16 +540,17 @@ independently of object bodies and deletion filters. Schema 7 adds the explicit
 subresource catalogue. Schema 8 adds conditional server-side apply prerequisites
 for the eight base resources. Schema 9 adds the wider static catalogue,
 reviewed custom APIs, non-resource URLs and Service/Endpoints PUT prerequisites.
+Schema 10 adds webhook/CRD APIs and create-only access/token review submissions.
 Older contracts keep their original domains. Inspect the
 default with `soundcheck profile kubernetes-rbac`, or select a version with
-`--contract-version 2`, `3`, `4`, `5`, `6`, `7`, `8` or `9`.
+`--contract-version 2`, `3`, `4`, `5`, `6`, `7`, `8`, `9` or `10`.
 Review the [RBAC boundaries](docs/kubernetes-rbac.md#supported-profiles) before
 interpreting a proof. Native request operations concern initial RBAC grants;
 schema-8 apply and schema-9 PUT operations compose prerequisite checks for a
 hypothetical existing/missing branch. Neither proves successful mutation or
 preserved object contents.
 ClusterRoles may contain separate non-resource URL rules alongside resource
-rules. URL access and preservation require an explicit schema-9 contract;
+rules. URL access and preservation require an explicit schema-9-or-later contract;
 older schemas retain their resource-only request domains.
 Use `rbac coverage` to review a contract’s domain and policy references, and
 `rbac catalogue` to extract custom API metadata from pinned local CRDs for review.

@@ -32,6 +32,20 @@ let coverage = [
   {api_group="networking.k8s.io";resource="ingressclasses";namespaced=false;subresource=""};
   {api_group="storage.k8s.io";resource="storageclasses";namespaced=false;subresource=""} ]
 
+(* Initial caller authorization only. Review API request bodies and response
+   decisions do not supply the caller's identity or additional prerequisites. *)
+let controllers = [
+  {api_group="admissionregistration.k8s.io";resource="validatingwebhookconfigurations";namespaced=false;subresource=""};
+  {api_group="admissionregistration.k8s.io";resource="mutatingwebhookconfigurations";namespaced=false;subresource=""};
+  {api_group="apiextensions.k8s.io";resource="customresourcedefinitions";namespaced=false;subresource=""};
+  {api_group="apiextensions.k8s.io";resource="customresourcedefinitions";namespaced=false;subresource="status"};
+  {api_group="authorization.k8s.io";resource="subjectaccessreviews";namespaced=false;subresource=""};
+  {api_group="authentication.k8s.io";resource="tokenreviews";namespaced=false;subresource=""} ]
+
+let is_review entry = entry.subresource="" &&
+  List.mem (entry.api_group,entry.resource)
+    ["authorization.k8s.io","subjectaccessreviews";"authentication.k8s.io","tokenreviews"]
+
 let custom ~api_group ~resource ~namespaced ~subresources =
   {api_group;resource;namespaced;subresource=""}
   :: List.map (fun subresource -> {api_group;resource;namespaced;subresource}) subresources
@@ -43,6 +57,7 @@ let for_version = function
   | 5 | 6 -> expanded
   | 7 | 8 -> expanded @ subresources
   | 9 -> expanded @ subresources @ coverage
+  | 10 -> expanded @ subresources @ coverage @ controllers
   | _ -> invalid_arg "unsupported RBAC contract version"
 
 let find_in entries ~api_group ~resource ~subresource =
@@ -71,7 +86,8 @@ let description entry =
   else resource ^ " in API group " ^ Printf.sprintf "%S" entry.api_group
 
 let verbs ~version entry =
-  if entry.subresource<>"" then match entry.subresource with
+  if version>=10 && is_review entry then ["create"]
+  else if entry.subresource<>"" then match entry.subresource with
     | "log" -> ["get"]
     | "exec" -> ["get";"create"]
     | "token" -> ["create"]
