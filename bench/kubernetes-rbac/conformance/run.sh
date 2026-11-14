@@ -60,6 +60,7 @@ export CGO_ENABLED=0
 "$soundcheck_python" "$soundcheck_script_dir/test_apply_runner.py"
 "$soundcheck_python" "$soundcheck_script_dir/test_coverage_runner.py"
 "$soundcheck_python" "$soundcheck_script_dir/test_bootstrap_packs_runner.py"
+"$soundcheck_python" "$soundcheck_script_dir/test_controller_apis_runner.py"
 dune build bench/kubernetes-rbac/model_oracle.exe cli/main.exe
 
 # Explicit bootstrap assumptions retain native policy and every contributor;
@@ -69,6 +70,16 @@ dune build bench/kubernetes-rbac/model_oracle.exe cli/main.exe
   --soundcheck "$soundcheck_repo_root/_build/default/cli/main.exe" \
   --module-metadata "$soundcheck_build_dir/kubernetes-module.json" \
   --output "$soundcheck_build_dir/bootstrap-packs/results.json"
+
+# V10 adds a fixed set of cluster controller APIs. Exercise native REST routes,
+# review caller/body boundaries, request decisions and frozen preservation.
+"$soundcheck_python" "$soundcheck_script_dir/run_controller_apis.py" \
+  --reference "$soundcheck_build_dir/reference-oracle" \
+  --model "$soundcheck_repo_root/_build/default/bench/kubernetes-rbac/model_oracle.exe" \
+  --soundcheck "$soundcheck_repo_root/_build/default/cli/main.exe" \
+  --module-metadata "$soundcheck_build_dir/kubernetes-module.json" \
+  --z3 "$soundcheck_z3" \
+  --output "$soundcheck_build_dir/controller-apis/results.json"
 
 # V9 expands the reviewed static request catalogue, canonical nonresource URLs,
 # frozen custom-resource scopes and conditional PUT prerequisites. Keep its
