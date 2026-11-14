@@ -1,3 +1,9 @@
 (executable
  (name model_oracle)
+ (modules model_oracle)
+ (libraries soundcheck_core soundcheck_kubernetes_rbac))
+
+(executable
+ (name policy_change_oracle)
+ (modules policy_change_oracle)
  (libraries soundcheck_core soundcheck_kubernetes_rbac))

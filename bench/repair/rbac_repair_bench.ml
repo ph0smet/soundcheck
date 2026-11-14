@@ -9,19 +9,33 @@ type attempt_row = {
   id : string; ordinal : int; candidate_sha256 : string option;
   contract_result : string option; repair_result : string option;
   contract_assurance : string option; comparison_assurance : string option;
+  authorization_result : string option; change_assurance : string option;
   failure : failure option; elapsed_seconds : float;
 }
 type task_row = {
   id : string; provenance : Pilot.provenance;
   profile : string option;
+  contract_kind : string option; access_profile : string option;
   baseline_sha256 : string option; contract_sha256 : string option;
   frozen_contract_sha256 : string option;
   failure : failure option; attempts : attempt_row list;
 }
+type contract = Access of K.Contract_spec.t | Change of K.Change_spec.t
+let parse_contract bytes =
+  if K.Change_spec.has_kind bytes then Result.map (fun spec -> Change spec) (K.Change_spec.of_string bytes)
+  else Result.map (fun spec -> Access spec) (K.Contract_spec.of_string bytes)
+let canonical = function
+  | Access spec -> K.Contract_spec.canonical spec
+  | Change spec -> K.Change_spec.canonical spec
+let requirements = function Access spec -> spec | Change spec -> K.Change_spec.requirements spec
+let contract_kind = function Access _ -> K.Contract_spec.kind | Change _ -> K.Change_spec.kind
+let access_profile spec = K.Assurance.id_for_version (K.Contract_spec.version (requirements spec))
+let profile = function Access spec -> K.Assurance.id_for_version (K.Contract_spec.version spec)
+  | Change _ -> K.Policy_change.profile_id
 type frozen_task = {
   task : Pilot.case;
   baseline : (string, failure) result;
-  contract : (K.Contract_spec.t, failure) result;
+  contract : (contract, failure) result;
   baseline_digest : string option;
   contract_digest : string option;
   frozen_contract_digest : string option;
@@ -49,9 +63,9 @@ let freeze ?read_suite ~suite_root tasks =
         | Error `Unexpected -> Error Unexpected_error, None, None
         | Ok bytes ->
           let digest = Some (Sha256.string bytes) in
-          (try match K.Contract_spec.of_string bytes with
+          (try match parse_contract bytes with
            | Error _ -> Error Contract_invalid, digest, None
-           | Ok spec -> Ok spec, digest, Some (Sha256.string (K.Contract_spec.canonical spec))
+           | Ok spec -> Ok spec, digest, Some (Sha256.string (canonical spec))
            with _ -> Error Unexpected_error, digest, None) in
       Hashtbl.add contracts path value; value in
   List.map (fun (task : Pilot.case) ->
@@ -121,14 +135,56 @@ let project spec (comparison : K.Verify.comparison) =
      | None -> Error Report_mismatch)
   | _ -> Error Report_mismatch
 
+type projection = {
+  contract_result : string option; repair_result : string;
+  contract_assurance : string option; comparison_assurance : string option;
+  authorization_result : string option; change_assurance : string option;
+}
+let project_access spec comparison =
+  Result.map (fun (contract_result,repair_result,contract_assurance,comparison_assurance) ->
+    {contract_result;repair_result;contract_assurance;comparison_assurance=Some comparison_assurance;
+     authorization_result=None;change_assurance=None}) (project spec comparison)
+
+let project_change spec ~before ~after result =
+  let view = K.Policy_change.evaluation result in
+  if view.frozen_contract <> Some (K.Change_spec.canonical spec)
+    || view.before_sha256 <> Sha256.string before || view.after_sha256 <> Sha256.string after
+  then Error Report_mismatch
+  else
+    let unexecuted repair_result authorization_result change_assurance = Ok {
+      contract_result=None;repair_result;contract_assurance=None;comparison_assurance=None;
+      authorization_result;change_assurance=Some change_assurance} in
+    match view.outcome,view.authorization_allowed,view.comparison with
+    | Unknown,None,None -> unexecuted "unknown" None "unsupported_or_inconclusive"
+    | Authorization_failed,Some false,None ->
+      unexecuted "authorization_failed" (Some "not_authorized") "within_profile"
+    | outcome,Some true,Some comparison ->
+      (match project_access (K.Change_spec.requirements spec) comparison with
+       | Error error -> Error error
+       | Ok nested ->
+         let expected = match outcome with
+           | K.Policy_change.Valid_change -> Some ("valid_repair","valid_change")
+           | Contract_failed -> Some ("contract_failed","contract_failed")
+           | Out_of_scope_regression -> Some ("out_of_scope_regression","out_of_scope_regression")
+           | Unknown -> Some ("unknown","unknown")
+           | Authorization_failed -> None in
+         match expected with
+         | Some (expected,repair_result) when nested.repair_result=expected ->
+           Ok {nested with repair_result;authorization_result=Some "allowed";
+             change_assurance=Some (if outcome=Unknown then "unsupported_or_inconclusive" else "within_profile")}
+         | _ -> Error Report_mismatch)
+    | _ -> Error Report_mismatch
+
 let task_row entry failure attempts =
   {id=entry.task.id;provenance=entry.task.provenance;
-   profile=(match entry.contract with Error _ -> None | Ok spec ->
-     Some (K.Assurance.id_for_version (K.Contract_spec.version spec)));
+   profile=Result.to_option (Result.map profile entry.contract);
+   contract_kind=Result.to_option (Result.map contract_kind entry.contract);
+   access_profile=Result.to_option (Result.map access_profile entry.contract);
    baseline_sha256=entry.baseline_digest;contract_sha256=entry.contract_digest;
    frozen_contract_sha256=entry.frozen_contract_digest;failure;attempts}
 
 let run ?read_candidate ?(evaluate = fun spec ~before ~after -> K.Verify.compare_with_trace spec ~before ~after)
+    ?(evaluate_change = fun spec ~before ~after -> K.Policy_change.run spec ~before ~after)
     ?(now = Unix.gettimeofday) ~submission_root frozen attempts =
   let read = Option.value ~default:(Pilot.read_regular ~root:submission_root) read_candidate in
   List.map (fun entry ->
@@ -142,18 +198,21 @@ let run ?read_candidate ?(evaluate = fun spec ~before ~after -> K.Verify.compare
       let started = now () in
       let empty = {id=attempt.id;ordinal=index+1;candidate_sha256=None;
         contract_result=None;repair_result=None;contract_assurance=None;
-        comparison_assurance=None;failure;elapsed_seconds=0.} in
+        comparison_assurance=None;authorization_result=None;change_assurance=None;failure;elapsed_seconds=0.} in
       let row = match entry.contract, entry.baseline with
         | Ok spec, Ok before ->
           (try match read attempt.config with
            | Error () -> {empty with failure=Some Candidate_read_error}
            | Ok after ->
              let row = {empty with candidate_sha256=Some (Sha256.string after)} in
-             (try match project spec (evaluate spec ~before ~after) with
+             (try match (match spec with
+                | Access spec -> project_access spec (evaluate spec ~before ~after)
+                | Change spec -> project_change spec ~before ~after (evaluate_change spec ~before ~after)) with
               | Error error -> {row with failure=Some error}
-              | Ok (contract_result, repair_result, contract_assurance, comparison_assurance) ->
-                {row with contract_result;repair_result=Some repair_result;
-                  contract_assurance;comparison_assurance=Some comparison_assurance}
+              | Ok projected ->
+                {row with contract_result=projected.contract_result;repair_result=Some projected.repair_result;
+                  contract_assurance=projected.contract_assurance;comparison_assurance=projected.comparison_assurance;
+                  authorization_result=projected.authorization_result;change_assurance=projected.change_assurance}
               with _ -> {row with failure=Some Evaluation_error})
            with _ -> {empty with failure=Some Unexpected_error})
         | _ -> empty in
@@ -162,7 +221,8 @@ let run ?read_candidate ?(evaluate = fun spec ~before ~after -> K.Verify.compare
     task_row entry failure rows) frozen
 
 let failed_tasks failure frozen = List.map (fun entry -> task_row entry (Some failure) []) frozen
-let accepted (row : attempt_row) = row.failure = None && row.repair_result = Some "valid_repair"
+let accepted (row : attempt_row) = row.failure = None
+  && (row.repair_result = Some "valid_repair" || row.repair_result = Some "valid_change")
 let first_valid (task : task_row) = List.find_opt accepted task.attempts
 let exit_code tasks =
   if tasks = [] || List.exists (fun (task : task_row) -> task.failure <> None
@@ -186,7 +246,7 @@ let provenance_name = function
 let string value = `String value
 let optional = function Some value -> string value | None -> `Null
 let integer value = `Number (string_of_int value)
-let attempt_json (row : attempt_row) = `O [
+let attempt_json ~include_change (row : attempt_row) = `O ([
   "id",string row.id; "ordinal",integer row.ordinal;
   "candidate_sha256",optional row.candidate_sha256;
   "contract_result",optional row.contract_result;
@@ -195,23 +255,28 @@ let attempt_json (row : attempt_row) = `O [
   "comparison_assurance",optional row.comparison_assurance;
   "failure",optional (Option.map failure_name row.failure);
   "elapsed_seconds",`Number (Printf.sprintf "%.6f" row.elapsed_seconds)]
-let task_json ~include_profile (row : task_row) = `O ([
+  @ if include_change then ["authorization_result",optional row.authorization_result;
+      "change_assurance",optional row.change_assurance] else [])
+let task_json ~version (row : task_row) = `O ([
   "id",string row.id; "provenance",string (provenance_name row.provenance);
   "baseline_sha256",optional row.baseline_sha256;
   "contract_sha256",optional row.contract_sha256;
   "frozen_contract_sha256",optional row.frozen_contract_sha256;
   "failure",optional (Option.map failure_name row.failure);
   "first_valid_attempt",(match first_valid row with None -> `Null | Some attempt -> integer attempt.ordinal);
-  "attempts",`A (List.map attempt_json row.attempts)]
-  @ if include_profile then ["profile",optional row.profile] else [])
+  "attempts",`A (List.map (attempt_json ~include_change:(version=3)) row.attempts)]
+  @ (if version>=2 then ["profile",optional row.profile] else [])
+  @ if version=3 then ["contract_kind",optional row.contract_kind;
+      "access_profile",optional row.access_profile] else [])
 let header version profile = ["experimental_format_version",integer version;
   "kind",string "submitted_rbac_repair_evaluation";
   "profile",optional profile;
-  "comparison",string "frozen_scope_preservation"]
+  "comparison",string (if version=3 then "frozen_policy_change_and_scope_preservation" else "frozen_scope_preservation")]
 let to_json tasks =
   let profiles = List.filter_map (fun (task : task_row) -> task.profile) tasks
     |> List.sort_uniq String.compare in
-  let version = if List.exists ((<>) K.Assurance.profile_id) profiles then 2 else 1 in
+  let version = if List.exists (fun (task : task_row) -> task.contract_kind=Some K.Change_spec.kind) tasks then 3
+    else if List.exists ((<>) K.Assurance.profile_id) profiles then 2 else 1 in
   let profile = if version = 1 then Some K.Assurance.profile_id
     else match profiles with [profile] -> Some profile | _ -> None in
   let attempts = List.concat_map (fun (task : task_row) -> task.attempts) tasks in
@@ -220,7 +285,8 @@ let to_json tasks =
   let count predicate values = List.fold_left (fun n value -> if predicate value then n+1 else n) 0 values in
   let counts = List.map (fun result -> result,
     integer (count (fun (row : attempt_row) -> row.repair_result = Some result) attempts))
-      ["valid_repair";"contract_failed";"out_of_scope_regression";"unknown"]
+      (["valid_repair"] @ (if version=3 then ["valid_change";"authorization_failed"] else [])
+       @ ["contract_failed";"out_of_scope_regression";"unknown"])
     @ ["errors",integer (count (fun (row : attempt_row) -> row.failure <> None
         || row.repair_result = None) attempts)] in
   K.Input.json (`O (header version profile @ [
@@ -230,6 +296,6 @@ let to_json tasks =
       || List.exists (fun (attempt : attempt_row) -> attempt.failure <> None) task.attempts) tasks);
     "submitted_attempts",(if submissions_known then integer (List.length attempts) else `Null);
     "attempt_counts",`O counts;
-    "tasks",`A (List.map (task_json ~include_profile:(version = 2)) tasks)]))
+    "tasks",`A (List.map (task_json ~version) tasks)]))
 let fatal_json failure = K.Input.json (`O (header 1 (Some K.Assurance.profile_id) @
   ["failure",string failure;"scheduled_tasks",`Null;"tasks",`A []]))

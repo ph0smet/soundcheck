@@ -347,3 +347,24 @@
 (rule
  (alias runtest)
  (action (run %{exe:coverage_tools_t.exe} %{exe:../../cli/main.exe})))
+(test
+ (name policy_coverage_t)
+ (modules policy_coverage_t)
+ (libraries soundcheck_core soundcheck_kubernetes_rbac))
+
+(test
+ (name policy_change_t)
+ (modules policy_change_t)
+ (libraries soundcheck_core soundcheck_kubernetes_rbac))
+
+(executable
+ (name policy_change_adapters_t)
+ (modules policy_change_adapters_t)
+ (libraries soundcheck_core soundcheck_kubernetes_rbac unix))
+
+(rule
+ (alias runtest)
+ (deps ../../scripts/verify-approved-contract.sh
+       (source_tree ../../bench/kubernetes-rbac/workflows/policy-changes))
+ (action (run %{exe:policy_change_adapters_t.exe} %{exe:../../cli/main.exe}
+   ../../scripts/verify-approved-contract.sh ../../bench/kubernetes-rbac/workflows/policy-changes)))

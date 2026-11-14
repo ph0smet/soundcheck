@@ -19,9 +19,10 @@ val schema_version : int
 (** Manifest schema 2 retains optional exact named identity and typed object
     coordinates on every recorded SAT model; absent dimensions are null. *)
 
-val collect_provenance : unit -> (provenance, string) result
+val collect_provenance : ?z3:string -> unit -> (provenance, string) result
 (** Identify this verifier executable by SHA-256 and capture the OCaml and Z3
-    versions. An unavailable Z3 version remains explicit in the bundle. *)
+    versions, selecting the same solver executable as the verification run.
+    An unavailable Z3 version remains explicit in the bundle. *)
 
 val create :
   config:string -> profile:profile -> provenance:provenance ->

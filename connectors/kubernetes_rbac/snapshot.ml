@@ -299,3 +299,31 @@ let rule_inventory source = protect (fun () ->
       let bound = Hashtbl.mem bound (r.role_kind,r.role_namespace,r.role_name) in
       List.mapi (fun rule_index rule -> {role_label;item_index;rule_index;bound;rule}) r.rules) objects
   |> List.concat)
+
+type object_spec = Role_spec of rule list | Binding_spec of binding
+type object_view = {
+  object_kind : string; object_namespace : string; object_name : string;
+  object_spec : object_spec; aggregated : bool; canonical_object : string;
+}
+
+let rec sort_json = function
+  | `O fields -> `O (List.map (fun (key,value) -> key,sort_json value) fields
+      |> List.sort (fun (a,_) (b,_) -> String.compare a b))
+  | `A values -> `A (List.map sort_json values)
+  | value -> value
+
+let object_views source = protect (fun () ->
+  let value = parse source in
+  ignore (parse_manifest value);
+  let objects,_ = parse_objects value in
+  let fields = match value with `O fields -> fields | _ -> assert false in
+  let originals = field "manifest" "items" fields |> arr "manifest.items" in
+  List.map2 (fun original object_ ->
+    let canonical_object = json (sort_json original) in
+    match object_ with
+    | Role r -> {object_kind=r.role_kind;object_namespace=r.role_namespace;
+        object_name=r.role_name;object_spec=Role_spec r.rules;
+        aggregated=Option.is_some r.aggregation;canonical_object}
+    | Binding b -> {object_kind=b.binding_kind;object_namespace=b.binding_namespace;
+        object_name=b.binding_name;object_spec=Binding_spec b;
+        aggregated=false;canonical_object}) originals objects)

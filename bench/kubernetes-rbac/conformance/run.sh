@@ -61,7 +61,18 @@ export CGO_ENABLED=0
 "$soundcheck_python" "$soundcheck_script_dir/test_coverage_runner.py"
 "$soundcheck_python" "$soundcheck_script_dir/test_bootstrap_packs_runner.py"
 "$soundcheck_python" "$soundcheck_script_dir/test_controller_apis_runner.py"
-dune build bench/kubernetes-rbac/model_oracle.exe cli/main.exe
+"$soundcheck_python" "$soundcheck_script_dir/test_policy_changes_runner.py"
+dune build bench/kubernetes-rbac/model_oracle.exe bench/kubernetes-rbac/policy_change_oracle.exe cli/main.exe
+
+# Separate frozen operations check native write/bind/escalate/full-policy
+# prerequisites. The deterministic adapter never substitutes for nested SMT.
+"$soundcheck_python" "$soundcheck_script_dir/run_policy_changes.py" \
+  --reference "$soundcheck_build_dir/reference-oracle" \
+  --model "$soundcheck_repo_root/_build/default/bench/kubernetes-rbac/policy_change_oracle.exe" \
+  --soundcheck "$soundcheck_repo_root/_build/default/cli/main.exe" \
+  --z3 "$soundcheck_z3" \
+  --module-metadata "$soundcheck_build_dir/kubernetes-module.json" \
+  --output "$soundcheck_build_dir/policy-changes/results.json"
 
 # Explicit bootstrap assumptions retain native policy and every contributor;
 # selection and receipts do not establish installed state or completeness.

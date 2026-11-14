@@ -61,6 +61,16 @@ type inventory struct {
 }
 
 func main() {
+	if len(os.Args) == 2 && os.Args[1] == "--policy-change-reference-info" {
+		if err := json.NewEncoder(os.Stdout).Encode(policyChangeRuntimeInfo()); err != nil {
+			panic(err)
+		}
+		return
+	}
+	if len(os.Args) > 1 && os.Args[1] == "--policy-change-reference" {
+		policyChangeReferenceFiles(os.Args[2:])
+		return
+	}
 	if len(os.Args) == 2 && os.Args[1] == "--controller-reference-info" {
 		info, err := controllerRuntimeInfo()
 		if err != nil {

@@ -46,3 +46,14 @@ val grants : t -> bound_grant list
 val binding_label : binding -> string
 val role_label : binding -> string
 val subject_matches : Identity.identity -> subject -> bool
+
+type object_spec = Role_spec of rule list | Binding_spec of binding
+type object_view = {
+  object_kind : string; object_namespace : string; object_name : string;
+  object_spec : object_spec; aggregated : bool; canonical_object : string;
+}
+val object_views : string -> (object_view list, string) result
+(** Validate a complete snapshot and retain each object for a single-operation
+    check. Canonical object JSON sorts map keys recursively, retaining all arrays
+    and accepted metadata. Typed specs retain rule/subject order and duplicates;
+    they must not be compared as permission sets to infer a native no-op. *)

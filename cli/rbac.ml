@@ -13,6 +13,7 @@ let usage () =
      usage: soundcheck rbac check-contract CONTRACT.json\n\
      usage: soundcheck rbac verify SNAPSHOT.json --contract CONTRACT.json [--format human|json|github] [--evidence-dir NEW_DIRECTORY]\n\
      usage: soundcheck rbac compare BEFORE.json AFTER.json --contract CONTRACT.json [--format human|json|github] [--evidence-dir NEW_DIRECTORY]\n\
+     usage: soundcheck rbac change BEFORE.json AFTER.json --contract CHANGE.json [--format human|json|github] [--evidence-dir NEW_DIRECTORY]\n\
      Verification/comparison input is a complete desired RBAC snapshot in one strict JSON Kubernetes v1/List.\n\
      The contract freezes identities, groups, access requirements and approved change scope.\n\
      Preparation emits a supported snapshot, not a verification result or completeness proof.\n\
@@ -182,7 +183,14 @@ let run_check_contract = function
   | [path] when path<>"" && not (String.starts_with ~prefix:"-" path) ->
     (try
        if (Unix.lstat path).Unix.st_kind <> Unix.S_REG then raise (Sys_error (path ^ ": expected regular file"));
-       match K.Contract_review.run (read path) with
+       let source = read path in
+       let review = if K.Change_spec.has_kind source then match K.Change_spec.of_string source with
+         | Ok spec -> Ok (K.Change_spec.review spec ^ "\n" ^
+             (match K.Contract_review.run (K.Contract_spec.canonical (K.Change_spec.requirements spec)) with
+              | Ok text -> text | Error reason -> reason))
+         | Error reason -> Error reason
+         else K.Contract_review.run source in
+       match review with
        | Ok review -> print_string review
        | Error reason -> Printf.eprintf "contract check error: %S\n" reason;exit 2
      with
@@ -237,7 +245,32 @@ let run_bootstrap args =
   | Unix.Unix_error (error,action,path) ->
     Printf.eprintf "bootstrap I/O error: %s: %s (%s)\n" action (Unix.error_message error) path;exit 1
 
+let run_change = function
+  | before_path::after_path::args ->
+    let contract_path,format,evidence_dir = options args in
+    let error title reason = if format="github" then
+        print_endline (Soundcheck_ci.Github_annotation.error ~file:after_path ~title reason)
+      else Printf.eprintf "%s: %s\n" title reason in
+    (try
+      let before = read before_path and after = read after_path in
+      let report = match K.Change_spec.of_string (read contract_path) with
+        | Error reason -> K.Policy_change.invalid_contract reason ~before ~after
+        | Ok spec -> K.Policy_change.run spec ~before ~after in
+      Option.iter (fun directory -> match K.Policy_change.write_evidence ~directory report with
+        | Ok () -> () | Error reason -> error "evidence error" reason;exit 1) evidence_dir;
+      let text = match format with
+        | "json" -> K.Policy_change.to_json report
+        | "github" ->
+          let level = if K.Policy_change.exit_code report=0 then "notice" else "error" in
+          Soundcheck_ci.Github_annotation.command ~level ~file:after_path ~title:"Soundcheck: RBAC policy change"
+            (K.Policy_change.to_human report ^ K.Policy_change.to_json report)
+        | _ -> K.Policy_change.to_human report in
+      print_endline text;exit (K.Policy_change.exit_code report)
+    with Sys_error reason -> error "I/O error" reason;exit 1)
+  | _ -> usage ()
+
 let run = function
+  | "change" :: args -> run_change args
   | "bootstrap" :: args -> run_bootstrap args
   | "catalogue" :: args -> run_catalogue args
   | "prepare" :: args -> run_prepare args

@@ -38,6 +38,17 @@
  (action
   (run %{exe:rbac_repair_cli_t.exe} %{exe:rbac_main.exe} rbac-examples ../kubernetes-rbac)))
 
+(executable
+ (name rbac_change_repair_t)
+ (modules rbac_change_repair_t)
+ (libraries soundcheck_rbac_repair_bench soundcheck_pilot soundcheck_core soundcheck_kubernetes_rbac unix))
+
+(rule
+ (alias runtest)
+ (deps (source_tree ../kubernetes-rbac/workflows/policy-changes))
+ (action
+  (run %{exe:rbac_change_repair_t.exe} %{exe:rbac_main.exe} ../kubernetes-rbac/workflows/policy-changes)))
+
 (test
  (name repair_bench_t)
  (modules repair_bench_t)

@@ -13,7 +13,7 @@ type t = (string * string) list
 
 let schema_version = 2
 
-let collect_provenance () =
+let collect_provenance ?z3 () =
   let executable =
     if Sys.file_exists Sys.executable_name then Some Sys.executable_name
     else
@@ -30,7 +30,7 @@ let collect_provenance () =
     | Ok executable_sha256 ->
       Ok { executable_sha256;
            ocaml_version = Sys.ocaml_version;
-           z3_version = Solve.version () }
+           z3_version = Solve.version ?z3 () }
 
 let json_string value =
   let buffer = Buffer.create (String.length value + 2) in

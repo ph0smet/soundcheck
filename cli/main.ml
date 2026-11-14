@@ -313,11 +313,18 @@ let run_mcp rest =
   | "kubernetes-rbac",Some path,baseline_path ->
     let module K = Soundcheck_kubernetes_rbac in
     (try
-      match K.Contract_spec.of_string (Rbac.read path) with
-      | Error reason -> Printf.eprintf "contract error: %s\n" reason;exit 2
-      | Ok contract ->
-        let baseline = Option.map Rbac.read baseline_path in
-        (match Soundcheck_mcp.Rbac_server.create ~contract ?baseline () with
+      let source = Rbac.read path in
+      let baseline = Option.map Rbac.read baseline_path in
+      let server = if K.Change_spec.has_kind source then
+        (match K.Change_spec.of_string source with
+         | Ok contract -> (match baseline with
+             | Some baseline -> Soundcheck_mcp.Rbac_server.create_change ~contract ~baseline
+             | None -> Error "policy-change MCP requires an immutable --baseline")
+         | Error reason -> Error reason)
+        else (match K.Contract_spec.of_string source with
+            | Error reason -> Error reason
+            | Ok contract -> Soundcheck_mcp.Rbac_server.create ~contract ?baseline ()) in
+        (match server with
          | Error reason -> prerr_endline reason;exit 2
          | Ok server -> Soundcheck_mcp.Rbac_server.run server)
     with Sys_error reason -> prerr_endline reason;exit 1)

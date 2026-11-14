@@ -14,9 +14,16 @@ selected status/scale subresource operations, each with its own allowed verbs.
 Schema 8 adds conditional server-side apply prerequisites. Schema 9 adds wider
 static resource coverage, frozen custom APIs, non-resource URL requirements and
 conditional PUT authorization for Services and Endpoints.
+Schema 10 adds selected controller and review APIs.
 Older contracts keep their original domains.
 CLI and library workflows share the decision IR,
 encoder, Z3 backend and witness validation with the Kong connector.
+
+For an explicit Role or binding creation/update, the separate
+[`rbac change` workflow](rbac-policy-changes.md) freezes the caller and operation,
+checks original-snapshot write/bind/escalate/full-policy authority, then runs
+these existing access and preservation checks. Its new outer contract/report
+does not change the access schemas described here.
 
 ## Try the workflow
 
@@ -1343,7 +1350,9 @@ the state that was verified.
 `NoOpinion`; for SSA and conditional PUT, `Allow` requires every modeled prerequisite and
 `NoOpinion` means at least one lacks a grant. Other authorizers, authentication, impersonation, admission, object
 existence, live aggregation/reconciliation controllers, mutation effects and escalation
-checks are outside these models. Schema-1 restrictions on `get` do not rule out
+checks are outside these access models. The separate [policy-change
+gate](rbac-policy-changes.md) checks the bounded write/bind/escalate prerequisites
+for one frozen RBAC operation. Schema-1 restrictions on `get` do not rule out
 Secret exposure through `list` or `watch`. Schema 2 can cover those direct read
 grants, but pod creation and other indirect exposure paths remain outside it.
 
