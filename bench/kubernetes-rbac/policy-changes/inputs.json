@@ -1,0 +1,1698 @@
+{
+  "authorized-binding-approved-scope/after.json": {
+    "bytes": 3020,
+    "sha256": "00da4252dc76eb5f20439a55105f9192dc6a6427eb8c3c5d61978f14e58338c0"
+  },
+  "authorized-binding-approved-scope/before.json": {
+    "bytes": 2555,
+    "sha256": "de74a597eb9a17aa1d36bba65359cb1c760924dd49f29aa3fafdbe5da21dfdb8"
+  },
+  "authorized-binding-approved-scope/contract.json": {
+    "bytes": 2110,
+    "sha256": "f23c815087ffb5b5cbb78234a60d013e4a1b797a81c78a98d608f65d73b62142"
+  },
+  "authorized-binding-approved-scope/expected.json": {
+    "bytes": 197,
+    "sha256": "61c0a51b3c1bfdfc1d3298be4f17db7d41a48101c15c36c8a01e7ffd7df8d3e3"
+  },
+  "authorized-binding-loses-preservation/after.json": {
+    "bytes": 3026,
+    "sha256": "843d0b3ee15edc98178bd790e5fce3f393e3ec0f945d00cf944f535ce813e0c1"
+  },
+  "authorized-binding-loses-preservation/before.json": {
+    "bytes": 2561,
+    "sha256": "58dcc37326434d2a47c1ae8040838001477dc241e5a30f30b7b7a7faa785d564"
+  },
+  "authorized-binding-loses-preservation/contract.json": {
+    "bytes": 1838,
+    "sha256": "d0577ab9ab52b05ee072b0f782888cf1bda4c53b4aeb4d7747d2c0debce71dee"
+  },
+  "authorized-binding-loses-preservation/expected.json": {
+    "bytes": 205,
+    "sha256": "b79d1ab0e2a31dbe23f6ac59b2907ad1fd04cfc768237aafa0c1f7d75931600b"
+  },
+  "authorized-binding-unapproved-scope/after.json": {
+    "bytes": 3020,
+    "sha256": "00da4252dc76eb5f20439a55105f9192dc6a6427eb8c3c5d61978f14e58338c0"
+  },
+  "authorized-binding-unapproved-scope/before.json": {
+    "bytes": 2555,
+    "sha256": "de74a597eb9a17aa1d36bba65359cb1c760924dd49f29aa3fafdbe5da21dfdb8"
+  },
+  "authorized-binding-unapproved-scope/contract.json": {
+    "bytes": 1838,
+    "sha256": "d0577ab9ab52b05ee072b0f782888cf1bda4c53b4aeb4d7747d2c0debce71dee"
+  },
+  "authorized-binding-unapproved-scope/expected.json": {
+    "bytes": 205,
+    "sha256": "b79d1ab0e2a31dbe23f6ac59b2907ad1fd04cfc768237aafa0c1f7d75931600b"
+  },
+  "authorized-binding-violates-access/after.json": {
+    "bytes": 2958,
+    "sha256": "95528c8029aed3fb526ddfc8d5cf521a3da1e21405783e3ca56e9f088c6dff9a"
+  },
+  "authorized-binding-violates-access/before.json": {
+    "bytes": 2493,
+    "sha256": "3a091fd39535c1011925257b4f7d98c5aa39cc9622374f30ce82424dca667e99"
+  },
+  "authorized-binding-violates-access/contract.json": {
+    "bytes": 1838,
+    "sha256": "d0577ab9ab52b05ee072b0f782888cf1bda4c53b4aeb4d7747d2c0debce71dee"
+  },
+  "authorized-binding-violates-access/expected.json": {
+    "bytes": 199,
+    "sha256": "336a7cdbe34b972a3cc75758fd89182201033eca90c031dce79e91916b847ea0"
+  },
+  "clusterrole-create-covered-future-policy/after.json": {
+    "bytes": 2635,
+    "sha256": "209d7ee85bd721c834b1c0c4f3803c54fcb47bfca4fcb67059e4af06bcd9cec3"
+  },
+  "clusterrole-create-covered-future-policy/before.json": {
+    "bytes": 2156,
+    "sha256": "694184ad7c96d9fb22b6476216aed64556a0ff5e3fdee38a3a85155a4b19080b"
+  },
+  "clusterrole-create-covered-future-policy/contract.json": {
+    "bytes": 1834,
+    "sha256": "15771305653edc92ec6c5da83d4b3ff8a62965a6c4888f0b5b555d4190317995"
+  },
+  "clusterrole-create-covered-future-policy/expected.json": {
+    "bytes": 873,
+    "sha256": "0c6a74a23872ed6ca0467e3584ec887b0fce7b5a91879601079cf984069e2952"
+  },
+  "clusterrole-create-empty-policy/after.json": {
+    "bytes": 2015,
+    "sha256": "6c1aed632e39b47ccfa2b2ca1633e7d53d1df87669be0e932be813fcf89fae6c"
+  },
+  "clusterrole-create-empty-policy/before.json": {
+    "bytes": 1849,
+    "sha256": "f34a4a02474ccc6d59fe3ca6130bce64b79f77908244cd16e4be68eb2b82f546"
+  },
+  "clusterrole-create-empty-policy/contract.json": {
+    "bytes": 1834,
+    "sha256": "15771305653edc92ec6c5da83d4b3ff8a62965a6c4888f0b5b555d4190317995"
+  },
+  "clusterrole-create-empty-policy/expected.json": {
+    "bytes": 377,
+    "sha256": "599290fd6ae38d31c6a87cfe0e5ec8647802d8b8424029eb9f1af424f061b2df"
+  },
+  "clusterrole-create-explicit-special/after.json": {
+    "bytes": 2605,
+    "sha256": "ee08234c0c28a4f97df75609bcdee465e3764bc24c0efc3c9c2037d015168749"
+  },
+  "clusterrole-create-explicit-special/before.json": {
+    "bytes": 2126,
+    "sha256": "e900b9f587e1792ca0a7060c4187cdfb107d7d2c2090ed31af712d5f7dc9bfea"
+  },
+  "clusterrole-create-explicit-special/contract.json": {
+    "bytes": 1834,
+    "sha256": "15771305653edc92ec6c5da83d4b3ff8a62965a6c4888f0b5b555d4190317995"
+  },
+  "clusterrole-create-explicit-special/expected.json": {
+    "bytes": 197,
+    "sha256": "61c0a51b3c1bfdfc1d3298be4f17db7d41a48101c15c36c8a01e7ffd7df8d3e3"
+  },
+  "clusterrole-create-initial-not-granted/after.json": {
+    "bytes": 2104,
+    "sha256": "008125b00a3fd02f10d1ad5d7eb7c755a19b3653b5095d30101c7e0dd7dc0182"
+  },
+  "clusterrole-create-initial-not-granted/before.json": {
+    "bytes": 1625,
+    "sha256": "e52abd4a6f5f7d43643e848c8531a84124a3c9f2ab1bab27627e3ef9da6daa83"
+  },
+  "clusterrole-create-initial-not-granted/contract.json": {
+    "bytes": 1834,
+    "sha256": "15771305653edc92ec6c5da83d4b3ff8a62965a6c4888f0b5b555d4190317995"
+  },
+  "clusterrole-create-initial-not-granted/expected.json": {
+    "bytes": 208,
+    "sha256": "9ece6f7cd627bf1081beb219c5dc36cc435ec61c6050283e39ba7363f0e5fb78"
+  },
+  "clusterrole-create-named-initial/after.json": {
+    "bytes": 2698,
+    "sha256": "d2accfbd0a744370b76ffd761ea8587bcb304cdcb06ce03bd7f3fe121ac706a1"
+  },
+  "clusterrole-create-named-initial/before.json": {
+    "bytes": 2219,
+    "sha256": "b28d9302113590fd4dfee4bb3cdcb9d773e9a7997f4cd62b102635040fe82e32"
+  },
+  "clusterrole-create-named-initial/contract.json": {
+    "bytes": 1834,
+    "sha256": "15771305653edc92ec6c5da83d4b3ff8a62965a6c4888f0b5b555d4190317995"
+  },
+  "clusterrole-create-named-initial/expected.json": {
+    "bytes": 208,
+    "sha256": "9ece6f7cd627bf1081beb219c5dc36cc435ec61c6050283e39ba7363f0e5fb78"
+  },
+  "clusterrole-create-uncovered-future-policy/after.json": {
+    "bytes": 2328,
+    "sha256": "9865318695c849f5ead4f9f21a8ed511a6f27294085b742930b2b09c66f56ce8"
+  },
+  "clusterrole-create-uncovered-future-policy/before.json": {
+    "bytes": 1849,
+    "sha256": "f34a4a02474ccc6d59fe3ca6130bce64b79f77908244cd16e4be68eb2b82f546"
+  },
+  "clusterrole-create-uncovered-future-policy/contract.json": {
+    "bytes": 1834,
+    "sha256": "15771305653edc92ec6c5da83d4b3ff8a62965a6c4888f0b5b555d4190317995"
+  },
+  "clusterrole-create-uncovered-future-policy/expected.json": {
+    "bytes": 1103,
+    "sha256": "1c8f6bea88642dfc0cce67102b1d64676ad67ad2b4ecd91efb3b32c8dcf49791"
+  },
+  "clusterrole-empty-escalate-does-not-authorize-put/after.json": {
+    "bytes": 2605,
+    "sha256": "4c6349020708391515aaa590ecdffcad2d1b945e786e1c374418ea8375b8c44c"
+  },
+  "clusterrole-empty-escalate-does-not-authorize-put/before.json": {
+    "bytes": 2292,
+    "sha256": "69c7b5f69c1eb2bb3c9d97d723bc44c5899b3ce2b2c7e19d123d8fe4d1e2ed69"
+  },
+  "clusterrole-empty-escalate-does-not-authorize-put/contract.json": {
+    "bytes": 1843,
+    "sha256": "92c77034c737fe22aa3bfe6cca609a75ecb95919c0aaa2444e17316dfa8dc9b1"
+  },
+  "clusterrole-empty-escalate-does-not-authorize-put/expected.json": {
+    "bytes": 1324,
+    "sha256": "aa72b3f07cb05ddcf7077d4852402e2d9ce43d282992f8b4e378cba87a0294ed"
+  },
+  "clusterrole-named-escalate-does-not-authorize-post/after.json": {
+    "bytes": 2611,
+    "sha256": "5fa3cf3bf12da3a5d810331deefcd1dee903b3fad88ff1c915d779e88d208f89"
+  },
+  "clusterrole-named-escalate-does-not-authorize-post/before.json": {
+    "bytes": 2132,
+    "sha256": "4b417b184d622afd57e5088178ce8bd5f029f91a5b361aa6e1ba700b3e917f15"
+  },
+  "clusterrole-named-escalate-does-not-authorize-post/contract.json": {
+    "bytes": 1834,
+    "sha256": "15771305653edc92ec6c5da83d4b3ff8a62965a6c4888f0b5b555d4190317995"
+  },
+  "clusterrole-named-escalate-does-not-authorize-post/expected.json": {
+    "bytes": 1330,
+    "sha256": "a44f7dc44f819ff23ea9d398c126a1b6e89da81b6a3c8a25c6edbcbdd52bb3d4"
+  },
+  "clusterrole-special-without-initial/after.json": {
+    "bytes": 2387,
+    "sha256": "59724899b6c0903d8bafebc044095e8b309811ada9a59c062194bfe7b7e7a618"
+  },
+  "clusterrole-special-without-initial/before.json": {
+    "bytes": 1908,
+    "sha256": "55179198214fe7f9a5f14c7d401f437391a659b8d84977f9775506d024188049"
+  },
+  "clusterrole-special-without-initial/contract.json": {
+    "bytes": 1834,
+    "sha256": "15771305653edc92ec6c5da83d4b3ff8a62965a6c4888f0b5b555d4190317995"
+  },
+  "clusterrole-special-without-initial/expected.json": {
+    "bytes": 208,
+    "sha256": "9ece6f7cd627bf1081beb219c5dc36cc435ec61c6050283e39ba7363f0e5fb78"
+  },
+  "clusterrole-update-existing-covered-future-policy/after.json": {
+    "bytes": 2635,
+    "sha256": "9c06b849797cabe6c34400244b6285a95432e4d1a7f8a95519ea7df4acc6528d"
+  },
+  "clusterrole-update-existing-covered-future-policy/before.json": {
+    "bytes": 2322,
+    "sha256": "81862652dd35732043335198c1749eb536325d4c009e8ca06403f3bc3c74343e"
+  },
+  "clusterrole-update-existing-covered-future-policy/contract.json": {
+    "bytes": 1843,
+    "sha256": "92c77034c737fe22aa3bfe6cca609a75ecb95919c0aaa2444e17316dfa8dc9b1"
+  },
+  "clusterrole-update-existing-covered-future-policy/expected.json": {
+    "bytes": 873,
+    "sha256": "b413e52baf5a60d7af950fa363acb5f96f4eac75c451ac0d4eb19a401a4fc23d"
+  },
+  "clusterrole-update-existing-empty-policy/after.json": {
+    "bytes": 2015,
+    "sha256": "c4702efae3003d1d0bec22b912a811b64e63b38f624bc41335a5337b729c945b"
+  },
+  "clusterrole-update-existing-empty-policy/before.json": {
+    "bytes": 2328,
+    "sha256": "6e1d3c48c19eac31e007317d81cc4019d934d23d815388a9ed168a51736ddd08"
+  },
+  "clusterrole-update-existing-empty-policy/contract.json": {
+    "bytes": 1843,
+    "sha256": "92c77034c737fe22aa3bfe6cca609a75ecb95919c0aaa2444e17316dfa8dc9b1"
+  },
+  "clusterrole-update-existing-empty-policy/expected.json": {
+    "bytes": 377,
+    "sha256": "22e553195fba2eb13e17ef5bd2525e9e012eb045741f6fbf38c4a5b917351fa3"
+  },
+  "clusterrole-update-existing-explicit-special/after.json": {
+    "bytes": 2611,
+    "sha256": "74bd66694cbbe0fcefaae534b01c36026154078b923f2dfd587fb9361ca3ca80"
+  },
+  "clusterrole-update-existing-explicit-special/before.json": {
+    "bytes": 2298,
+    "sha256": "30f85d708da5c0c48e6deab3d89f52471c9292de973d171b88c909bfb5a68671"
+  },
+  "clusterrole-update-existing-explicit-special/contract.json": {
+    "bytes": 1843,
+    "sha256": "92c77034c737fe22aa3bfe6cca609a75ecb95919c0aaa2444e17316dfa8dc9b1"
+  },
+  "clusterrole-update-existing-explicit-special/expected.json": {
+    "bytes": 197,
+    "sha256": "61c0a51b3c1bfdfc1d3298be4f17db7d41a48101c15c36c8a01e7ffd7df8d3e3"
+  },
+  "clusterrole-update-existing-initial-not-granted/after.json": {
+    "bytes": 2104,
+    "sha256": "008125b00a3fd02f10d1ad5d7eb7c755a19b3653b5095d30101c7e0dd7dc0182"
+  },
+  "clusterrole-update-existing-initial-not-granted/before.json": {
+    "bytes": 1791,
+    "sha256": "9a3870d74163c2b175c3debf98b47ffdd44fb4b5bbb08d936c887b96d6b64f63"
+  },
+  "clusterrole-update-existing-initial-not-granted/contract.json": {
+    "bytes": 1843,
+    "sha256": "92c77034c737fe22aa3bfe6cca609a75ecb95919c0aaa2444e17316dfa8dc9b1"
+  },
+  "clusterrole-update-existing-initial-not-granted/expected.json": {
+    "bytes": 208,
+    "sha256": "9ece6f7cd627bf1081beb219c5dc36cc435ec61c6050283e39ba7363f0e5fb78"
+  },
+  "clusterrole-update-existing-named-initial/after.json": {
+    "bytes": 2698,
+    "sha256": "379834c6e39d5e5e5000216bf46bb87674977fc8d176411a7d72c755f7941b55"
+  },
+  "clusterrole-update-existing-named-initial/before.json": {
+    "bytes": 2385,
+    "sha256": "d3330d23c3aa877f634f4f2d8b1344a172635167d9b1ff9a5ce89db5d5c963ed"
+  },
+  "clusterrole-update-existing-named-initial/contract.json": {
+    "bytes": 1843,
+    "sha256": "92c77034c737fe22aa3bfe6cca609a75ecb95919c0aaa2444e17316dfa8dc9b1"
+  },
+  "clusterrole-update-existing-named-initial/expected.json": {
+    "bytes": 924,
+    "sha256": "cc878048649851efba92a0c0fb041d26a61dbf783e88257632ceec586e057089"
+  },
+  "clusterrole-update-existing-uncovered-future-policy/after.json": {
+    "bytes": 2328,
+    "sha256": "6e1d3c48c19eac31e007317d81cc4019d934d23d815388a9ed168a51736ddd08"
+  },
+  "clusterrole-update-existing-uncovered-future-policy/before.json": {
+    "bytes": 2015,
+    "sha256": "c4702efae3003d1d0bec22b912a811b64e63b38f624bc41335a5337b729c945b"
+  },
+  "clusterrole-update-existing-uncovered-future-policy/contract.json": {
+    "bytes": 1843,
+    "sha256": "92c77034c737fe22aa3bfe6cca609a75ecb95919c0aaa2444e17316dfa8dc9b1"
+  },
+  "clusterrole-update-existing-uncovered-future-policy/expected.json": {
+    "bytes": 1103,
+    "sha256": "cac4d4432fe3c9cf1f62cb58f8814ac4e8abe8df5d2f58c1a2eab65f483ae0b8"
+  },
+  "clusterrolebinding-bind-targets-role-not-binding/after.json": {
+    "bytes": 3065,
+    "sha256": "d5d7177b0ce243c4afbeec8454f9a121444aa9c5792672ef0c3648f7c70101b1"
+  },
+  "clusterrolebinding-bind-targets-role-not-binding/before.json": {
+    "bytes": 2618,
+    "sha256": "36432df06f4d434299e02dd16b5ed6545e95e7e58d47e11204675567e0dc68f5"
+  },
+  "clusterrolebinding-bind-targets-role-not-binding/contract.json": {
+    "bytes": 1841,
+    "sha256": "39b2c18f43f18571254dad071f142c801723d64b5c9d81cf51a86e4749037bfb"
+  },
+  "clusterrolebinding-bind-targets-role-not-binding/expected.json": {
+    "bytes": 1333,
+    "sha256": "c08271bacaaa8e189166611d23cca37862e0295beb580dafca97a78dfa5624db"
+  },
+  "clusterrolebinding-bind-without-initial/after.json": {
+    "bytes": 2844,
+    "sha256": "478aa321396731d749a756edec23ef68e5e5eabe6f617fd78cd99caba8d38689"
+  },
+  "clusterrolebinding-bind-without-initial/before.json": {
+    "bytes": 2397,
+    "sha256": "802919f8c0d7eba4808a552317bff205dffcac5375f65d088180f3365172ed96"
+  },
+  "clusterrolebinding-bind-without-initial/contract.json": {
+    "bytes": 1841,
+    "sha256": "39b2c18f43f18571254dad071f142c801723d64b5c9d81cf51a86e4749037bfb"
+  },
+  "clusterrolebinding-bind-without-initial/expected.json": {
+    "bytes": 208,
+    "sha256": "9ece6f7cd627bf1081beb219c5dc36cc435ec61c6050283e39ba7363f0e5fb78"
+  },
+  "clusterrolebinding-create-covered-future-policy/after.json": {
+    "bytes": 3093,
+    "sha256": "d301fdac03d00c242d83e4c5875c83c190abd5572969a14c51e4fdf62fc3e5b8"
+  },
+  "clusterrolebinding-create-covered-future-policy/before.json": {
+    "bytes": 2646,
+    "sha256": "37626a56455caa42ca8cb532a116bcda9a85644d1a44437bbbb6f09421d5842c"
+  },
+  "clusterrolebinding-create-covered-future-policy/contract.json": {
+    "bytes": 1841,
+    "sha256": "39b2c18f43f18571254dad071f142c801723d64b5c9d81cf51a86e4749037bfb"
+  },
+  "clusterrolebinding-create-covered-future-policy/expected.json": {
+    "bytes": 880,
+    "sha256": "96a68b59f5262b2ea9c7445709280ce8f3cc8a16553ba1b38ca785e2de2acd40"
+  },
+  "clusterrolebinding-create-empty-policy/after.json": {
+    "bytes": 2473,
+    "sha256": "22381ebdd1cee5680e8b82dc081f207922942646bef6573d1d399d5be7b018a0"
+  },
+  "clusterrolebinding-create-empty-policy/before.json": {
+    "bytes": 2026,
+    "sha256": "8ce9b41e3631facbc64e8935bb2ddd1dc4508a9537e5eadad1c306c4f1ced131"
+  },
+  "clusterrolebinding-create-empty-policy/contract.json": {
+    "bytes": 1841,
+    "sha256": "39b2c18f43f18571254dad071f142c801723d64b5c9d81cf51a86e4749037bfb"
+  },
+  "clusterrolebinding-create-empty-policy/expected.json": {
+    "bytes": 384,
+    "sha256": "403b78cd1263268ffad38aa7a1cedbae61c01c9a17817f0503978c4d24257cbe"
+  },
+  "clusterrolebinding-create-explicit-special/after.json": {
+    "bytes": 3069,
+    "sha256": "b378fa15efa956016f3a934fda4e7d5d6070dc6ac15f8dcf37575dd32f0e1ed5"
+  },
+  "clusterrolebinding-create-explicit-special/before.json": {
+    "bytes": 2622,
+    "sha256": "83ef639c511851f51efe7f0725bfd314fb5be21f1a8f707a6b3170b16ded1ce2"
+  },
+  "clusterrolebinding-create-explicit-special/contract.json": {
+    "bytes": 1841,
+    "sha256": "39b2c18f43f18571254dad071f142c801723d64b5c9d81cf51a86e4749037bfb"
+  },
+  "clusterrolebinding-create-explicit-special/expected.json": {
+    "bytes": 197,
+    "sha256": "61c0a51b3c1bfdfc1d3298be4f17db7d41a48101c15c36c8a01e7ffd7df8d3e3"
+  },
+  "clusterrolebinding-create-initial-not-granted/after.json": {
+    "bytes": 2555,
+    "sha256": "afd011ac1292e032293515dbc2da268a0b498ebef88da26ffed663079bb4c773"
+  },
+  "clusterrolebinding-create-initial-not-granted/before.json": {
+    "bytes": 2108,
+    "sha256": "93beb4a972c085e6051139e46adb2a0761a5422d2ffe27200e504ffc08f29fce"
+  },
+  "clusterrolebinding-create-initial-not-granted/contract.json": {
+    "bytes": 1841,
+    "sha256": "39b2c18f43f18571254dad071f142c801723d64b5c9d81cf51a86e4749037bfb"
+  },
+  "clusterrolebinding-create-initial-not-granted/expected.json": {
+    "bytes": 208,
+    "sha256": "9ece6f7cd627bf1081beb219c5dc36cc435ec61c6050283e39ba7363f0e5fb78"
+  },
+  "clusterrolebinding-create-named-initial/after.json": {
+    "bytes": 3156,
+    "sha256": "57d4d00111c55e0cda6bf72df38a4cdfdf36a1f3ba24431f6c95aac9991fdf38"
+  },
+  "clusterrolebinding-create-named-initial/before.json": {
+    "bytes": 2709,
+    "sha256": "12a86a3274ef26ab8a9e3571cbff599b2561def923581512741524196481c568"
+  },
+  "clusterrolebinding-create-named-initial/contract.json": {
+    "bytes": 1841,
+    "sha256": "39b2c18f43f18571254dad071f142c801723d64b5c9d81cf51a86e4749037bfb"
+  },
+  "clusterrolebinding-create-named-initial/expected.json": {
+    "bytes": 208,
+    "sha256": "9ece6f7cd627bf1081beb219c5dc36cc435ec61c6050283e39ba7363f0e5fb78"
+  },
+  "clusterrolebinding-create-uncovered-future-policy/after.json": {
+    "bytes": 2786,
+    "sha256": "9ad74f94f1c789ec3068dc8957258f5a8dc3b80dcee5777e47f65bdb5259ca38"
+  },
+  "clusterrolebinding-create-uncovered-future-policy/before.json": {
+    "bytes": 2339,
+    "sha256": "e8bbdb727a4c4a89de0a4af5173bef63b89b18e13a0f76b7b5761955aaffef1b"
+  },
+  "clusterrolebinding-create-uncovered-future-policy/contract.json": {
+    "bytes": 1841,
+    "sha256": "39b2c18f43f18571254dad071f142c801723d64b5c9d81cf51a86e4749037bfb"
+  },
+  "clusterrolebinding-create-uncovered-future-policy/expected.json": {
+    "bytes": 1110,
+    "sha256": "e8ae5f7eb1d66b096d936f066b161c760aea6ac589e4c4e85bee0267043d80b1"
+  },
+  "clusterrolebinding-local-authority-is-irrelevant/after.json": {
+    "bytes": 3093,
+    "sha256": "9a5ce1123ee65beff63beb3865b8b4f4876c55cce42679f69e45fb691035dc60"
+  },
+  "clusterrolebinding-local-authority-is-irrelevant/before.json": {
+    "bytes": 2646,
+    "sha256": "2ead8207729bc05d39a34b5cb073a858974eaf41e8a67b1fe9a17833db50a7f7"
+  },
+  "clusterrolebinding-local-authority-is-irrelevant/contract.json": {
+    "bytes": 1841,
+    "sha256": "39b2c18f43f18571254dad071f142c801723d64b5c9d81cf51a86e4749037bfb"
+  },
+  "clusterrolebinding-local-authority-is-irrelevant/expected.json": {
+    "bytes": 208,
+    "sha256": "9ece6f7cd627bf1081beb219c5dc36cc435ec61c6050283e39ba7363f0e5fb78"
+  },
+  "clusterrolebinding-update-existing-covered-future-policy/after.json": {
+    "bytes": 3093,
+    "sha256": "5f3a15c14d4f5d499af776027d09d80ce9f748e4c722b8eeccb5c7f6cd3d1b94"
+  },
+  "clusterrolebinding-update-existing-covered-future-policy/before.json": {
+    "bytes": 3097,
+    "sha256": "b260ff93da798e734edf3339e80755e6e3652a98e56125137328c0de43b2037c"
+  },
+  "clusterrolebinding-update-existing-covered-future-policy/contract.json": {
+    "bytes": 1850,
+    "sha256": "acb06d14c7cebb5eaaaa9883cdd30d265e1657b8db57d41363985de8d81662a2"
+  },
+  "clusterrolebinding-update-existing-covered-future-policy/expected.json": {
+    "bytes": 880,
+    "sha256": "30cae17b68397a77c9432889e8c9def6882e918815af421405c8ceb6586f855a"
+  },
+  "clusterrolebinding-update-existing-empty-policy/after.json": {
+    "bytes": 2473,
+    "sha256": "17eb4a5765f15121c7ed2c8a59b298c405aaadfa3a4357319ab5bb9d84b29742"
+  },
+  "clusterrolebinding-update-existing-empty-policy/before.json": {
+    "bytes": 2477,
+    "sha256": "bd452dbfc29a627fcaa3a89aa6efa5cfc1a86b46ffb446d6f5e3c52902be4c24"
+  },
+  "clusterrolebinding-update-existing-empty-policy/contract.json": {
+    "bytes": 1850,
+    "sha256": "acb06d14c7cebb5eaaaa9883cdd30d265e1657b8db57d41363985de8d81662a2"
+  },
+  "clusterrolebinding-update-existing-empty-policy/expected.json": {
+    "bytes": 384,
+    "sha256": "f71622462704862afda733c08c41e29031fb7bdb3b9a7fe969a77fa7fd839d38"
+  },
+  "clusterrolebinding-update-existing-explicit-special/after.json": {
+    "bytes": 3069,
+    "sha256": "ae16aa54d9ad4ddc4c1d6fef81ba40a4ba6b8e1844f345a44cd180191e9184f5"
+  },
+  "clusterrolebinding-update-existing-explicit-special/before.json": {
+    "bytes": 3073,
+    "sha256": "58ce10c5856935554e9c273f1a1993366e782aa2449ab018bc66d5b9452da02e"
+  },
+  "clusterrolebinding-update-existing-explicit-special/contract.json": {
+    "bytes": 1850,
+    "sha256": "acb06d14c7cebb5eaaaa9883cdd30d265e1657b8db57d41363985de8d81662a2"
+  },
+  "clusterrolebinding-update-existing-explicit-special/expected.json": {
+    "bytes": 197,
+    "sha256": "61c0a51b3c1bfdfc1d3298be4f17db7d41a48101c15c36c8a01e7ffd7df8d3e3"
+  },
+  "clusterrolebinding-update-existing-initial-not-granted/after.json": {
+    "bytes": 2555,
+    "sha256": "afd011ac1292e032293515dbc2da268a0b498ebef88da26ffed663079bb4c773"
+  },
+  "clusterrolebinding-update-existing-initial-not-granted/before.json": {
+    "bytes": 2559,
+    "sha256": "254e8f9fd1d1202c8129b2ee3cda3e6fe177fac91fd8f95b7376ad31780dd26d"
+  },
+  "clusterrolebinding-update-existing-initial-not-granted/contract.json": {
+    "bytes": 1850,
+    "sha256": "acb06d14c7cebb5eaaaa9883cdd30d265e1657b8db57d41363985de8d81662a2"
+  },
+  "clusterrolebinding-update-existing-initial-not-granted/expected.json": {
+    "bytes": 208,
+    "sha256": "9ece6f7cd627bf1081beb219c5dc36cc435ec61c6050283e39ba7363f0e5fb78"
+  },
+  "clusterrolebinding-update-existing-named-initial/after.json": {
+    "bytes": 3156,
+    "sha256": "d3e4d127b0daaf11a6f91a1de9611bfe61e2ae450c5657db099355b0f7d49ca6"
+  },
+  "clusterrolebinding-update-existing-named-initial/before.json": {
+    "bytes": 3160,
+    "sha256": "3adf368b4ea64af6616cf44e69c75a7a26a0ba1819122a2cb7aae0334e5a2ddd"
+  },
+  "clusterrolebinding-update-existing-named-initial/contract.json": {
+    "bytes": 1850,
+    "sha256": "acb06d14c7cebb5eaaaa9883cdd30d265e1657b8db57d41363985de8d81662a2"
+  },
+  "clusterrolebinding-update-existing-named-initial/expected.json": {
+    "bytes": 931,
+    "sha256": "c3dee02d40a2d55da2293232887dbfba6c43aa5f0258cb44e2d21c94dcfcc7c8"
+  },
+  "clusterrolebinding-update-existing-uncovered-future-policy/after.json": {
+    "bytes": 2786,
+    "sha256": "0c31041ce3cf0bf54965359d084054a820e03288b5a2e642034979eed3c75819"
+  },
+  "clusterrolebinding-update-existing-uncovered-future-policy/before.json": {
+    "bytes": 2790,
+    "sha256": "b2d3d005736e951407abbb169e0f3f7ebb6a7aa18ba14d9995fd689a16668492"
+  },
+  "clusterrolebinding-update-existing-uncovered-future-policy/contract.json": {
+    "bytes": 1850,
+    "sha256": "acb06d14c7cebb5eaaaa9883cdd30d265e1657b8db57d41363985de8d81662a2"
+  },
+  "clusterrolebinding-update-existing-uncovered-future-policy/expected.json": {
+    "bytes": 1110,
+    "sha256": "d6801c962ae4dbe6dd8d4cb5e3eb5ccc95eea71140744672a7c47a28bb348aa9"
+  },
+  "core-resource-authority-does-not-cover-url/after.json": {
+    "bytes": 2337,
+    "sha256": "f7acc9ea8f0dbd3a5f121e0c234ded7e51389341ad6a66c975a319bb3b9fbcfa"
+  },
+  "core-resource-authority-does-not-cover-url/before.json": {
+    "bytes": 2026,
+    "sha256": "b8cf4f58f67fe71df9f30f9cd1d4f067b4ef7e582b4cff503cbde392607bce72"
+  },
+  "core-resource-authority-does-not-cover-url/contract.json": {
+    "bytes": 1834,
+    "sha256": "15771305653edc92ec6c5da83d4b3ff8a62965a6c4888f0b5b555d4190317995"
+  },
+  "core-resource-authority-does-not-cover-url/expected.json": {
+    "bytes": 739,
+    "sha256": "5e904415b2e11adf050d83ec0cb3ace1ff8173adef78418fc4b0b055cabbf122"
+  },
+  "linkage.json": {
+    "bytes": 3441,
+    "sha256": "d5d08ca570c0fec7edf886a6de31d0606c46019d00bb59dc2667402b0d86d35f"
+  },
+  "one-uncovered-atomic-permission/after.json": {
+    "bytes": 4048,
+    "sha256": "f7b69b49318d0d099ababe5cdc0038612565c2ef0843d20cb635cb27f0cb4495"
+  },
+  "one-uncovered-atomic-permission/before.json": {
+    "bytes": 3548,
+    "sha256": "667c259a69a9c1e368aca82e5e8ebc4ad08e1bb06a29babf60eee38595449d89"
+  },
+  "one-uncovered-atomic-permission/contract.json": {
+    "bytes": 1831,
+    "sha256": "3283ee7ddc6072e878bfb104d36ca88e037a0b3d7909d73304099072e7baba58"
+  },
+  "one-uncovered-atomic-permission/expected.json": {
+    "bytes": 2125,
+    "sha256": "1e37ad6f0926cc21a76920a1f47244a99bf11522cef4924efc007cf96ca7b2ab"
+  },
+  "owner-all-names-covers-literal-star-name/after.json": {
+    "bytes": 2472,
+    "sha256": "1b6ca9b4c2fdf7a10439a5dff08ae0cf4ef94396b19ba903f3192cce9582c279"
+  },
+  "owner-all-names-covers-literal-star-name/before.json": {
+    "bytes": 2030,
+    "sha256": "f840727d4ff0fe3913efb6b7592f2eb77b900afab57146a6f368078dd7f0379b"
+  },
+  "owner-all-names-covers-literal-star-name/contract.json": {
+    "bytes": 1831,
+    "sha256": "3283ee7ddc6072e878bfb104d36ca88e037a0b3d7909d73304099072e7baba58"
+  },
+  "owner-all-names-covers-literal-star-name/expected.json": {
+    "bytes": 706,
+    "sha256": "66194f9ea13a722237f88fc8a93fe2d4fbb549b0f699bb4a0ef9cb39c1a8f855"
+  },
+  "owner-named-cannot-cover-all-names/after.json": {
+    "bytes": 2493,
+    "sha256": "41f052195d3c5e3d2ae5089365b14e11477581a49f1de03c478a0128f6a5ba43"
+  },
+  "owner-named-cannot-cover-all-names/before.json": {
+    "bytes": 2109,
+    "sha256": "0b0066d960d040b8ef1255fff34296b357861569e8cbc88bdb644d8752ba4805"
+  },
+  "owner-named-cannot-cover-all-names/contract.json": {
+    "bytes": 1831,
+    "sha256": "3283ee7ddc6072e878bfb104d36ca88e037a0b3d7909d73304099072e7baba58"
+  },
+  "owner-named-cannot-cover-all-names/expected.json": {
+    "bytes": 880,
+    "sha256": "0a997cf2cedf980e1d065ec5632b5b899f5ce4d96fc729c77d5f7654f5c1ce12"
+  },
+  "owner-parent-star-is-literal/after.json": {
+    "bytes": 2538,
+    "sha256": "a063234b1d5d4d68754a8353de4ad4e0a568be2d2c26e5db2d4da2a39b4e9361"
+  },
+  "owner-parent-star-is-literal/before.json": {
+    "bytes": 2035,
+    "sha256": "2f785e0efa7b0cdc3015ca4a2a349a0b3d45f15e561efec97a1abc5f4c7d35a0"
+  },
+  "owner-parent-star-is-literal/contract.json": {
+    "bytes": 1831,
+    "sha256": "3283ee7ddc6072e878bfb104d36ca88e037a0b3d7909d73304099072e7baba58"
+  },
+  "owner-parent-star-is-literal/expected.json": {
+    "bytes": 1245,
+    "sha256": "cdfb212d793bad2d1cbf91960efc6a42190d2b08c28a669d072fb4ae1755f42d"
+  },
+  "owner-star-name-is-literal/after.json": {
+    "bytes": 2532,
+    "sha256": "a66e6005baedafd072186d594b651faf979a93fd3fec014e531a978b8e93b881"
+  },
+  "owner-star-name-is-literal/before.json": {
+    "bytes": 2088,
+    "sha256": "7a84b82320a7bf11ccedab0f2856d4f24f581e5cfecc8cb95899507a27194203"
+  },
+  "owner-star-name-is-literal/contract.json": {
+    "bytes": 1831,
+    "sha256": "3283ee7ddc6072e878bfb104d36ca88e037a0b3d7909d73304099072e7baba58"
+  },
+  "owner-star-name-is-literal/expected.json": {
+    "bytes": 959,
+    "sha256": "5a632a7c58da5c9322cdd9c5fbcd3b2e57afa91a28b3baa2b06b691e06cf94a6"
+  },
+  "owner-universal-covers-arbitrary-policy/after.json": {
+    "bytes": 2533,
+    "sha256": "f10d0ada2800333efc885cf6501afd5d2cb3087e114eeb2077291efbfe23f4ea"
+  },
+  "owner-universal-covers-arbitrary-policy/before.json": {
+    "bytes": 2030,
+    "sha256": "8253607c0ea4d948366f3caa8dd41a4da8d09a22fc25e81370d7bbfb15efbaf0"
+  },
+  "owner-universal-covers-arbitrary-policy/contract.json": {
+    "bytes": 1831,
+    "sha256": "3283ee7ddc6072e878bfb104d36ca88e037a0b3d7909d73304099072e7baba58"
+  },
+  "owner-universal-covers-arbitrary-policy/expected.json": {
+    "bytes": 763,
+    "sha256": "0357eeb95c19bacb7023e833676adcfb5cfd65f183cf2975e523dc52bbd2d32a"
+  },
+  "rbac-colon-target-name/after.json": {
+    "bytes": 2671,
+    "sha256": "20e262f40f9f9fd72302bab2f2811a53b58e943a98ae0c379ea4106a95d8cf1e"
+  },
+  "rbac-colon-target-name/before.json": {
+    "bytes": 2358,
+    "sha256": "16bed5bb7779972690e307ea461ff1722488a3c03cf9afb70f5d58949d8cc457"
+  },
+  "rbac-colon-target-name/contract.json": {
+    "bytes": 1859,
+    "sha256": "20d305c7003583c8ed400e2e051963cd040abcecd88ff5b899e7338e148bb014"
+  },
+  "rbac-colon-target-name/expected.json": {
+    "bytes": 866,
+    "sha256": "b9ed82a1492afd39bc47c610ad8330b91f7c3cbd4fca3831b57beacf98678992"
+  },
+  "rejections/aggregate-target-after/after.json": {
+    "bytes": 2499,
+    "sha256": "720ba64a9eb0177b00d2169212c607c5e4a98ca7664d86f38dcbb4d246c9c803"
+  },
+  "rejections/aggregate-target-after/before.json": {
+    "bytes": 2322,
+    "sha256": "81862652dd35732043335198c1749eb536325d4c009e8ca06403f3bc3c74343e"
+  },
+  "rejections/aggregate-target-after/contract.json": {
+    "bytes": 1843,
+    "sha256": "92c77034c737fe22aa3bfe6cca609a75ecb95919c0aaa2444e17316dfa8dc9b1"
+  },
+  "rejections/aggregate-target-before/after.json": {
+    "bytes": 2635,
+    "sha256": "9c06b849797cabe6c34400244b6285a95432e4d1a7f8a95519ea7df4acc6528d"
+  },
+  "rejections/aggregate-target-before/before.json": {
+    "bytes": 2499,
+    "sha256": "720ba64a9eb0177b00d2169212c607c5e4a98ca7664d86f38dcbb4d246c9c803"
+  },
+  "rejections/aggregate-target-before/contract.json": {
+    "bytes": 1843,
+    "sha256": "92c77034c737fe22aa3bfe6cca609a75ecb95919c0aaa2444e17316dfa8dc9b1"
+  },
+  "rejections/changed-role-ref/after.json": {
+    "bytes": 3091,
+    "sha256": "f3a7dcef7d17586aa2d860a98a20ca96c34a004862b0bb4a5357a28cf12ff45b"
+  },
+  "rejections/changed-role-ref/before.json": {
+    "bytes": 3090,
+    "sha256": "b8d98134ada833706bcd1eda19d00e017f40526c2c6c52b55f1ca4d9c3b04de9"
+  },
+  "rejections/changed-role-ref/contract.json": {
+    "bytes": 1847,
+    "sha256": "987ccdb9a90a91f7363db1d4fbba2b5596d084931c18b2ffcdc213e003f00bde"
+  },
+  "rejections/create-existing/after.json": {
+    "bytes": 2652,
+    "sha256": "d804d015223a98ce4b1c90be46d81ce27ccfee214e6fac1a179448b1ce0a5393"
+  },
+  "rejections/create-existing/before.json": {
+    "bytes": 2339,
+    "sha256": "008a08d653cb292dbd42468d510a5753c440c689022defe0ad5fb7f8651eb697"
+  },
+  "rejections/create-existing/contract.json": {
+    "bytes": 1831,
+    "sha256": "3283ee7ddc6072e878bfb104d36ca88e037a0b3d7909d73304099072e7baba58"
+  },
+  "rejections/delete/after.json": {
+    "bytes": 2652,
+    "sha256": "d804d015223a98ce4b1c90be46d81ce27ccfee214e6fac1a179448b1ce0a5393"
+  },
+  "rejections/delete/before.json": {
+    "bytes": 2339,
+    "sha256": "008a08d653cb292dbd42468d510a5753c440c689022defe0ad5fb7f8651eb697"
+  },
+  "rejections/delete/contract.json": {
+    "bytes": 1831,
+    "sha256": "4a464b9610a367c054c890b0f710545baf4d4ac822a577377e4951dd1270af52"
+  },
+  "rejections/masters/after.json": {
+    "bytes": 2652,
+    "sha256": "d804d015223a98ce4b1c90be46d81ce27ccfee214e6fac1a179448b1ce0a5393"
+  },
+  "rejections/masters/before.json": {
+    "bytes": 2339,
+    "sha256": "008a08d653cb292dbd42468d510a5753c440c689022defe0ad5fb7f8651eb697"
+  },
+  "rejections/masters/contract.json": {
+    "bytes": 1870,
+    "sha256": "bdf0ae4381b8b52165089728bb4d04fd729f8fa260d14e3dd153f64574c257a3"
+  },
+  "rejections/metadata-only/after.json": {
+    "bytes": 2403,
+    "sha256": "065c61d494293eff96528492436daa3960df9e8a7e2c13a19351f1173777823c"
+  },
+  "rejections/metadata-only/before.json": {
+    "bytes": 2339,
+    "sha256": "008a08d653cb292dbd42468d510a5753c440c689022defe0ad5fb7f8651eb697"
+  },
+  "rejections/metadata-only/contract.json": {
+    "bytes": 1840,
+    "sha256": "ad7bbe921d5e0738e539bacfbc5ff18d3f45a06a4e60d4f594e5d842347b6540"
+  },
+  "rejections/missing-namespace/after.json": {
+    "bytes": 2652,
+    "sha256": "d804d015223a98ce4b1c90be46d81ce27ccfee214e6fac1a179448b1ce0a5393"
+  },
+  "rejections/missing-namespace/before.json": {
+    "bytes": 2339,
+    "sha256": "008a08d653cb292dbd42468d510a5753c440c689022defe0ad5fb7f8651eb697"
+  },
+  "rejections/missing-namespace/contract.json": {
+    "bytes": 1836,
+    "sha256": "7f48d1ebd64de6002d624b0cd0db5f0a7471bd50f13292116d06f81e2bd08621"
+  },
+  "rejections/multiple-added/after.json": {
+    "bytes": 2841,
+    "sha256": "0f02473570d682f5ca91775c4f1f7863ab55eb8ce32d19788ba1e9e322770f34"
+  },
+  "rejections/multiple-added/before.json": {
+    "bytes": 2339,
+    "sha256": "008a08d653cb292dbd42468d510a5753c440c689022defe0ad5fb7f8651eb697"
+  },
+  "rejections/multiple-added/contract.json": {
+    "bytes": 1840,
+    "sha256": "ad7bbe921d5e0738e539bacfbc5ff18d3f45a06a4e60d4f594e5d842347b6540"
+  },
+  "rejections/no-op/after.json": {
+    "bytes": 2339,
+    "sha256": "008a08d653cb292dbd42468d510a5753c440c689022defe0ad5fb7f8651eb697"
+  },
+  "rejections/no-op/before.json": {
+    "bytes": 2339,
+    "sha256": "008a08d653cb292dbd42468d510a5753c440c689022defe0ad5fb7f8651eb697"
+  },
+  "rejections/no-op/contract.json": {
+    "bytes": 1840,
+    "sha256": "ad7bbe921d5e0738e539bacfbc5ff18d3f45a06a4e60d4f594e5d842347b6540"
+  },
+  "rejections/other-object-array-order/after.json": {
+    "bytes": 2652,
+    "sha256": "e81758f223a0074aeb42fa6a33c3a6ad7df3896ed31285293c0d69e18d254347"
+  },
+  "rejections/other-object-array-order/before.json": {
+    "bytes": 2339,
+    "sha256": "008a08d653cb292dbd42468d510a5753c440c689022defe0ad5fb7f8651eb697"
+  },
+  "rejections/other-object-array-order/contract.json": {
+    "bytes": 1840,
+    "sha256": "ad7bbe921d5e0738e539bacfbc5ff18d3f45a06a4e60d4f594e5d842347b6540"
+  },
+  "rejections/other-object-metadata/after.json": {
+    "bytes": 2716,
+    "sha256": "fa5992d1e1605bd86ff6f2a5ae204753ba6f3fc3b5b64a5c679773c2aca4a497"
+  },
+  "rejections/other-object-metadata/before.json": {
+    "bytes": 2339,
+    "sha256": "008a08d653cb292dbd42468d510a5753c440c689022defe0ad5fb7f8651eb697"
+  },
+  "rejections/other-object-metadata/contract.json": {
+    "bytes": 1840,
+    "sha256": "ad7bbe921d5e0738e539bacfbc5ff18d3f45a06a4e60d4f594e5d842347b6540"
+  },
+  "rejections/patch/after.json": {
+    "bytes": 2652,
+    "sha256": "d804d015223a98ce4b1c90be46d81ce27ccfee214e6fac1a179448b1ce0a5393"
+  },
+  "rejections/patch/before.json": {
+    "bytes": 2339,
+    "sha256": "008a08d653cb292dbd42468d510a5753c440c689022defe0ad5fb7f8651eb697"
+  },
+  "rejections/patch/contract.json": {
+    "bytes": 1830,
+    "sha256": "651a69ead89596d71a6114282601ad41770553a85d7c83c327c18273de7a4edb"
+  },
+  "rejections/role-rules-null-empty/after.json": {
+    "bytes": 2339,
+    "sha256": "008a08d653cb292dbd42468d510a5753c440c689022defe0ad5fb7f8651eb697"
+  },
+  "rejections/role-rules-null-empty/before.json": {
+    "bytes": 2341,
+    "sha256": "454585bd3ed959eb25b17a6b0765c9bf2dfb65ab75163349392dace5ede55337"
+  },
+  "rejections/role-rules-null-empty/contract.json": {
+    "bytes": 1840,
+    "sha256": "ad7bbe921d5e0738e539bacfbc5ff18d3f45a06a4e60d4f594e5d842347b6540"
+  },
+  "rejections/subjects-null-empty/after.json": {
+    "bytes": 2952,
+    "sha256": "a50692536e20a4b4d0abc190bb6ed3ecb809c5999da39ff204f89eaf776939dc"
+  },
+  "rejections/subjects-null-empty/before.json": {
+    "bytes": 2954,
+    "sha256": "0b602416a846dd9517bf7581552716af0ca5df94b6463dfbbd5242f327e42d6a"
+  },
+  "rejections/subjects-null-empty/contract.json": {
+    "bytes": 1847,
+    "sha256": "987ccdb9a90a91f7363db1d4fbba2b5596d084931c18b2ffcdc213e003f00bde"
+  },
+  "rejections/subjects-omitted-empty/after.json": {
+    "bytes": 2952,
+    "sha256": "a50692536e20a4b4d0abc190bb6ed3ecb809c5999da39ff204f89eaf776939dc"
+  },
+  "rejections/subjects-omitted-empty/before.json": {
+    "bytes": 2930,
+    "sha256": "9d156a0003d943bf0e4d6937eb7744235224846691d0aa1e489b0e8f81d09b90"
+  },
+  "rejections/subjects-omitted-empty/contract.json": {
+    "bytes": 1847,
+    "sha256": "987ccdb9a90a91f7363db1d4fbba2b5596d084931c18b2ffcdc213e003f00bde"
+  },
+  "rejections/target-missing/after.json": {
+    "bytes": 2652,
+    "sha256": "d804d015223a98ce4b1c90be46d81ce27ccfee214e6fac1a179448b1ce0a5393"
+  },
+  "rejections/target-missing/before.json": {
+    "bytes": 2149,
+    "sha256": "f767e94f83814fde0068e67042183a03e0f4a496558df02d2ff504a0bc7d52fa"
+  },
+  "rejections/target-missing/contract.json": {
+    "bytes": 1840,
+    "sha256": "ad7bbe921d5e0738e539bacfbc5ff18d3f45a06a4e60d4f594e5d842347b6540"
+  },
+  "rejections/wrong-actor/after.json": {
+    "bytes": 2652,
+    "sha256": "d804d015223a98ce4b1c90be46d81ce27ccfee214e6fac1a179448b1ce0a5393"
+  },
+  "rejections/wrong-actor/before.json": {
+    "bytes": 2339,
+    "sha256": "008a08d653cb292dbd42468d510a5753c440c689022defe0ad5fb7f8651eb697"
+  },
+  "rejections/wrong-actor/contract.json": {
+    "bytes": 1842,
+    "sha256": "6228aa63e947e37713621877463c37234fa5808f3854c1ca449781f1f3c73d72"
+  },
+  "resolved-baseline-aggregate-owner/after.json": {
+    "bytes": 4020,
+    "sha256": "4eab3f91d08755d71743a615236208a88c6464e7af82d9b598cf556896b1019f"
+  },
+  "resolved-baseline-aggregate-owner/before.json": {
+    "bytes": 3517,
+    "sha256": "c35ebd1c834fc436e9edc93380fbde3a939943a36720bd76ecda4fe31ad0710b"
+  },
+  "resolved-baseline-aggregate-owner/contract.json": {
+    "bytes": 1831,
+    "sha256": "3283ee7ddc6072e878bfb104d36ca88e037a0b3d7909d73304099072e7baba58"
+  },
+  "resolved-baseline-aggregate-owner/expected.json": {
+    "bytes": 866,
+    "sha256": "6608825aa34821e8545e9d0bfc42e9b4c5e17a48ea9be7ccf6a4a8208189101b"
+  },
+  "resource-wildcard-explicit-escalate-bypass/after.json": {
+    "bytes": 2338,
+    "sha256": "22ff8aa41152fcffdf89ae9e7d4ecbbb658679dfef533182a27ca1741bf9a28e"
+  },
+  "resource-wildcard-explicit-escalate-bypass/before.json": {
+    "bytes": 2027,
+    "sha256": "01e8e16171ec1b220e4a83cbad2ef430b43ea4a10fadcd78e0c112d724256947"
+  },
+  "resource-wildcard-explicit-escalate-bypass/contract.json": {
+    "bytes": 1834,
+    "sha256": "15771305653edc92ec6c5da83d4b3ff8a62965a6c4888f0b5b555d4190317995"
+  },
+  "resource-wildcard-explicit-escalate-bypass/expected.json": {
+    "bytes": 197,
+    "sha256": "61c0a51b3c1bfdfc1d3298be4f17db7d41a48101c15c36c8a01e7ffd7df8d3e3"
+  },
+  "role-create-covered-future-policy/after.json": {
+    "bytes": 2652,
+    "sha256": "814a9ac1a0a158c68c52b923fb53dc0b235fa62eb30907ef2314c75f854039a1"
+  },
+  "role-create-covered-future-policy/before.json": {
+    "bytes": 2149,
+    "sha256": "3a467d70592806ec4372cdd0094b931fec919e983d117df94e3bc16ffa286d52"
+  },
+  "role-create-covered-future-policy/contract.json": {
+    "bytes": 1831,
+    "sha256": "3283ee7ddc6072e878bfb104d36ca88e037a0b3d7909d73304099072e7baba58"
+  },
+  "role-create-covered-future-policy/expected.json": {
+    "bytes": 866,
+    "sha256": "6608825aa34821e8545e9d0bfc42e9b4c5e17a48ea9be7ccf6a4a8208189101b"
+  },
+  "role-create-empty-policy/after.json": {
+    "bytes": 2032,
+    "sha256": "0ee32257896845dda83731f439fac3859bd113f8cec41af724258585ad79fcd5"
+  },
+  "role-create-empty-policy/before.json": {
+    "bytes": 1842,
+    "sha256": "a72db7dab91df375b6dfe4b57e1d5af499b401a19a5ed28289dd2d7005865b99"
+  },
+  "role-create-empty-policy/contract.json": {
+    "bytes": 1831,
+    "sha256": "3283ee7ddc6072e878bfb104d36ca88e037a0b3d7909d73304099072e7baba58"
+  },
+  "role-create-empty-policy/expected.json": {
+    "bytes": 370,
+    "sha256": "f983d65f9fd4e0a5dea9e37e4315dc70dd0ea7ab56eff1e875ab97ef4d517dbb"
+  },
+  "role-create-explicit-special/after.json": {
+    "bytes": 2615,
+    "sha256": "1702aac46807fc83ff349b29667bd44754dc73598464dca4f0e146924b334925"
+  },
+  "role-create-explicit-special/before.json": {
+    "bytes": 2112,
+    "sha256": "ae6ceddf0559206300f6ab99972c0592d204df82e097f79e044c16cfc1e55b79"
+  },
+  "role-create-explicit-special/contract.json": {
+    "bytes": 1831,
+    "sha256": "3283ee7ddc6072e878bfb104d36ca88e037a0b3d7909d73304099072e7baba58"
+  },
+  "role-create-explicit-special/expected.json": {
+    "bytes": 197,
+    "sha256": "61c0a51b3c1bfdfc1d3298be4f17db7d41a48101c15c36c8a01e7ffd7df8d3e3"
+  },
+  "role-create-initial-not-granted/after.json": {
+    "bytes": 2128,
+    "sha256": "b87d292239a1fc9fdc3021b71b0665a42667577fd9a51d6c42afb6749ce0cd9d"
+  },
+  "role-create-initial-not-granted/before.json": {
+    "bytes": 1625,
+    "sha256": "e52abd4a6f5f7d43643e848c8531a84124a3c9f2ab1bab27627e3ef9da6daa83"
+  },
+  "role-create-initial-not-granted/contract.json": {
+    "bytes": 1831,
+    "sha256": "3283ee7ddc6072e878bfb104d36ca88e037a0b3d7909d73304099072e7baba58"
+  },
+  "role-create-initial-not-granted/expected.json": {
+    "bytes": 208,
+    "sha256": "9ece6f7cd627bf1081beb219c5dc36cc435ec61c6050283e39ba7363f0e5fb78"
+  },
+  "role-create-named-initial/after.json": {
+    "bytes": 2715,
+    "sha256": "d6bad1ffd866d1ab0c50595b6359762eb586a9fa271964a7ba5e9d349fe92a0b"
+  },
+  "role-create-named-initial/before.json": {
+    "bytes": 2212,
+    "sha256": "e376d5b45081684798dd93226cc19ccbb449aa4b8925e5776d1ffb1b8ff51909"
+  },
+  "role-create-named-initial/contract.json": {
+    "bytes": 1831,
+    "sha256": "3283ee7ddc6072e878bfb104d36ca88e037a0b3d7909d73304099072e7baba58"
+  },
+  "role-create-named-initial/expected.json": {
+    "bytes": 208,
+    "sha256": "9ece6f7cd627bf1081beb219c5dc36cc435ec61c6050283e39ba7363f0e5fb78"
+  },
+  "role-create-uncovered-future-policy/after.json": {
+    "bytes": 2345,
+    "sha256": "419060e472fdbf6d7dcf6ed9feca16e77ef421dd44472ad9f79ed32f289adb53"
+  },
+  "role-create-uncovered-future-policy/before.json": {
+    "bytes": 1842,
+    "sha256": "a72db7dab91df375b6dfe4b57e1d5af499b401a19a5ed28289dd2d7005865b99"
+  },
+  "role-create-uncovered-future-policy/contract.json": {
+    "bytes": 1831,
+    "sha256": "3283ee7ddc6072e878bfb104d36ca88e037a0b3d7909d73304099072e7baba58"
+  },
+  "role-create-uncovered-future-policy/expected.json": {
+    "bytes": 1096,
+    "sha256": "cd254125d2633cc871cfa65f5df0be61328ccf45f2e921108554b69c467a892b"
+  },
+  "role-empty-escalate-does-not-authorize-put/after.json": {
+    "bytes": 2615,
+    "sha256": "06d0f8b26f3d9339a59af27af7ba56d954554a259788a0942df264aaeae88e8a"
+  },
+  "role-empty-escalate-does-not-authorize-put/before.json": {
+    "bytes": 2302,
+    "sha256": "94e565b63c57d5d315fd1830a57bd165eceb3cb33db374bb3f18c3d544f4f266"
+  },
+  "role-empty-escalate-does-not-authorize-put/contract.json": {
+    "bytes": 1840,
+    "sha256": "ad7bbe921d5e0738e539bacfbc5ff18d3f45a06a4e60d4f594e5d842347b6540"
+  },
+  "role-empty-escalate-does-not-authorize-put/expected.json": {
+    "bytes": 1310,
+    "sha256": "aa2d91badcad0ba634f4f7c1fb86652adb709c9c2ae9c32e0a05f870b92a8cb1"
+  },
+  "role-group-authority/after.json": {
+    "bytes": 2654,
+    "sha256": "8445e578a0f6f05a282df17ea7f91b23a3576a7646f7d75985895af42552b903"
+  },
+  "role-group-authority/before.json": {
+    "bytes": 2151,
+    "sha256": "da73be8920d53dc38b0783953b6cd22323695e3a3862484797a6ff4fc60910c6"
+  },
+  "role-group-authority/contract.json": {
+    "bytes": 1831,
+    "sha256": "3283ee7ddc6072e878bfb104d36ca88e037a0b3d7909d73304099072e7baba58"
+  },
+  "role-group-authority/expected.json": {
+    "bytes": 866,
+    "sha256": "6608825aa34821e8545e9d0bfc42e9b4c5e17a48ea9be7ccf6a4a8208189101b"
+  },
+  "role-named-escalate-does-not-authorize-post/after.json": {
+    "bytes": 2621,
+    "sha256": "d658f9c79c3d42e2ce6d377365474acee0d472d0881992064a843f0115c0ce35"
+  },
+  "role-named-escalate-does-not-authorize-post/before.json": {
+    "bytes": 2118,
+    "sha256": "a36de228bc7a095ced4c57b6b370a6213e49f11ed049b75c29a139cd39e60d47"
+  },
+  "role-named-escalate-does-not-authorize-post/contract.json": {
+    "bytes": 1831,
+    "sha256": "3283ee7ddc6072e878bfb104d36ca88e037a0b3d7909d73304099072e7baba58"
+  },
+  "role-named-escalate-does-not-authorize-post/expected.json": {
+    "bytes": 1316,
+    "sha256": "82f881e5ca17c84ead7facd5b02951309021b97358c477c70f8236dd38764fb5"
+  },
+  "role-special-without-initial/after.json": {
+    "bytes": 2404,
+    "sha256": "6be426aa9eaeb5d9bb97db81de4a6beb12cb389b24df36b96ca5b58a080659f9"
+  },
+  "role-special-without-initial/before.json": {
+    "bytes": 1901,
+    "sha256": "3fabaeee76c8f9e0b333e6c856b6c856a3cfeaec16c056ce2c5de8a87a397450"
+  },
+  "role-special-without-initial/contract.json": {
+    "bytes": 1831,
+    "sha256": "3283ee7ddc6072e878bfb104d36ca88e037a0b3d7909d73304099072e7baba58"
+  },
+  "role-special-without-initial/expected.json": {
+    "bytes": 208,
+    "sha256": "9ece6f7cd627bf1081beb219c5dc36cc435ec61c6050283e39ba7363f0e5fb78"
+  },
+  "role-update-existing-covered-future-policy/after.json": {
+    "bytes": 2652,
+    "sha256": "d804d015223a98ce4b1c90be46d81ce27ccfee214e6fac1a179448b1ce0a5393"
+  },
+  "role-update-existing-covered-future-policy/before.json": {
+    "bytes": 2339,
+    "sha256": "008a08d653cb292dbd42468d510a5753c440c689022defe0ad5fb7f8651eb697"
+  },
+  "role-update-existing-covered-future-policy/contract.json": {
+    "bytes": 1840,
+    "sha256": "ad7bbe921d5e0738e539bacfbc5ff18d3f45a06a4e60d4f594e5d842347b6540"
+  },
+  "role-update-existing-covered-future-policy/expected.json": {
+    "bytes": 866,
+    "sha256": "b9ed82a1492afd39bc47c610ad8330b91f7c3cbd4fca3831b57beacf98678992"
+  },
+  "role-update-existing-empty-policy/after.json": {
+    "bytes": 2032,
+    "sha256": "13f07a0cb468719c64bcb68d389277abee3f09a9990d6dcb37e76fd651cdad0b"
+  },
+  "role-update-existing-empty-policy/before.json": {
+    "bytes": 2345,
+    "sha256": "346351b95eba64e34a8ec2d4154af8fee2b3d08d2fc209dc3615dcadec06d1b0"
+  },
+  "role-update-existing-empty-policy/contract.json": {
+    "bytes": 1840,
+    "sha256": "ad7bbe921d5e0738e539bacfbc5ff18d3f45a06a4e60d4f594e5d842347b6540"
+  },
+  "role-update-existing-empty-policy/expected.json": {
+    "bytes": 370,
+    "sha256": "c57047c16f8f77a0e56e2f92e696a6bc076de1e82bbb005ef0b028581305f841"
+  },
+  "role-update-existing-explicit-special/after.json": {
+    "bytes": 2621,
+    "sha256": "cbfcf00f130958b1a2a642753ed14cffd7d4f68978fe1c3ecacf69eb5b4381f8"
+  },
+  "role-update-existing-explicit-special/before.json": {
+    "bytes": 2308,
+    "sha256": "53cbb1cfc167225eae10f416730319996b15bdbd3326cca68ad1de354d032f3a"
+  },
+  "role-update-existing-explicit-special/contract.json": {
+    "bytes": 1840,
+    "sha256": "ad7bbe921d5e0738e539bacfbc5ff18d3f45a06a4e60d4f594e5d842347b6540"
+  },
+  "role-update-existing-explicit-special/expected.json": {
+    "bytes": 197,
+    "sha256": "61c0a51b3c1bfdfc1d3298be4f17db7d41a48101c15c36c8a01e7ffd7df8d3e3"
+  },
+  "role-update-existing-initial-not-granted/after.json": {
+    "bytes": 2128,
+    "sha256": "b87d292239a1fc9fdc3021b71b0665a42667577fd9a51d6c42afb6749ce0cd9d"
+  },
+  "role-update-existing-initial-not-granted/before.json": {
+    "bytes": 1815,
+    "sha256": "3399c46d3c142cd85ef667d21ef8d1901f1f3eb436d0a6d48713d386e407d8cd"
+  },
+  "role-update-existing-initial-not-granted/contract.json": {
+    "bytes": 1840,
+    "sha256": "ad7bbe921d5e0738e539bacfbc5ff18d3f45a06a4e60d4f594e5d842347b6540"
+  },
+  "role-update-existing-initial-not-granted/expected.json": {
+    "bytes": 208,
+    "sha256": "9ece6f7cd627bf1081beb219c5dc36cc435ec61c6050283e39ba7363f0e5fb78"
+  },
+  "role-update-existing-named-initial/after.json": {
+    "bytes": 2715,
+    "sha256": "24f6d478ece83a2e8520d14ce6efa3b11339258f9e90d9437acef20d653fc8b7"
+  },
+  "role-update-existing-named-initial/before.json": {
+    "bytes": 2402,
+    "sha256": "6350d1e528f1483cdba021e6e88367b41b75b0f2ee327ade38cb68f1d7eeaa75"
+  },
+  "role-update-existing-named-initial/contract.json": {
+    "bytes": 1840,
+    "sha256": "ad7bbe921d5e0738e539bacfbc5ff18d3f45a06a4e60d4f594e5d842347b6540"
+  },
+  "role-update-existing-named-initial/expected.json": {
+    "bytes": 917,
+    "sha256": "f931c9e9ea3c33e92cc2c3ce4b1946a3c98fd30bfef84f4703b0f28680564fcb"
+  },
+  "role-update-existing-uncovered-future-policy/after.json": {
+    "bytes": 2345,
+    "sha256": "346351b95eba64e34a8ec2d4154af8fee2b3d08d2fc209dc3615dcadec06d1b0"
+  },
+  "role-update-existing-uncovered-future-policy/before.json": {
+    "bytes": 2032,
+    "sha256": "13f07a0cb468719c64bcb68d389277abee3f09a9990d6dcb37e76fd651cdad0b"
+  },
+  "role-update-existing-uncovered-future-policy/contract.json": {
+    "bytes": 1840,
+    "sha256": "ad7bbe921d5e0738e539bacfbc5ff18d3f45a06a4e60d4f594e5d842347b6540"
+  },
+  "role-update-existing-uncovered-future-policy/expected.json": {
+    "bytes": 1096,
+    "sha256": "e9894a0ae756b14b215159476140585ed7e7022c470c066b86c6fa06dee9dfba"
+  },
+  "role-wrong-group-authority/after.json": {
+    "bytes": 2656,
+    "sha256": "11f63596b478b851fdad82c738516347b034e4daac0f6cb52148675ceb62fac7"
+  },
+  "role-wrong-group-authority/before.json": {
+    "bytes": 2153,
+    "sha256": "3356c1a21546b2ee99db62d65c35657924f4a1c510798f745ffddb1f84a865d2"
+  },
+  "role-wrong-group-authority/contract.json": {
+    "bytes": 1831,
+    "sha256": "3283ee7ddc6072e878bfb104d36ca88e037a0b3d7909d73304099072e7baba58"
+  },
+  "role-wrong-group-authority/expected.json": {
+    "bytes": 208,
+    "sha256": "9ece6f7cd627bf1081beb219c5dc36cc435ec61c6050283e39ba7363f0e5fb78"
+  },
+  "role-wrong-namespace-authority/after.json": {
+    "bytes": 2676,
+    "sha256": "fc529f8435891fdacd9523b25d83ec931ed7ba31a401bf85b2d6dcc7c85badf3"
+  },
+  "role-wrong-namespace-authority/before.json": {
+    "bytes": 2173,
+    "sha256": "70da7de37dfb685ba62ac0bf7fdbe6fcdfcb959250d50e63495bf571bee5ea8a"
+  },
+  "role-wrong-namespace-authority/contract.json": {
+    "bytes": 1831,
+    "sha256": "3283ee7ddc6072e878bfb104d36ca88e037a0b3d7909d73304099072e7baba58"
+  },
+  "role-wrong-namespace-authority/expected.json": {
+    "bytes": 208,
+    "sha256": "9ece6f7cd627bf1081beb219c5dc36cc435ec61c6050283e39ba7363f0e5fb78"
+  },
+  "rolebinding-bind-targets-role-not-binding/after.json": {
+    "bytes": 3082,
+    "sha256": "ddd25830af2ef66a706a21b7141f2e621babc8fe88778119070314561e41daaa"
+  },
+  "rolebinding-bind-targets-role-not-binding/before.json": {
+    "bytes": 2611,
+    "sha256": "6308e90a9d3dd68796b2448c0abf8a02919e7fb230d8cf8dbe7b3d42d5a88a09"
+  },
+  "rolebinding-bind-targets-role-not-binding/contract.json": {
+    "bytes": 1838,
+    "sha256": "d0577ab9ab52b05ee072b0f782888cf1bda4c53b4aeb4d7747d2c0debce71dee"
+  },
+  "rolebinding-bind-targets-role-not-binding/expected.json": {
+    "bytes": 1326,
+    "sha256": "e3317e4675ba829534985aebe0a44dc69d39eb8490f94f5dfff2eff18946ec21"
+  },
+  "rolebinding-bind-without-initial/after.json": {
+    "bytes": 2868,
+    "sha256": "d1a563452bdc249108a890dea04e433656cb8d4b55b7539cadce25621c1b6f28"
+  },
+  "rolebinding-bind-without-initial/before.json": {
+    "bytes": 2397,
+    "sha256": "802919f8c0d7eba4808a552317bff205dffcac5375f65d088180f3365172ed96"
+  },
+  "rolebinding-bind-without-initial/contract.json": {
+    "bytes": 1838,
+    "sha256": "d0577ab9ab52b05ee072b0f782888cf1bda4c53b4aeb4d7747d2c0debce71dee"
+  },
+  "rolebinding-bind-without-initial/expected.json": {
+    "bytes": 208,
+    "sha256": "9ece6f7cd627bf1081beb219c5dc36cc435ec61c6050283e39ba7363f0e5fb78"
+  },
+  "rolebinding-create-covered-future-policy/after.json": {
+    "bytes": 3110,
+    "sha256": "d627a7b2b6fe67e6d62fa6ac1eace38acbbb43f5d058eef76c630c7a64cd031d"
+  },
+  "rolebinding-create-covered-future-policy/before.json": {
+    "bytes": 2639,
+    "sha256": "497a4956553d4ffe30d836a16ea400156f6012e898b52f4c7f945a640d528082"
+  },
+  "rolebinding-create-covered-future-policy/contract.json": {
+    "bytes": 1838,
+    "sha256": "d0577ab9ab52b05ee072b0f782888cf1bda4c53b4aeb4d7747d2c0debce71dee"
+  },
+  "rolebinding-create-covered-future-policy/expected.json": {
+    "bytes": 873,
+    "sha256": "91ff6a78b1564b78c432b3dc0eba65dca4df0939408912517173298ca5c3f9c5"
+  },
+  "rolebinding-create-empty-policy/after.json": {
+    "bytes": 2490,
+    "sha256": "822637b5acb600c44d0591b8d854821706b1178f7d1f140f7609fd3e05573c63"
+  },
+  "rolebinding-create-empty-policy/before.json": {
+    "bytes": 2019,
+    "sha256": "dbfa87d3232edc523794b89760bc61874c1c48dc044b0bbe7bb7364c5cb687d9"
+  },
+  "rolebinding-create-empty-policy/contract.json": {
+    "bytes": 1838,
+    "sha256": "d0577ab9ab52b05ee072b0f782888cf1bda4c53b4aeb4d7747d2c0debce71dee"
+  },
+  "rolebinding-create-empty-policy/expected.json": {
+    "bytes": 377,
+    "sha256": "6ee0ee41b69f598387a5a228c680e36d57223521bf45fb27b8c684717d9b9feb"
+  },
+  "rolebinding-create-explicit-special/after.json": {
+    "bytes": 3086,
+    "sha256": "77f21bee586f51829486d81a615b1ab9e2b9e340fb97a1252ee4edae520f905a"
+  },
+  "rolebinding-create-explicit-special/before.json": {
+    "bytes": 2615,
+    "sha256": "8a1ad57f6436e1b3b67305c062daa7f1ba3ab2f007f75dc9ae918c662086d7f7"
+  },
+  "rolebinding-create-explicit-special/contract.json": {
+    "bytes": 1838,
+    "sha256": "d0577ab9ab52b05ee072b0f782888cf1bda4c53b4aeb4d7747d2c0debce71dee"
+  },
+  "rolebinding-create-explicit-special/expected.json": {
+    "bytes": 197,
+    "sha256": "61c0a51b3c1bfdfc1d3298be4f17db7d41a48101c15c36c8a01e7ffd7df8d3e3"
+  },
+  "rolebinding-create-initial-not-granted/after.json": {
+    "bytes": 2579,
+    "sha256": "ceaa43fb4b656f56e301669e80f0c0420482fe7ff3b54b11826f270d6258dd27"
+  },
+  "rolebinding-create-initial-not-granted/before.json": {
+    "bytes": 2108,
+    "sha256": "93beb4a972c085e6051139e46adb2a0761a5422d2ffe27200e504ffc08f29fce"
+  },
+  "rolebinding-create-initial-not-granted/contract.json": {
+    "bytes": 1838,
+    "sha256": "d0577ab9ab52b05ee072b0f782888cf1bda4c53b4aeb4d7747d2c0debce71dee"
+  },
+  "rolebinding-create-initial-not-granted/expected.json": {
+    "bytes": 208,
+    "sha256": "9ece6f7cd627bf1081beb219c5dc36cc435ec61c6050283e39ba7363f0e5fb78"
+  },
+  "rolebinding-create-named-initial/after.json": {
+    "bytes": 3173,
+    "sha256": "43aeffddf9f98bab14d7ea4c8b21e7b1463d3ccf9f9eef5f1a7799c9e57e4776"
+  },
+  "rolebinding-create-named-initial/before.json": {
+    "bytes": 2702,
+    "sha256": "ef5efe075242b4ddede0f2636a6356f1f6a84af79a791ac1e329daf0d4a0a53a"
+  },
+  "rolebinding-create-named-initial/contract.json": {
+    "bytes": 1838,
+    "sha256": "d0577ab9ab52b05ee072b0f782888cf1bda4c53b4aeb4d7747d2c0debce71dee"
+  },
+  "rolebinding-create-named-initial/expected.json": {
+    "bytes": 208,
+    "sha256": "9ece6f7cd627bf1081beb219c5dc36cc435ec61c6050283e39ba7363f0e5fb78"
+  },
+  "rolebinding-create-uncovered-future-policy/after.json": {
+    "bytes": 2803,
+    "sha256": "681ad0bbb74210336865e721cc9c3704f1e4212d4f05ab3c7ab4678f92a7d1d9"
+  },
+  "rolebinding-create-uncovered-future-policy/before.json": {
+    "bytes": 2332,
+    "sha256": "96b2238666d32c1f240c2b9812f4aac807107bfb3ac89ca38c5df566588777d5"
+  },
+  "rolebinding-create-uncovered-future-policy/contract.json": {
+    "bytes": 1838,
+    "sha256": "d0577ab9ab52b05ee072b0f782888cf1bda4c53b4aeb4d7747d2c0debce71dee"
+  },
+  "rolebinding-create-uncovered-future-policy/expected.json": {
+    "bytes": 1103,
+    "sha256": "b27e7cbd11f695ca8373a2c86d3189bb878c3583693f7fd5cedafa57de16d18b"
+  },
+  "rolebinding-local-clusterrole-bind/after.json": {
+    "bytes": 3110,
+    "sha256": "73c0289583c962fd4a08431cfb4859a43a5d0343ed49c31f61d3daad0db59a77"
+  },
+  "rolebinding-local-clusterrole-bind/before.json": {
+    "bytes": 2639,
+    "sha256": "5f67408dd5d6c85b27a28171c5226cea91bc3ae0f5cdc157514a443b5d9ea6b5"
+  },
+  "rolebinding-local-clusterrole-bind/contract.json": {
+    "bytes": 1838,
+    "sha256": "d0577ab9ab52b05ee072b0f782888cf1bda4c53b4aeb4d7747d2c0debce71dee"
+  },
+  "rolebinding-local-clusterrole-bind/expected.json": {
+    "bytes": 197,
+    "sha256": "61c0a51b3c1bfdfc1d3298be4f17db7d41a48101c15c36c8a01e7ffd7df8d3e3"
+  },
+  "rolebinding-local-role-bind/after.json": {
+    "bytes": 3120,
+    "sha256": "36be9c40b2542368002b943e771a777c87a2408f724bfbdb7fddd76a4ed575a8"
+  },
+  "rolebinding-local-role-bind/before.json": {
+    "bytes": 2656,
+    "sha256": "cbfaf02fd6ad1ffb45abffc9c3a23ea9f4b9376b199da03c9fd6568d765ce2f3"
+  },
+  "rolebinding-local-role-bind/contract.json": {
+    "bytes": 1838,
+    "sha256": "d0577ab9ab52b05ee072b0f782888cf1bda4c53b4aeb4d7747d2c0debce71dee"
+  },
+  "rolebinding-local-role-bind/expected.json": {
+    "bytes": 197,
+    "sha256": "61c0a51b3c1bfdfc1d3298be4f17db7d41a48101c15c36c8a01e7ffd7df8d3e3"
+  },
+  "rolebinding-update-existing-covered-future-policy/after.json": {
+    "bytes": 3110,
+    "sha256": "3b880c14d02b0a4d4db100a40f66a9cae5d94488ce7d2b94eb53cfa47314e1f4"
+  },
+  "rolebinding-update-existing-covered-future-policy/before.json": {
+    "bytes": 3114,
+    "sha256": "f142684db7f0e7dca30c050ce6b80d9e9af2437d78b557757503ff25b7e9d8ed"
+  },
+  "rolebinding-update-existing-covered-future-policy/contract.json": {
+    "bytes": 1847,
+    "sha256": "987ccdb9a90a91f7363db1d4fbba2b5596d084931c18b2ffcdc213e003f00bde"
+  },
+  "rolebinding-update-existing-covered-future-policy/expected.json": {
+    "bytes": 873,
+    "sha256": "cb3399becb3c0a07a8d435a6866439e9702b238310afb88609466c43c420b3d2"
+  },
+  "rolebinding-update-existing-empty-policy/after.json": {
+    "bytes": 2490,
+    "sha256": "2628b0964244af9bb9bc9cfef0bd6360ee5bd278d6a798ccc659d63a1e7dc548"
+  },
+  "rolebinding-update-existing-empty-policy/before.json": {
+    "bytes": 2494,
+    "sha256": "b2f156209fd80dbd6792a79d9183c7b72e3dd17dce0f8a42ab35c4aee7231691"
+  },
+  "rolebinding-update-existing-empty-policy/contract.json": {
+    "bytes": 1847,
+    "sha256": "987ccdb9a90a91f7363db1d4fbba2b5596d084931c18b2ffcdc213e003f00bde"
+  },
+  "rolebinding-update-existing-empty-policy/expected.json": {
+    "bytes": 377,
+    "sha256": "da061ae31f5c4c3fc180ad9014ee8467bb91ea7013caa7bd3a38f96f46c164b2"
+  },
+  "rolebinding-update-existing-explicit-special/after.json": {
+    "bytes": 3086,
+    "sha256": "c65f226fab55d771e8defd73a0f246e5c7345c2c03d1b322c73933aade2fece2"
+  },
+  "rolebinding-update-existing-explicit-special/before.json": {
+    "bytes": 3090,
+    "sha256": "b8d98134ada833706bcd1eda19d00e017f40526c2c6c52b55f1ca4d9c3b04de9"
+  },
+  "rolebinding-update-existing-explicit-special/contract.json": {
+    "bytes": 1847,
+    "sha256": "987ccdb9a90a91f7363db1d4fbba2b5596d084931c18b2ffcdc213e003f00bde"
+  },
+  "rolebinding-update-existing-explicit-special/expected.json": {
+    "bytes": 197,
+    "sha256": "61c0a51b3c1bfdfc1d3298be4f17db7d41a48101c15c36c8a01e7ffd7df8d3e3"
+  },
+  "rolebinding-update-existing-initial-not-granted/after.json": {
+    "bytes": 2579,
+    "sha256": "ceaa43fb4b656f56e301669e80f0c0420482fe7ff3b54b11826f270d6258dd27"
+  },
+  "rolebinding-update-existing-initial-not-granted/before.json": {
+    "bytes": 2583,
+    "sha256": "01d471df42e7814cba1887441c6d98697f36ba7524816c1417e2934cc6f57d52"
+  },
+  "rolebinding-update-existing-initial-not-granted/contract.json": {
+    "bytes": 1847,
+    "sha256": "987ccdb9a90a91f7363db1d4fbba2b5596d084931c18b2ffcdc213e003f00bde"
+  },
+  "rolebinding-update-existing-initial-not-granted/expected.json": {
+    "bytes": 208,
+    "sha256": "9ece6f7cd627bf1081beb219c5dc36cc435ec61c6050283e39ba7363f0e5fb78"
+  },
+  "rolebinding-update-existing-named-initial/after.json": {
+    "bytes": 3173,
+    "sha256": "4182d9ee030acbf618b736ea80cd4395eb052b2e84462d2562c9a869fbe3613c"
+  },
+  "rolebinding-update-existing-named-initial/before.json": {
+    "bytes": 3177,
+    "sha256": "1757d36511c385a940a2a5c45d78e70e1caae031d4868029a5d4908bc7fa11f9"
+  },
+  "rolebinding-update-existing-named-initial/contract.json": {
+    "bytes": 1847,
+    "sha256": "987ccdb9a90a91f7363db1d4fbba2b5596d084931c18b2ffcdc213e003f00bde"
+  },
+  "rolebinding-update-existing-named-initial/expected.json": {
+    "bytes": 924,
+    "sha256": "018b5e300a3ad5aeb77c40d333f84da2b6f6b9eec6985c5ef44fb9becb4308af"
+  },
+  "rolebinding-update-existing-uncovered-future-policy/after.json": {
+    "bytes": 2803,
+    "sha256": "ae8590687e79dc0158666bc83009011850ab359b000c3d74934bda9e95e805b2"
+  },
+  "rolebinding-update-existing-uncovered-future-policy/before.json": {
+    "bytes": 2807,
+    "sha256": "3450c45fee7722f1a93192c60d40247c43d898673cfe5f0fb63050b58d6a42d7"
+  },
+  "rolebinding-update-existing-uncovered-future-policy/contract.json": {
+    "bytes": 1847,
+    "sha256": "987ccdb9a90a91f7363db1d4fbba2b5596d084931c18b2ffcdc213e003f00bde"
+  },
+  "rolebinding-update-existing-uncovered-future-policy/expected.json": {
+    "bytes": 1103,
+    "sha256": "982dc9c1f72f21de0c77bc79230945be888742828462566f01531896e3b32823"
+  },
+  "self-edit-cannot-introduce-escalate/after.json": {
+    "bytes": 2448,
+    "sha256": "dac9ccae1686144f02c27c76cc694fe844b8fad9ae9ae76111a5edf4686b2821"
+  },
+  "self-edit-cannot-introduce-escalate/before.json": {
+    "bytes": 1849,
+    "sha256": "6e97cefb22ffaf67ccc897c1fd5d1373d8009a52c05d53cb9c7799648efbd865"
+  },
+  "self-edit-cannot-introduce-escalate/contract.json": {
+    "bytes": 1852,
+    "sha256": "62ea15eb4070fe5fad129f85909978108fcbbd11258d354963299626ab2b63bc"
+  },
+  "self-edit-cannot-introduce-escalate/expected.json": {
+    "bytes": 1749,
+    "sha256": "92664b141d89dcf4a7915f0aa086c891238455bd9d399ed11ec63e49038dc584"
+  },
+  "serviceaccount-actor-local-binding/after.json": {
+    "bytes": 2635,
+    "sha256": "33be8412c3f8a6866b376dedde008918b6511267371106b26888d14639aa3736"
+  },
+  "serviceaccount-actor-local-binding/before.json": {
+    "bytes": 2132,
+    "sha256": "aaeb7181dab85c6d93f4494beaaf0fe22091960360b03a23daa8cb56c9921ae8"
+  },
+  "serviceaccount-actor-local-binding/contract.json": {
+    "bytes": 1983,
+    "sha256": "23f851239fa991e02fafd3ca70e6de8da295e9e04870ef4187acc32d26035a59"
+  },
+  "serviceaccount-actor-local-binding/expected.json": {
+    "bytes": 866,
+    "sha256": "6608825aa34821e8545e9d0bfc42e9b4c5e17a48ea9be7ccf6a4a8208189101b"
+  },
+  "source-inventory.json": {
+    "bytes": 1279,
+    "sha256": "f5b22163b9c8bbb9a3e9eb32848d8e4855a3a78fc9c192f80177f2719ccb0108"
+  },
+  "split-owner-rules-cover-one-cross-product/after.json": {
+    "bytes": 4294,
+    "sha256": "945e2bf9c2d7eaa202527a4db88179fab37be14ebd84a0b2398d0b401844f09c"
+  },
+  "split-owner-rules-cover-one-cross-product/before.json": {
+    "bytes": 3794,
+    "sha256": "de863788ac10a9a95b41fd18b787eff2f5dd2dcf378029c2a308703b68832055"
+  },
+  "split-owner-rules-cover-one-cross-product/contract.json": {
+    "bytes": 1831,
+    "sha256": "3283ee7ddc6072e878bfb104d36ca88e037a0b3d7909d73304099072e7baba58"
+  },
+  "split-owner-rules-cover-one-cross-product/expected.json": {
+    "bytes": 2112,
+    "sha256": "a6b559c7d7bb4c40f30a3aec57dd9c9388cefebf3154e0f6a01ed12afcaf0f14"
+  },
+  "target-group-wildcard-not-covered-by-known-groups/after.json": {
+    "bytes": 2483,
+    "sha256": "cfb74bbceaa19b8bcd2459041cfee31a93a0674e5d2366fbafb220f9345fbc52"
+  },
+  "target-group-wildcard-not-covered-by-known-groups/before.json": {
+    "bytes": 2098,
+    "sha256": "46f11fdf1d3d81baf1efe3090efa113784f9d6de3623468c594a88de7ecc03b6"
+  },
+  "target-group-wildcard-not-covered-by-known-groups/contract.json": {
+    "bytes": 1831,
+    "sha256": "3283ee7ddc6072e878bfb104d36ca88e037a0b3d7909d73304099072e7baba58"
+  },
+  "target-group-wildcard-not-covered-by-known-groups/expected.json": {
+    "bytes": 875,
+    "sha256": "80e9611d3fd79b65b7416f7c1199bdc0ac63ff60002532a71ccc023985a7b4a8"
+  },
+  "target-resource-wildcard-not-covered-by-known-resources/after.json": {
+    "bytes": 2448,
+    "sha256": "1fa94449b61fd2652394acdcf9b3aa48274643de2e397c27f459cee47b95ae8a"
+  },
+  "target-resource-wildcard-not-covered-by-known-resources/before.json": {
+    "bytes": 2073,
+    "sha256": "ffed12984503d8ed0d470c02e6ca3c5dc3b1857fd7f337c110f5facb949bf6df"
+  },
+  "target-resource-wildcard-not-covered-by-known-resources/contract.json": {
+    "bytes": 1831,
+    "sha256": "3283ee7ddc6072e878bfb104d36ca88e037a0b3d7909d73304099072e7baba58"
+  },
+  "target-resource-wildcard-not-covered-by-known-resources/expected.json": {
+    "bytes": 834,
+    "sha256": "6d0cdeede9873f7dff40f7b91f68282a300cf19445a528a59cc3909a7ee992ef"
+  },
+  "target-wildcard-not-covered-by-enumeration/after.json": {
+    "bytes": 2588,
+    "sha256": "636fcf14f019f4e988bf90f8449bffb9db080ab00ad8f560ee976edb2168fe65"
+  },
+  "target-wildcard-not-covered-by-enumeration/before.json": {
+    "bytes": 2198,
+    "sha256": "0d0671c8183f01641129681eca35fbcfd92b52636473d439c34fe5b8372e15b0"
+  },
+  "target-wildcard-not-covered-by-enumeration/contract.json": {
+    "bytes": 1831,
+    "sha256": "3283ee7ddc6072e878bfb104d36ca88e037a0b3d7909d73304099072e7baba58"
+  },
+  "target-wildcard-not-covered-by-enumeration/expected.json": {
+    "bytes": 969,
+    "sha256": "88412180954c9a0d2f9d86c603d31d57ef347f306205c0210758948f0eee7943"
+  },
+  "unbound-role-is-not-owner-authority/after.json": {
+    "bytes": 2832,
+    "sha256": "9995c8c48302129c63ff84f6214ecae824e84d36101bae781d5a3d12fcd8f1e0"
+  },
+  "unbound-role-is-not-owner-authority/before.json": {
+    "bytes": 2329,
+    "sha256": "50c74b71c8aae0a28e0dafb36fb17b3da236685747dc72d634c22aee33bf3dc8"
+  },
+  "unbound-role-is-not-owner-authority/contract.json": {
+    "bytes": 1831,
+    "sha256": "3283ee7ddc6072e878bfb104d36ca88e037a0b3d7909d73304099072e7baba58"
+  },
+  "unbound-role-is-not-owner-authority/expected.json": {
+    "bytes": 1096,
+    "sha256": "cd254125d2633cc871cfa65f5df0be61328ccf45f2e921108554b69c467a892b"
+  },
+  "url-authority-does-not-cover-resource/after.json": {
+    "bytes": 2458,
+    "sha256": "4b55732cf7cdf3687dbf09f8c97ba809492c75b42854ca2e506bf4a462a801ce"
+  },
+  "url-authority-does-not-cover-resource/before.json": {
+    "bytes": 1979,
+    "sha256": "d9be9b78ab576049f3af95369d9aef024934739069848e4e174f50035c46988a"
+  },
+  "url-authority-does-not-cover-resource/contract.json": {
+    "bytes": 1834,
+    "sha256": "15771305653edc92ec6c5da83d4b3ff8a62965a6c4888f0b5b555d4190317995"
+  },
+  "url-authority-does-not-cover-resource/expected.json": {
+    "bytes": 1201,
+    "sha256": "e3e4676e10b7e8959bc99f6102dc3661bf92c47df71daf4bb67ef513c673cf71"
+  },
+  "url-exact-does-not-cover-pattern/after.json": {
+    "bytes": 2292,
+    "sha256": "54a824af9d3bbaa92f1cbec8ca75c2bbcadf74b03cdfea7e600b53dbfa1ef78a"
+  },
+  "url-exact-does-not-cover-pattern/before.json": {
+    "bytes": 1984,
+    "sha256": "69e13ffe05725d170ee0be777077f450c43160c8e2c4848b97505a6a417d8300"
+  },
+  "url-exact-does-not-cover-pattern/contract.json": {
+    "bytes": 1834,
+    "sha256": "15771305653edc92ec6c5da83d4b3ff8a62965a6c4888f0b5b555d4190317995"
+  },
+  "url-exact-does-not-cover-pattern/expected.json": {
+    "bytes": 703,
+    "sha256": "ef3fc9b2c204603f2d7ea31b58f1a2139ad2c9688fa09e89e347a048fb20c8ff"
+  },
+  "url-middle-star-literal/after.json": {
+    "bytes": 2295,
+    "sha256": "90e3e2afcd13232c29f937785539eeff53ad7244e322badfc50c65059e812238"
+  },
+  "url-middle-star-literal/before.json": {
+    "bytes": 1985,
+    "sha256": "a4d21ce33de4591c719a45f419b30faf4309e94bab15bf054078f67f7da875c9"
+  },
+  "url-middle-star-literal/contract.json": {
+    "bytes": 1834,
+    "sha256": "15771305653edc92ec6c5da83d4b3ff8a62965a6c4888f0b5b555d4190317995"
+  },
+  "url-middle-star-literal/expected.json": {
+    "bytes": 708,
+    "sha256": "096151d585a6a27e39fcbac5c719eae5a4a00c89a81e28814e90f98fe6f702c6"
+  },
+  "url-prefix-covers/after.json": {
+    "bytes": 2295,
+    "sha256": "c8eb1f9c61d44185885de4c17783046bcecd84467654528f4d7b4b9bdcbc37f7"
+  },
+  "url-prefix-covers/before.json": {
+    "bytes": 1985,
+    "sha256": "112831138b92aaf5ba6affb27fef685a8bd00827a042771e7d4c0c42c2b5823f"
+  },
+  "url-prefix-covers/contract.json": {
+    "bytes": 1834,
+    "sha256": "15771305653edc92ec6c5da83d4b3ff8a62965a6c4888f0b5b555d4190317995"
+  },
+  "url-prefix-covers/expected.json": {
+    "bytes": 589,
+    "sha256": "202806090ef855f14621d21349e1bb09ffbe7f261866474af7fd7fc9da296c30"
+  },
+  "url-trailing-stars-native-prefix/after.json": {
+    "bytes": 2297,
+    "sha256": "5b4ce6b3d0791fb8f37485dec2c9084c5800d69b202f771918a7cbfb824a2e50"
+  },
+  "url-trailing-stars-native-prefix/before.json": {
+    "bytes": 1987,
+    "sha256": "eabb4cc91c57708380d080d66b037518fa821ca79196ba986319f8e3d46b7876"
+  },
+  "url-trailing-stars-native-prefix/contract.json": {
+    "bytes": 1834,
+    "sha256": "15771305653edc92ec6c5da83d4b3ff8a62965a6c4888f0b5b555d4190317995"
+  },
+  "url-trailing-stars-native-prefix/expected.json": {
+    "bytes": 591,
+    "sha256": "e554389089eb2ddd398760d9a6b8af21c05aef99c2517885b16db297285b07b9"
+  },
+  "url-verb-wildcard-not-enumerated/after.json": {
+    "bytes": 2289,
+    "sha256": "0babe0dece8a98a0c4169038f61a277913490def11195435562999a73bc93222"
+  },
+  "url-verb-wildcard-not-enumerated/before.json": {
+    "bytes": 1984,
+    "sha256": "69e13ffe05725d170ee0be777077f450c43160c8e2c4848b97505a6a417d8300"
+  },
+  "url-verb-wildcard-not-enumerated/contract.json": {
+    "bytes": 1834,
+    "sha256": "15771305653edc92ec6c5da83d4b3ff8a62965a6c4888f0b5b555d4190317995"
+  },
+  "url-verb-wildcard-not-enumerated/expected.json": {
+    "bytes": 697,
+    "sha256": "c0368be3590254b6a0b1ac5aa71d030ea14983c98ee9b9c13f999af66536854f"
+  },
+  "url-wildcard-covers-future-path/after.json": {
+    "bytes": 2299,
+    "sha256": "2efbceaf60117883834b6ad228c7a5a231ee98780a495ac2d86c253d4644f1d1"
+  },
+  "url-wildcard-covers-future-path/before.json": {
+    "bytes": 1981,
+    "sha256": "41454dd4b19d25f79219d927d76a19a7f1a2566033204efe571e849079c0b075"
+  },
+  "url-wildcard-covers-future-path/contract.json": {
+    "bytes": 1834,
+    "sha256": "15771305653edc92ec6c5da83d4b3ff8a62965a6c4888f0b5b555d4190317995"
+  },
+  "url-wildcard-covers-future-path/expected.json": {
+    "bytes": 593,
+    "sha256": "0c5b1983212a3095d6d0bfe7b0d29f608b1f6bc39e3fde581f7ea499a7b65d22"
+  }
+}

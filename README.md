@@ -107,6 +107,9 @@ selected modeled behavior outside the repair's scope is preserved. Ordinary
 Kong and the bounded RBAC profile share the CLI/library, frozen MCP and reusable
 Action workflows. RBAC also supports MCP repair comparison with a startup
 baseline; see its [contract and integration boundary](docs/kubernetes-rbac.md).
+For a single Role or binding creation/update, [`rbac change`](docs/rbac-policy-changes.md)
+also checks the frozen caller's original write, bind/escalate or full-policy
+authority before running the access and preservation checks.
 
 1. **Review the requirement.** A policy owner selects a supported contract kind,
    reviews its scope and assumptions, and approves it separately from the
@@ -117,8 +120,9 @@ baseline; see its [contract and integration boundary](docs/kubernetes-rbac.md).
 3. **Rerun in trusted CI.** The [GitHub Action](#github-action) independently
    verifies the candidate against the contract from the approved event commit.
    RBAC repair mode also checks preservation against that PR base's snapshot.
-   It does not trust an agent's earlier verdict. Only `proved` passes the
-   verification gate; required checks and deployment controls enforce the result.
+   It does not trust an agent's earlier verdict. Only `proved` passes verification;
+   the composite policy-change gate requires `valid_change`. Required checks and
+   deployment controls enforce the result.
 
 The verifier, contract selection, and CI workflow must remain outside the
 candidate's control. Frozen MCP restricts its verification interface; it is not
@@ -404,6 +408,10 @@ shows contract verification and `mode: repair`. On pull requests, repair mode
 also preserves decisions outside the frozen change scope against the same config
 path in the approved base commit. It rejects pushes and missing baselines;
 ordinary verification remains available without a preservation claim.
+[`mode: change`](docs/rbac-policy-changes.md#keep-inputs-fixed-in-mcp-and-ci)
+additionally checks the frozen single policy operation's authorization using
+the same approved original snapshot. It requires a separate change contract and
+is also pull-request-only.
 
 Use a reviewed full commit SHA in a fresh, trusted job before candidate code
 runs. The caller workflow, mode, connector, fixed config/contract paths, and
@@ -603,8 +611,10 @@ evidence to the shared verification core.
   coverage through small authorized deployment pilots.
 - **Evaluate RBAC on real workflows.** The static connector covers controller
   resources, reviewed custom APIs, URLs and bounded mutation prerequisites.
+  A separate frozen change gate checks one Role/binding write's authorization.
   Evaluate repair usefulness on public inputs and authorized deployments;
-  privilege transitions, impersonation and runtime effects need separate models.
+  multi-step privilege escalation, impersonation and runtime effects need
+  separate models.
 - **Extend to more policy systems.** Additional gateways, OPA/Rego, IAM, and
   application authorization remain future targets. Each target needs precise
   properties and independently justified semantics.

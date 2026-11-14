@@ -5,6 +5,11 @@ authorizer** on the same original snapshot bytes. It also runs the real CLI and
 replays its contract and preservation counterexamples through that authorizer.
 It uses in-memory snapshots; it does not start a cluster or read a kubeconfig.
 
+The separate [policy-change suite](../policy-changes/README.md) checks frozen
+Role/binding operations through the native write authorization filters, all four
+policy-based storage guards, and full-rule coverage. Its deterministic
+authorization adapter is distinct from the access-request SMT comparison.
+
 The same command separately checks [offline JSON preparation](../preparation/README.md):
 original and prepared upstream typed policies must agree, the receipt must bind
 both exact byte sequences, and prepared connector/SMT decisions must match both
