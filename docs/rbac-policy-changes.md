@@ -18,6 +18,11 @@ Passing both returns `valid_change`. This does not establish successful API
 mutation, admission, storage validity under live state, workload behavior or
 permission under a composed authorization chain.
 
+For multiple ordered edits, use the separate
+[`rbac sequence` contract and gate](rbac-policy-sequences.md). It checks authority
+from each preceding state and preserves out-of-scope decisions after every edit;
+the single-operation contract described here keeps its original semantics.
+
 ## Run the synthetic example
 
 From the repository root, after [setup](../README.md#quickstart):

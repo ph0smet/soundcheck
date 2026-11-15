@@ -12,11 +12,11 @@ inputs:
     required: false
     default: kong
   mode:
-    description: Trusted workflow-selected mode, verify, repair or change; repair/change require kubernetes-rbac on a pull request with the original snapshot at the same config path in the approved base commit; change also checks the frozen policy operation's authorization
+    description: Trusted workflow-selected mode, verify, repair, change or sequence; repair/change/sequence require kubernetes-rbac on a pull request with the original snapshot at the same config path in the approved base commit; change checks one frozen policy operation; sequence checks the frozen ordered operations and preservation after every step
     required: false
     default: verify
   config:
-    description: Fixed repository-relative path to the candidate configuration; in repair/change mode this same path selects the baseline in the approved base commit
+    description: Fixed repository-relative path to the candidate configuration; in repair/change/sequence mode this same path selects the baseline in the approved base commit
     required: true
   contract:
     description: Repository-relative path to the approved contract in the PR base commit or protected default-branch push commit

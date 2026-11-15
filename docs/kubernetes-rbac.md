@@ -23,7 +23,10 @@ For an explicit Role or binding creation/update, the separate
 [`rbac change` workflow](rbac-policy-changes.md) freezes the caller and operation,
 checks original-snapshot write/bind/escalate/full-policy authority, then runs
 these existing access and preservation checks. Its new outer contract/report
-does not change the access schemas described here.
+does not change the access schemas described here. The separate
+[`rbac sequence` workflow](rbac-policy-sequences.md) freezes an ordered list of
+edits, checks authority from each preceding state, and preserves out-of-scope
+permissions after every step while requiring final access compliance.
 
 ## Try the workflow
 

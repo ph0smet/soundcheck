@@ -110,6 +110,9 @@ baseline; see its [contract and integration boundary](docs/kubernetes-rbac.md).
 For a single Role or binding creation/update, [`rbac change`](docs/rbac-policy-changes.md)
 also checks the frozen caller's original write, bind/escalate or full-policy
 authority before running the access and preservation checks.
+For an ordered multi-object plan, [`rbac sequence`](docs/rbac-policy-sequences.md)
+authorizes each step from its preceding state and preserves out-of-scope
+permissions after every step while verifying the final access requirements.
 
 1. **Review the requirement.** A policy owner selects a supported contract kind,
    reviews its scope and assumptions, and approves it separately from the
@@ -121,7 +124,8 @@ authority before running the access and preservation checks.
    verifies the candidate against the contract from the approved event commit.
    RBAC repair mode also checks preservation against that PR base's snapshot.
    It does not trust an agent's earlier verdict. Only `proved` passes verification;
-   the composite policy-change gate requires `valid_change`. Required checks and
+   the composite policy-change gate requires `valid_change`, and the ordered
+   sequence gate requires `valid_sequence`. Required checks and
    deployment controls enforce the result.
 
 The verifier, contract selection, and CI workflow must remain outside the
@@ -412,6 +416,9 @@ ordinary verification remains available without a preservation claim.
 additionally checks the frozen single policy operation's authorization using
 the same approved original snapshot. It requires a separate change contract and
 is also pull-request-only.
+[`mode: sequence`](docs/rbac-policy-sequences.md#keep-inputs-fixed-in-mcp-and-ci)
+uses a separate frozen ordered contract and the same approved-base extraction
+for multi-object plans; it also requires a pull request.
 
 Use a reviewed full commit SHA in a fresh, trusted job before candidate code
 runs. The caller workflow, mode, connector, fixed config/contract paths, and

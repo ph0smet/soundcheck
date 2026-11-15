@@ -44,8 +44,10 @@ let usage () =
     \  Prepare supported static JSON exports; this is not verification or a completeness check.\n\
      usage: soundcheck rbac verify SNAPSHOT.json --contract CONTRACT.json [--format human|json|github] [--evidence-dir NEW_DIRECTORY]\n\
      usage: soundcheck rbac compare BEFORE.json AFTER.json --contract CONTRACT.json [--format human|json|github] [--evidence-dir NEW_DIRECTORY]\n\
+     usage: soundcheck rbac change BEFORE.json AFTER.json --contract CHANGE.json [--format human|json|github] [--evidence-dir NEW_DIRECTORY]\n\
+     usage: soundcheck rbac sequence BEFORE.json AFTER.json --contract SEQUENCE.json [--format human|json|github] [--evidence-dir NEW_DIRECTORY]\n\
     \  Verify versioned static RBAC access requirements, or verify a repair and preserve other decisions.\n\
-     usage: soundcheck profile kong|kubernetes-rbac [--format human|json]\n\
+     usage: soundcheck profile kong|kubernetes-rbac|kubernetes-rbac-policy-sequence [--format human|json]\n\
     \  RBAC also accepts --contract-version 1|2|3|4|5|6|7|8|9|10 (default 1).\n\
     \  Print the versioned connector assurance profile and exit.\n\
      \n\
@@ -315,7 +317,13 @@ let run_mcp rest =
     (try
       let source = Rbac.read path in
       let baseline = Option.map Rbac.read baseline_path in
-      let server = if K.Change_spec.has_kind source then
+      let server = if K.Sequence_spec.has_kind source then
+        (match K.Sequence_spec.of_string source with
+         | Ok contract -> (match baseline with
+             | Some baseline -> Soundcheck_mcp.Rbac_server.create_sequence ~contract ~baseline
+             | None -> Error "policy-sequence MCP requires an immutable --baseline")
+         | Error reason -> Error reason)
+        else if K.Change_spec.has_kind source then
         (match K.Change_spec.of_string source with
          | Ok contract -> (match baseline with
              | Some baseline -> Soundcheck_mcp.Rbac_server.create_change ~contract ~baseline
@@ -426,12 +434,15 @@ let run_profile connector rest =
       options format (Some (int_of_string value)) rest
     | _ -> usage () in
   let format,version = options None None rest in
-  if connector <> "kong" && connector <> "kubernetes-rbac" then begin
-    Printf.eprintf "unknown connector %S (expected kong|kubernetes-rbac)\n" connector;
+  if connector <> "kong" && connector <> "kubernetes-rbac" && connector <> "kubernetes-rbac-policy-sequence" then begin
+    Printf.eprintf "unknown connector %S (expected kong|kubernetes-rbac|kubernetes-rbac-policy-sequence)\n" connector;
     exit 2
   end;
   let rendered =
     match connector,format with
+    | "kubernetes-rbac-policy-sequence",Human ->
+      Soundcheck_kubernetes_rbac.Policy_sequence.profile_human
+    | "kubernetes-rbac-policy-sequence",Json -> Soundcheck_kubernetes_rbac.Policy_sequence.profile_json
     | "kubernetes-rbac",Human -> Soundcheck_kubernetes_rbac.Assurance.profile_human ~version ()
     | "kubernetes-rbac",Json -> Soundcheck_kubernetes_rbac.Assurance.profile_json ~version ()
     | _,Human -> Assurance.profile_human ()

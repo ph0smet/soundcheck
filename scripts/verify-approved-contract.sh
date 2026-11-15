@@ -49,7 +49,11 @@ case "$soundcheck_check_mode" in
     [[ "$soundcheck_connector" == kubernetes-rbac ]] || fail 'change mode requires the kubernetes-rbac connector.'
     soundcheck_verify_command=(rbac change)
     ;;
-  *) fail 'mode must be verify or repair or change, selected by the trusted workflow.' ;;
+  sequence)
+    [[ "$soundcheck_connector" == kubernetes-rbac ]] || fail 'sequence mode requires the kubernetes-rbac connector.'
+    soundcheck_verify_command=(rbac sequence)
+    ;;
+  *) fail 'mode must be verify or repair or change or sequence, selected by the trusted workflow.' ;;
 esac
 valid_relative_path "$soundcheck_config_input" || fail 'config must be a normalized workspace-relative file path.'
 valid_relative_path "$soundcheck_contract_input" || fail 'contract must be a normalized repository-relative file path.'
@@ -93,6 +97,7 @@ case "${GITHUB_EVENT_NAME:-}" in
     # it as a baseline would not establish before/after repair preservation.
     [[ "$soundcheck_check_mode" != repair ]] || fail 'repair mode requires a pull_request event; pushes support verify mode only.'
     [[ "$soundcheck_check_mode" != change ]] || fail 'change mode requires a pull_request event; pushes support verify mode only.'
+    [[ "$soundcheck_check_mode" != sequence ]] || fail 'sequence mode requires a pull_request event; pushes support verify mode only.'
     # This bit only says protections/rulesets exist. It cannot establish that
     # the required review and separate contract approval actually took place.
     soundcheck_default_branch="$(jq -er '.repository.default_branch | strings' "$GITHUB_EVENT_PATH")" || fail 'Push payload has no default branch.'
@@ -134,7 +139,7 @@ approved_blob() {
   printf '%s\n' "$blob"
 }
 soundcheck_blob="$(approved_blob "$soundcheck_contract_input" contract)"
-if [[ "$soundcheck_check_mode" == repair || "$soundcheck_check_mode" == change ]]; then
+if [[ "$soundcheck_check_mode" == repair || "$soundcheck_check_mode" == change || "$soundcheck_check_mode" == sequence ]]; then
   # Both approved inputs come from the one immutable event commit. There is no
   # caller-supplied baseline path/ref and no fallback to checkout bytes.
   soundcheck_baseline_blob="$(approved_blob "$soundcheck_config_input" baseline)"
@@ -174,7 +179,7 @@ git_repo cat-file blob "$soundcheck_blob" > "$soundcheck_contract_file" || fail 
 chmod 400 "$soundcheck_contract_file"
 printf 'Approved contract: %s:%s (blob %s)\n' \
   "$soundcheck_source_sha" "$soundcheck_contract_input" "$soundcheck_blob"
-if [[ "$soundcheck_check_mode" == repair || "$soundcheck_check_mode" == change ]]; then
+if [[ "$soundcheck_check_mode" == repair || "$soundcheck_check_mode" == change || "$soundcheck_check_mode" == sequence ]]; then
   git_repo cat-file blob "$soundcheck_baseline_blob" > "$soundcheck_baseline_file" || fail 'Cannot extract the approved baseline blob.'
   chmod 400 "$soundcheck_baseline_file"
   printf 'Approved baseline: %s:%s (blob %s)\n' \

@@ -12,6 +12,12 @@ val create_change : contract:Soundcheck_kubernetes_rbac.Change_spec.t ->
 (** A separate frozen mode exposing only candidate-config [change]. Captures
     actor, operation, target and nested requirements at startup. *)
 
+val create_sequence : contract:Soundcheck_kubernetes_rbac.Sequence_spec.t ->
+  baseline:string -> (t, string) result
+(** Freeze one ordered sequence and its original inventory at startup. The only
+    exposed tool is config-only [sequence]; order, actor and every requirement
+    remain immutable. *)
+
 val max_message_bytes : int
 val handle_line : t -> string -> string option
 (** Strict JSON messages; initialization is required before tool requests.
