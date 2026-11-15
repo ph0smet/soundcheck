@@ -5,6 +5,12 @@ authorizer** on the same original snapshot bytes. It also runs the real CLI and
 replays its contract and preservation counterexamples through that authorizer.
 It uses in-memory snapshots; it does not start a cluster or read a kubeconfig.
 
+The [ordered sequence suite](../policy-sequences/README.md) advances its own
+native inventory through frozen create/update operations, checks authorization
+from each immediate predecessor, and replays access/preservation witnesses on
+independently constructed states. It retains distinct final access and every
+intermediate preservation obligation; no atomic/live deployment is claimed.
+
 The separate [policy-change suite](../policy-changes/README.md) checks frozen
 Role/binding operations through the native write authorization filters, all four
 policy-based storage guards, and full-rule coverage. Its deterministic

@@ -4,7 +4,7 @@ module I = K.Input
 module J = Server.J
 
 type phase = New | Initializing | Ready
-type contract = Access of K.Contract_spec.t | Change of K.Change_spec.t
+type contract = Access of K.Contract_spec.t | Change of K.Change_spec.t | Sequence of K.Sequence_spec.t
 type t = {
   contract : contract;
   baseline : string option;
@@ -24,6 +24,11 @@ let create_change ~contract ~baseline =
   | Error reason -> Error ("unsupported RBAC baseline: " ^ reason)
   | Ok _ -> Ok {contract=Change contract;baseline=Some baseline;phase=New}
 
+let create_sequence ~contract ~baseline =
+  match K.Snapshot.of_string baseline with
+  | Error reason -> Error ("unsupported RBAC baseline: " ^ reason)
+  | Ok _ -> Ok {contract=Sequence contract;baseline=Some baseline;phase=New}
+
 let max_message_bytes = 16 * 1024 * 1024
 
 let tool name description =
@@ -35,6 +40,9 @@ let tool name description =
 
 let tools state =
   match state.contract with
+  | Sequence _ -> J.obj ["tools",J.arr [tool "sequence"
+      ("Check the frozen ordered operations using each preceding state, final access requirements, and out-of-scope preservation after every step. Only config may be supplied. Immutable baseline SHA-256 " ^
+        Sha256.string (Option.get state.baseline))]]
   | Change _ -> J.obj ["tools",J.arr [tool "change"
       ("Check the single policy operation and frozen access/preservation requirements using original-snapshot authorization. Only config may be supplied. Immutable baseline SHA-256 " ^
         Sha256.string (Option.get state.baseline))]]
@@ -66,6 +74,7 @@ let tool_call state params =
    | _ -> invalid "protocol _meta must be an object");
   let name = string_field "tools/call" "name" fields in
   let known = match state.contract with
+    | Sequence _ -> name="sequence"
     | Change _ -> name="change"
     | Access _ -> name="verify" || (name="compare" && state.baseline<>None) in
   if not known then
@@ -74,6 +83,8 @@ let tool_call state params =
     | Some (`O ["config",`String config]) -> config
     | _ -> invalid "frozen RBAC tools accept only {config: string}; contract, identity context and baseline are immutable" in
   let report = match state.contract,name,state.baseline with
+    | Sequence contract,_,Some before -> K.Policy_sequence.run contract ~before ~after:config |> K.Policy_sequence.to_json
+    | Sequence _,_,None -> assert false
     | Change contract,_,Some before -> K.Policy_change.run contract ~before ~after:config |> K.Policy_change.to_json
     | Change _,_,None -> assert false
     | Access contract,"compare",Some before -> K.Verify.compare contract ~before ~after:config |> Report.to_json

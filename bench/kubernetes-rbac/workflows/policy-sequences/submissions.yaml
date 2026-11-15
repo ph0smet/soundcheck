@@ -1,0 +1,10 @@
+format_version: 1
+attempts:
+  - {task: staged-secret-repair, id: unchanged, config: before.json}
+  - {task: staged-secret-repair, id: unowned-permission, config: authorization-failed.json}
+  - {task: staged-secret-repair, id: required-access-lost, config: contract-failed.json}
+  - {task: staged-secret-repair, id: final-pod-loss, config: out-of-scope-regression.json}
+  - {task: staged-secret-repair, id: temporary-pod-loss, config: intermediate-regression.json}
+  - {task: staged-secret-repair, id: scoped-repair, config: repaired.json}
+  - {task: staged-secret-repair, id: later-failed-attempt, config: authorization-failed.json}
+  - {task: reordered-preservation, id: preserved-in-approved-order, config: intermediate-regression.json}

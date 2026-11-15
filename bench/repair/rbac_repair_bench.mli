@@ -9,6 +9,17 @@ type failure =
   | Candidate_read_error | Evaluation_error | Report_mismatch
   | Missing_submission | Submissions_read_error | Submissions_invalid | Unexpected_error
 
+type sequence_stages = {
+  assurance : string;
+  phase : string;
+  step : int option;
+  final_comparison_result : string option;
+  intermediate_preservation_result : string option;
+}
+(** Minimized stages from one ordered-sequence run. [step] is a one-based
+    failing operation index, not an attempted candidate ordinal. Skipped stages
+    remain absent; a one-step sequence has no intermediate preservation stage. *)
+
 type attempt_row = {
   id : string;
   ordinal : int;
@@ -19,6 +30,7 @@ type attempt_row = {
   comparison_assurance : string option;
   authorization_result : string option;
   change_assurance : string option;
+  sequence : sequence_stages option;
   failure : failure option;
   elapsed_seconds : float;
 }
@@ -44,6 +56,7 @@ val freeze :
     [contract_sha256] binds raw contract bytes; [frozen_contract_sha256] binds
     their canonical identity, including fixed context and change scope. Change
     contracts also freeze actor, operation, target and all nested requirements.
+    Sequence contracts freeze the exact ordered targets/operations as well.
     Stable trusted inputs are required while freezing; this is not a sandbox. *)
 
 val parse_submissions :
@@ -57,22 +70,26 @@ val run :
              after:string -> Soundcheck_kubernetes_rbac.Verify.comparison) ->
   ?evaluate_change:(Soundcheck_kubernetes_rbac.Change_spec.t -> before:string ->
              after:string -> Soundcheck_kubernetes_rbac.Policy_change.t) ->
+  ?evaluate_sequence:(Soundcheck_kubernetes_rbac.Sequence_spec.t -> before:string ->
+             after:string -> Soundcheck_kubernetes_rbac.Policy_sequence.t) ->
   ?now:(unit -> float) -> submission_root:string ->
   frozen_suite -> submissions -> task_row list
-(** Read each candidate once per attempt. Dispatch the frozen contract to either
-    [Verify.compare_with_trace] or [Policy_change.run] exactly once. Project
+(** Read each candidate once per attempt. Dispatch the frozen contract to
+    [Verify.compare_with_trace], [Policy_change.run] or [Policy_sequence.run] exactly once. Project
     stages from that run without rerunning authorization or the solver.
     Unsupported snapshots leave the candidate stage unavailable; all Unknown
     verdicts stay unknown, including solver failures/timeouts. Raised evaluator
     exceptions and incoherent reports become explicit tool failures. A change
-    result must bind the outer frozen contract and exact before/after bytes. *)
+    result must bind the outer frozen contract and exact before/after bytes.
+    Sequence results also retain coherent authorization, final comparison and
+    intermediate preservation stages; no stage is rerun for projection. *)
 
 val failed_tasks : failure -> frozen_suite -> task_row list
 (** Preserve the frozen schedule and available input digests when submission
     metadata is missing or invalid. *)
 
 val exit_code : task_row list -> int
-(** 0: every task has a valid repair/change and no input/tool errors; 1: an input/tool
+(** 0: every task has a valid repair/change/sequence and no input/tool errors; 1: an input/tool
     error, missing submission or empty suite; 3: completed but not all solved. *)
 
 val to_json : task_row list -> string
@@ -82,6 +99,9 @@ val to_json : task_row list -> string
     contract). Any frozen policy-change contract selects format 3, including
     mixed suites and failed submissions; it adds authorization/outer assurance,
     per-task contract kind/access profile, valid_change and authorization_failed.
+    Any frozen sequence contract selects format 4, adding sequence phase/step,
+    assurance, final-comparison and intermediate-preservation summaries plus a
+    distinct valid_sequence count. Existing formats 1–3 remain unchanged.
     No frozen public contract or verifier report schema is changed. *)
 
 val fatal_json : string -> string

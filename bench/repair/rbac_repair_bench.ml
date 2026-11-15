@@ -5,11 +5,17 @@ type failure =
   | Contract_read_error | Contract_invalid | Baseline_read_error
   | Candidate_read_error | Evaluation_error | Report_mismatch
   | Missing_submission | Submissions_read_error | Submissions_invalid | Unexpected_error
+type sequence_stages = {
+  assurance : string; phase : string; step : int option;
+  final_comparison_result : string option;
+  intermediate_preservation_result : string option;
+}
 type attempt_row = {
   id : string; ordinal : int; candidate_sha256 : string option;
   contract_result : string option; repair_result : string option;
   contract_assurance : string option; comparison_assurance : string option;
   authorization_result : string option; change_assurance : string option;
+  sequence : sequence_stages option;
   failure : failure option; elapsed_seconds : float;
 }
 type task_row = {
@@ -21,17 +27,23 @@ type task_row = {
   failure : failure option; attempts : attempt_row list;
 }
 type contract = Access of K.Contract_spec.t | Change of K.Change_spec.t
+  | Sequence of K.Sequence_spec.t
 let parse_contract bytes =
-  if K.Change_spec.has_kind bytes then Result.map (fun spec -> Change spec) (K.Change_spec.of_string bytes)
+  if K.Sequence_spec.has_kind bytes then Result.map (fun spec -> Sequence spec) (K.Sequence_spec.of_string bytes)
+  else if K.Change_spec.has_kind bytes then Result.map (fun spec -> Change spec) (K.Change_spec.of_string bytes)
   else Result.map (fun spec -> Access spec) (K.Contract_spec.of_string bytes)
 let canonical = function
   | Access spec -> K.Contract_spec.canonical spec
   | Change spec -> K.Change_spec.canonical spec
+  | Sequence spec -> K.Sequence_spec.canonical spec
 let requirements = function Access spec -> spec | Change spec -> K.Change_spec.requirements spec
+  | Sequence spec -> K.Sequence_spec.requirements spec
 let contract_kind = function Access _ -> K.Contract_spec.kind | Change _ -> K.Change_spec.kind
+  | Sequence _ -> K.Sequence_spec.kind
 let access_profile spec = K.Assurance.id_for_version (K.Contract_spec.version (requirements spec))
 let profile = function Access spec -> K.Assurance.id_for_version (K.Contract_spec.version spec)
   | Change _ -> K.Policy_change.profile_id
+  | Sequence _ -> K.Policy_sequence.profile_id
 type frozen_task = {
   task : Pilot.case;
   baseline : (string, failure) result;
@@ -139,11 +151,12 @@ type projection = {
   contract_result : string option; repair_result : string;
   contract_assurance : string option; comparison_assurance : string option;
   authorization_result : string option; change_assurance : string option;
+  sequence : sequence_stages option;
 }
 let project_access spec comparison =
   Result.map (fun (contract_result,repair_result,contract_assurance,comparison_assurance) ->
     {contract_result;repair_result;contract_assurance;comparison_assurance=Some comparison_assurance;
-     authorization_result=None;change_assurance=None}) (project spec comparison)
+     authorization_result=None;change_assurance=None;sequence=None}) (project spec comparison)
 
 let project_change spec ~before ~after result =
   let view = K.Policy_change.evaluation result in
@@ -153,7 +166,7 @@ let project_change spec ~before ~after result =
   else
     let unexecuted repair_result authorization_result change_assurance = Ok {
       contract_result=None;repair_result;contract_assurance=None;comparison_assurance=None;
-      authorization_result;change_assurance=Some change_assurance} in
+      authorization_result;change_assurance=Some change_assurance;sequence=None} in
     match view.outcome,view.authorization_allowed,view.comparison with
     | Unknown,None,None -> unexecuted "unknown" None "unsupported_or_inconclusive"
     | Authorization_failed,Some false,None ->
@@ -175,6 +188,76 @@ let project_change spec ~before ~after result =
          | _ -> Error Report_mismatch)
     | _ -> Error Report_mismatch
 
+let project_sequence spec ~before ~after result =
+  let view = K.Policy_sequence.evaluation result in
+  let nested_spec = K.Sequence_spec.requirements spec in
+  let expected_profile = K.Assurance.id_for_version (K.Contract_spec.version nested_spec) in
+  let prefix_reports = List.for_all (fun (entry : K.Policy_sequence.intermediate) ->
+    match entry.verification with
+    | None -> true
+    | Some value ->
+      let report = value.K.Verify.report in
+      report.frozen_spec=Some (K.Contract_spec.frozen_spec nested_spec)
+      && report.property_name="rbac-sequence-preservation"
+      && (match report.assurance with
+        | Some assessment -> assessment.profile=expected_profile
+            && assessment.status=Report.Within_profile && assessment.findings=[]
+        | None -> false)
+      && (match report.result,report.clause with
+        | (Report.Proved|Report.Unknown _),None -> true
+        | Report.Violated _,Some clause -> clause.name=preservation_id && clause.kind=Report.Must_preserve
+        | _ -> false)) view.intermediate_preservation in
+  if view.frozen_contract <> Some (K.Sequence_spec.canonical spec)
+    || view.before_sha256 <> Sha256.string before || view.after_sha256 <> Sha256.string after
+    || not prefix_reports || Result.is_error (K.Policy_sequence.validate_evaluation result)
+  then Error Report_mismatch
+  else
+    let open K.Policy_sequence in
+    let prefixes = List.filter_map (fun (entry : intermediate) -> entry.verification)
+        view.intermediate_preservation in
+    let intermediate_preservation_result = match List.rev prefixes with
+      | [] when view.phase=Complete && List.length (K.Sequence_spec.steps spec)=1 -> Some "not_required"
+      | [] -> None
+      | last::_ -> Some (result_name last.K.Verify.report.result) in
+    let nested = match view.comparison with
+      | None -> Ok None
+      | Some comparison -> Result.map Option.some
+          (project_access (K.Sequence_spec.requirements spec) comparison) in
+    match nested with
+    | Error error -> Error error
+    | Ok nested ->
+      let expected = match view.outcome,view.phase,view.authorization_allowed,nested,
+          intermediate_preservation_result with
+        | Unknown,(Preparation|Authorization),_,None,None -> Some "unknown"
+        | Authorization_failed,Authorization,Some false,None,None -> Some "authorization_failed"
+        | Contract_failed,Final_verification,Some true,Some nested,None
+            when nested.repair_result="contract_failed" -> Some "contract_failed"
+        | Out_of_scope_regression,Final_verification,Some true,Some nested,None
+            when nested.repair_result="out_of_scope_regression" -> Some "out_of_scope_regression"
+        | Unknown,Final_verification,Some true,Some nested,None
+            when nested.repair_result="unknown" -> Some "unknown"
+        | Out_of_scope_regression,Intermediate_preservation,Some true,Some nested,Some "violated"
+            when nested.repair_result="valid_repair" -> Some "out_of_scope_regression"
+        | Unknown,Intermediate_preservation,Some true,Some nested,Some "unknown"
+            when nested.repair_result="valid_repair" -> Some "unknown"
+        | Valid_sequence,Complete,Some true,Some nested,Some ("proved"|"not_required")
+            when nested.repair_result="valid_repair" -> Some "valid_sequence"
+        | _ -> None in
+      match expected with
+      | None -> Error Report_mismatch
+      | Some repair_result ->
+        let sequence = Some {
+          assurance=(if view.outcome=Unknown then "unsupported_or_inconclusive" else "within_profile");
+          phase=phase_name view.phase;step=view.failing_step;
+          final_comparison_result=Option.map (fun nested -> nested.repair_result) nested;
+          intermediate_preservation_result} in
+        let authorization_result = Option.map (fun allowed -> if allowed then "allowed" else "not_authorized")
+            view.authorization_allowed in
+        Ok {contract_result=Option.bind nested (fun value -> value.contract_result);
+          repair_result;contract_assurance=Option.bind nested (fun value -> value.contract_assurance);
+          comparison_assurance=Option.bind nested (fun value -> value.comparison_assurance);
+          authorization_result;change_assurance=None;sequence}
+
 let task_row entry failure attempts =
   {id=entry.task.id;provenance=entry.task.provenance;
    profile=Result.to_option (Result.map profile entry.contract);
@@ -185,6 +268,7 @@ let task_row entry failure attempts =
 
 let run ?read_candidate ?(evaluate = fun spec ~before ~after -> K.Verify.compare_with_trace spec ~before ~after)
     ?(evaluate_change = fun spec ~before ~after -> K.Policy_change.run spec ~before ~after)
+    ?(evaluate_sequence = fun spec ~before ~after -> K.Policy_sequence.run spec ~before ~after)
     ?(now = Unix.gettimeofday) ~submission_root frozen attempts =
   let read = Option.value ~default:(Pilot.read_regular ~root:submission_root) read_candidate in
   List.map (fun entry ->
@@ -198,7 +282,7 @@ let run ?read_candidate ?(evaluate = fun spec ~before ~after -> K.Verify.compare
       let started = now () in
       let empty = {id=attempt.id;ordinal=index+1;candidate_sha256=None;
         contract_result=None;repair_result=None;contract_assurance=None;
-        comparison_assurance=None;authorization_result=None;change_assurance=None;failure;elapsed_seconds=0.} in
+        comparison_assurance=None;authorization_result=None;change_assurance=None;sequence=None;failure;elapsed_seconds=0.} in
       let row = match entry.contract, entry.baseline with
         | Ok spec, Ok before ->
           (try match read attempt.config with
@@ -207,12 +291,14 @@ let run ?read_candidate ?(evaluate = fun spec ~before ~after -> K.Verify.compare
              let row = {empty with candidate_sha256=Some (Sha256.string after)} in
              (try match (match spec with
                 | Access spec -> project_access spec (evaluate spec ~before ~after)
-                | Change spec -> project_change spec ~before ~after (evaluate_change spec ~before ~after)) with
+                | Change spec -> project_change spec ~before ~after (evaluate_change spec ~before ~after)
+                | Sequence spec -> project_sequence spec ~before ~after (evaluate_sequence spec ~before ~after)) with
               | Error error -> {row with failure=Some error}
               | Ok projected ->
                 {row with contract_result=projected.contract_result;repair_result=Some projected.repair_result;
                   contract_assurance=projected.contract_assurance;comparison_assurance=projected.comparison_assurance;
-                  authorization_result=projected.authorization_result;change_assurance=projected.change_assurance}
+                  authorization_result=projected.authorization_result;change_assurance=projected.change_assurance;
+                  sequence=projected.sequence}
               with _ -> {row with failure=Some Evaluation_error})
            with _ -> {empty with failure=Some Unexpected_error})
         | _ -> empty in
@@ -222,7 +308,7 @@ let run ?read_candidate ?(evaluate = fun spec ~before ~after -> K.Verify.compare
 
 let failed_tasks failure frozen = List.map (fun entry -> task_row entry (Some failure) []) frozen
 let accepted (row : attempt_row) = row.failure = None
-  && (row.repair_result = Some "valid_repair" || row.repair_result = Some "valid_change")
+  && List.mem row.repair_result [Some "valid_repair";Some "valid_change";Some "valid_sequence"]
 let first_valid (task : task_row) = List.find_opt accepted task.attempts
 let exit_code tasks =
   if tasks = [] || List.exists (fun (task : task_row) -> task.failure <> None
@@ -246,7 +332,7 @@ let provenance_name = function
 let string value = `String value
 let optional = function Some value -> string value | None -> `Null
 let integer value = `Number (string_of_int value)
-let attempt_json ~include_change (row : attempt_row) = `O ([
+let attempt_json ~version (row : attempt_row) = `O ([
   "id",string row.id; "ordinal",integer row.ordinal;
   "candidate_sha256",optional row.candidate_sha256;
   "contract_result",optional row.contract_result;
@@ -255,8 +341,16 @@ let attempt_json ~include_change (row : attempt_row) = `O ([
   "comparison_assurance",optional row.comparison_assurance;
   "failure",optional (Option.map failure_name row.failure);
   "elapsed_seconds",`Number (Printf.sprintf "%.6f" row.elapsed_seconds)]
-  @ if include_change then ["authorization_result",optional row.authorization_result;
+  @ (if version>=3 then ["authorization_result",optional row.authorization_result;
       "change_assurance",optional row.change_assurance] else [])
+  @ (if version>=4 then [
+      "sequence_assurance",optional (Option.map (fun value -> value.assurance) row.sequence);
+      "sequence_phase",optional (Option.map (fun value -> value.phase) row.sequence);
+      "sequence_step",(match Option.bind row.sequence (fun value -> value.step) with
+        | None -> `Null | Some step -> integer step);
+      "final_comparison_result",optional (Option.bind row.sequence (fun value -> value.final_comparison_result));
+      "intermediate_preservation_result",optional
+        (Option.bind row.sequence (fun value -> value.intermediate_preservation_result))] else []))
 let task_json ~version (row : task_row) = `O ([
   "id",string row.id; "provenance",string (provenance_name row.provenance);
   "baseline_sha256",optional row.baseline_sha256;
@@ -264,18 +358,20 @@ let task_json ~version (row : task_row) = `O ([
   "frozen_contract_sha256",optional row.frozen_contract_sha256;
   "failure",optional (Option.map failure_name row.failure);
   "first_valid_attempt",(match first_valid row with None -> `Null | Some attempt -> integer attempt.ordinal);
-  "attempts",`A (List.map (attempt_json ~include_change:(version=3)) row.attempts)]
+  "attempts",`A (List.map (attempt_json ~version) row.attempts)]
   @ (if version>=2 then ["profile",optional row.profile] else [])
-  @ if version=3 then ["contract_kind",optional row.contract_kind;
+  @ if version>=3 then ["contract_kind",optional row.contract_kind;
       "access_profile",optional row.access_profile] else [])
 let header version profile = ["experimental_format_version",integer version;
   "kind",string "submitted_rbac_repair_evaluation";
   "profile",optional profile;
-  "comparison",string (if version=3 then "frozen_policy_change_and_scope_preservation" else "frozen_scope_preservation")]
+  "comparison",string (if version>=4 then "frozen_ordered_policy_sequence_and_scope_preservation"
+    else if version=3 then "frozen_policy_change_and_scope_preservation" else "frozen_scope_preservation")]
 let to_json tasks =
   let profiles = List.filter_map (fun (task : task_row) -> task.profile) tasks
     |> List.sort_uniq String.compare in
-  let version = if List.exists (fun (task : task_row) -> task.contract_kind=Some K.Change_spec.kind) tasks then 3
+  let version = if List.exists (fun (task : task_row) -> task.contract_kind=Some K.Sequence_spec.kind) tasks then 4
+    else if List.exists (fun (task : task_row) -> task.contract_kind=Some K.Change_spec.kind) tasks then 3
     else if List.exists ((<>) K.Assurance.profile_id) profiles then 2 else 1 in
   let profile = if version = 1 then Some K.Assurance.profile_id
     else match profiles with [profile] -> Some profile | _ -> None in
@@ -285,7 +381,8 @@ let to_json tasks =
   let count predicate values = List.fold_left (fun n value -> if predicate value then n+1 else n) 0 values in
   let counts = List.map (fun result -> result,
     integer (count (fun (row : attempt_row) -> row.repair_result = Some result) attempts))
-      (["valid_repair"] @ (if version=3 then ["valid_change";"authorization_failed"] else [])
+      (["valid_repair"] @ (if version>=3 then ["valid_change";"authorization_failed"] else [])
+       @ (if version>=4 then ["valid_sequence"] else [])
        @ ["contract_failed";"out_of_scope_regression";"unknown"])
     @ ["errors",integer (count (fun (row : attempt_row) -> row.failure <> None
         || row.repair_result = None) attempts)] in
