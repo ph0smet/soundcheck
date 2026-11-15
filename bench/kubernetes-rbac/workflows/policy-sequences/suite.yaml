@@ -1,0 +1,10 @@
+format_version: 1
+cases:
+  - id: staged-secret-repair
+    provenance: synthetic
+    config: before.json
+    contract: contract.json
+  - id: reordered-preservation
+    provenance: synthetic
+    config: before.json
+    contract: reverse-contract.json

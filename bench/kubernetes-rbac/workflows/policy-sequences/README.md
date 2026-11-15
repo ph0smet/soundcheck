@@ -31,7 +31,7 @@ Secret-change scope at every state.
 `reverse-contract.json` reverses the approved order. Under that separate contract,
 `intermediate-regression.json` passes because the secondary role receives Pod
 access before the first role loses it. The candidate cannot change the contract
-or select this order inside the frozen MCP/CI workflow.
+or select this order inside the frozen MCP/CI/evaluator workflow.
 
 The separate `transient-gain-contract.json`, `transient-gain-before.json` and
 `transient-gain-after.json` control activates a binding before restricting its
@@ -54,6 +54,17 @@ The server keeps its startup actor, ordered targets, requirements and original
 inventory. In trusted PR CI, select `connector: kubernetes-rbac` and
 `mode: sequence`, with the contract and baseline taken from the approved base.
 
-See the [sequence boundary](../../../../docs/rbac-policy-sequences.md).
-These fixtures are implementation checks, not live-agent, deployment or
-public-benchmark results.
+The submitted campaign has two synthetic tasks and eight hand-authored attempts.
+The first task includes one valid sequence and an authorization failure after
+that success, retained in the accounting. The second task freezes the reversed
+order and accepts its candidate. Run:
+
+```sh
+dune exec bench/repair/rbac_main.exe -- \
+  bench/kubernetes-rbac/workflows/policy-sequences/suite.yaml \
+  bench/kubernetes-rbac/workflows/policy-sequences/submissions.yaml
+```
+
+See the [sequence boundary](../../../../docs/rbac-policy-sequences.md) and
+[evaluator documentation](../../../repair/RBAC.md). These fixtures are
+implementation checks, not live-agent, deployment or public-benchmark results.

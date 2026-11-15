@@ -153,5 +153,8 @@ order or scope. Push events and missing original inventories fail closed.
 Trusted workflow/action sources, separate contract approval, required checks,
 fresh-base reruns and deployment controls remain external prerequisites.
 
-The [approved scope](plans/2026-11-rbac-ordered-changes.md) records the semantic choices
+The [submitted-repair evaluator](../bench/repair/RBAC.md) also accepts frozen
+sequence tasks. Its synthetic attempts validate accounting and the gate; they do
+not measure live-agent success or a real deployment pilot. The
+[approved scope](plans/2026-11-rbac-ordered-changes.md) records the semantic choices
 and independent native conformance requirements.

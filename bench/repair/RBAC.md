@@ -1,7 +1,7 @@
 # Experimental submitted RBAC repairs
 
 Evaluate candidate static RBAC snapshots against an evaluator-owned baseline
-and frozen access or policy-change contract. Access tasks call
+and frozen access, policy-change or ordered-sequence contract. Access tasks call
 `Verify.compare_with_trace` once per candidate: required access must still hold, forbidden RBAC grants must be
 absent, and every modeled decision outside the approved change scope must be
 preserved. They use the same comparison as `soundcheck rbac compare`.
@@ -9,6 +9,9 @@ Policy-change tasks call `Policy_change.run` once, first checking the frozen
 actor's authority to make the edit from the original snapshot, then running
 that same access/preservation comparison. They use the `soundcheck rbac change`
 gate without reimplementing its authorization or solver logic.
+Ordered-sequence tasks call `Policy_sequence.run` once: every frozen operation
+must be authorized from its preceding state, final access must hold, and modeled
+permissions outside the approved change scope must be preserved after every step.
 
 ```sh
 eval "$(opam env)"
@@ -44,7 +47,9 @@ The suite and submission metadata use the existing strict
 The separate `rbac_main.exe` command selects the connector; candidates cannot
 select it or supply a contract, baseline, identity context, change scope, solver,
 comparison mode or claimed outcome. For policy-change tasks they also cannot
-replace the actor, operation, target or nested requirements. Each suite `config` is the original baseline.
+replace the actor, operation, target or nested requirements. Sequence tasks also
+freeze the entire ordered step list; candidates supply only the final snapshot.
+Each suite `config` is the original baseline.
 Paths are relative to their own metadata directory, with traversal and symlink
 components rejected by the existing regular-file reader.
 
@@ -111,6 +116,63 @@ Native policy coverage is deterministic analysis; nested verification uses SMT.
 Neither stage establishes successful API mutation, admission or runtime effects.
 This extension does not run agents, contact a cluster, or rerun public benchmark v2.
 
+## Ordered-sequence repair evaluation
+
+Use the same evaluator and candidate-only metadata with a frozen
+[`kubernetes-rbac-policy-sequence` contract](../../docs/rbac-policy-sequences.md):
+
+```sh
+eval "$(opam env)"
+dune exec bench/repair/rbac_main.exe -- \
+  bench/kubernetes-rbac/workflows/policy-sequences/suite.yaml \
+  bench/kubernetes-rbac/workflows/policy-sequences/submissions.yaml
+```
+
+The two tasks contain **eight hand-authored synthetic attempts**. The first
+freezes two Role updates that remove duplicate Secret grants. Its candidates
+include an unsupported no-op, unmet edit authorization, lost required access,
+permanent and temporary out-of-scope Pod access loss, and a valid sequence at
+attempt 6. Attempt 7 fails authorization and remains counted after that success.
+The second task freezes the reverse order; the formerly disruptive candidate
+then preserves the workflow throughout and passes at attempt 1. The campaign
+exits zero because both tasks have a valid submission and no input/tool errors.
+This illustrates independently approved ordering; candidates cannot select it.
+
+The complete outer contract's raw and canonical hashes bind the actor, trusted
+groups, ordered operations and targets, final requirements and approved change
+scope. Every attempt starts from the same original baseline. The gate derives
+intermediate states; the evaluator cannot substitute candidate-controlled
+checkpoints or reuse an earlier attempt as a baseline.
+
+The evaluator checks the returned outer identity and exact input digests, then
+validates the single run's state chain, stage order, reports and recorded
+executions. Final comparison reports undergo the existing access-task checks;
+executed intermediate reports must retain the expected access identity and
+profile. Neither authorization nor the solver is rerun to produce a summary.
+
+`sequence_phase` and `sequence_step` identify the stopping phase and its one-based
+operation index. They do not identify the first defect in deployment order:
+the gate validates the whole plan, checks all authorizations, checks final access
+and preservation, then checks intermediate preservation in order. Final access
+requirements apply at the endpoint. Intermediate states may still violate those
+requirements inside the approved scope while a staged repair is in progress.
+Out-of-scope permissions must be preserved at every post-step state.
+
+`final_comparison_result` uses the nested comparison's outcomes (`valid_repair`,
+`contract_failed`, `out_of_scope_regression`, or `unknown`). A final `valid_repair`
+can accompany an outer `out_of_scope_regression` when an intermediate state fails.
+`intermediate_preservation_result` is `proved`, `violated`, or `unknown` after
+execution, `not_required` for a successful one-step sequence, and null when
+that stage did not execute. `sequence_assurance` is the outer `within_profile`
+or `unsupported_or_inconclusive` assessment. `change_assurance` stays null for
+sequence tasks; final nested assurance fields retain their existing meanings.
+
+Only `valid_sequence` accepts a sequence attempt. All authorization failures,
+unknowns, negative controls and input/tool failures remain in the denominator,
+including attempts after success. The conditional model assumes each earlier
+write succeeds and becomes visible before the next check; it does not establish
+atomic deployment, controller convergence, rollback or successful API mutation.
+
 ## Interpretation and boundaries
 
 The frozen contract selects the profile. Schema 1 retains
@@ -167,7 +229,7 @@ including existing fatal summaries. Any successfully frozen newer contract
 (access schema 2–10) selects format 2:
 each task includes its trusted `profile` (null for an invalid/unreadable contract),
 and the top-level `profile` is the sole known profile or null for mixed profiles.
-Any successfully frozen policy-change contract selects **format 3**, including
+Without a sequence task, any successfully frozen policy-change contract selects **format 3**, including
 mixed access/change suites and failed submission metadata. Formats 1 and 2 retain
 their existing fields and meanings. Format 3 adds:
 
@@ -183,6 +245,19 @@ For format 3, `tasks_with_valid_repair` and `first_valid_attempt` count either a
 The top-level profile is null when outer/access task profiles differ. A failed
 contract has null kind/profile fields; the raw digest is retained when readable.
 The existing Kong format and report/evidence schemas are unchanged.
+
+Any successfully frozen ordered-sequence contract selects **format 4**, including
+mixed access/change/sequence suites and failed submission metadata. Existing
+task sets keep formats 1–3 unchanged. Format 4 adds:
+
+- `valid_sequence` to the outcome counts; it also counts as an accepted attempt
+  for `tasks_with_valid_repair` and `first_valid_attempt`.
+- Per-attempt `sequence_assurance`, `sequence_phase`, `sequence_step`,
+  `final_comparison_result`, and `intermediate_preservation_result`. These are
+  null for access/single-change tasks and for attempts with input/tool failures.
+- `comparison: frozen_ordered_policy_sequence_and_scope_preservation`;
+  each task's frozen kind still determines its gate and required stages.
+
 The [named-write workflow](../kubernetes-rbac/workflows/write-access/README.md)
 provides schema-3 controls for partial fixes, required manager writes and a
 secret-rotator regression; its fixed contract can be used in an operator-owned
@@ -201,6 +276,9 @@ Its fields include:
 Access-task repair outcomes are `valid_repair`, `contract_failed`,
 `out_of_scope_regression` and `unknown`. Policy-change tasks replace `valid_repair`
 with `valid_change` and can also return `authorization_failed`.
+Ordered-sequence tasks use `valid_sequence` and the same non-success outcome
+names, with the explicit phase fields distinguishing final and intermediate
+preservation failures.
 A failure has no repair outcome and is
 counted separately. Invalid or unreadable submissions retain the frozen schedule
 with `submitted_attempts: null`; invalid suites have `scheduled_tasks: null`.
@@ -213,13 +291,13 @@ detailed feedback; this evaluator supplies acceptance accounting.
 
 | Exit | Meaning |
 | --- | --- |
-| 0 | Every task has a valid submitted repair; no input/tool errors. |
+| 0 | Every task has a valid submitted repair, change or sequence; no input/tool errors. |
 | 1 | Input/tool error, missing submission, or an empty suite. |
 | 2 | Invalid invocation. |
 | 3 | Evaluation completed, but at least one task has no valid repair. |
 
 A task can have both a valid candidate and an error; the error still prevents
-exit 0. The sequence order is supplied metadata, not an observed agent history.
+exit 0. Submitted-attempt order comes from metadata, not an observed agent history.
 For an external-agent study, preregister task selection, generation budgets and
 stopping rules, keep missing attempts in the denominator, and record generation
 time/cost and independent target validation separately.
@@ -239,4 +317,8 @@ invalid contracts, solver protocol failure and non-regular input rejection.
 Policy-change checks exercise both synthetic tasks, original-input authority,
 outer identity/input substitutions, skipped stages, mixed schedules, later
 errors after success, frozen hashes and solver failures after authorization.
+Sequence checks cover frozen ordering, final versus intermediate failures,
+temporary permission gains/losses, one-step and mixed-task summaries, exact input
+and outer-identity substitutions, all attempts after success, and skipped or
+unknown solver stages.
 The same command also runs the existing Kong evaluator regressions.
