@@ -170,3 +170,41 @@ let compare_with_trace ?z3 spec ~before ~after =
                  preservation={id;smtlib=query;execution}}}
 
 let compare ?z3 spec ~before ~after = (compare_with_trace ?z3 spec ~before ~after).report
+
+type preservation_plan = {
+  spec : Contract_spec.t;
+  original : Ir.policy;
+  proposed : Ir.policy;
+  when_ : Ir.condition;
+  query : string;
+}
+type preservation = { report : Report.t; trace : Evidence.preservation_trace }
+
+let plan_preservation spec ~before ~after =
+  let ( let* ) = Result.bind in
+  let* before = Snapshot.of_string before |> Result.map_error (fun e -> "baseline: " ^ e) in
+  let* after = Snapshot.of_string after |> Result.map_error (fun e -> "intermediate: " ^ e) in
+  let original = Lower.policy spec before and proposed = Lower.policy spec after in
+  let when_ = Ir.Not (Contract_spec.approved_changes spec) in
+  Ok {spec;original;proposed;when_;query=Smt_encode.decision_equivalence_query ~when_ original proposed}
+
+let preservation_query p = p.query
+let execute_preservation ?z3 p =
+  let id = "preservation-outside-change-scope" in
+  let answer = Solve.check ?z3 p.query
+    |> Witness.validate ~obligation:id
+         (Witness.decision_difference ~when_:p.when_ p.original p.proposed) in
+  let result,clause = match answer with
+    | Solve.Proved -> Report.Proved,None
+    | Solve.Unknown reason -> Report.Unknown reason,None
+    | Solve.Violated model ->
+      let request = Witness.request_of_model model in
+      let decision policy = if Ir.possibly_allows policy request then "Allow" else "NoOpinion" in
+      let note = Printf.sprintf "%s changed from %s to %s outside the approved change scope at this intermediate state"
+        (request_description p.spec model) (decision p.original) (decision p.proposed) in
+      Report.Violated (counterexample p.spec p.proposed ~note model),
+      Some {Report.name=id;description=note;kind=Report.Must_preserve} in
+  let report = { (report ?clause p.spec result) with
+    property_name="rbac-sequence-preservation";
+    property_description="Preserve original modeled decisions outside the frozen approved change scope at this intermediate state. This obligation does not check the final access clauses." } in
+  {report;trace={id;smtlib=p.query;execution=Contract_verify.Executed answer}}

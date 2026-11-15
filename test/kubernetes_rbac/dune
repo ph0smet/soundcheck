@@ -368,3 +368,8 @@
        (source_tree ../../bench/kubernetes-rbac/workflows/policy-changes))
  (action (run %{exe:policy_change_adapters_t.exe} %{exe:../../cli/main.exe}
    ../../scripts/verify-approved-contract.sh ../../bench/kubernetes-rbac/workflows/policy-changes)))
+
+(test
+ (name policy_sequence_t)
+ (modules policy_sequence_t)
+ (libraries soundcheck_core soundcheck_kubernetes_rbac unix))

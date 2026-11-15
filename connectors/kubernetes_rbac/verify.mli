@@ -22,3 +22,16 @@ val compare_with_trace : ?z3:string -> Contract_spec.t -> before:string -> after
     Both snapshots must be supported before planning; otherwise [candidate_report]
     and [trace] are absent. A failed candidate retains an unexecuted preservation
     query. Executed preservation models are validated before recording. *)
+
+type preservation_plan
+type preservation = {
+  report : Soundcheck_core.Report.t;
+  trace : Soundcheck_core.Evidence.preservation_trace;
+}
+val plan_preservation : Contract_spec.t -> before:string -> after:string ->
+  (preservation_plan, string) result
+val preservation_query : preservation_plan -> string
+val execute_preservation : ?z3:string -> preservation_plan -> preservation
+(** A preservation-only obligation for an intermediate sequence state. It does
+    not check or assert access clauses. Every SAT result is validated against
+    baseline/candidate decisions outside the frozen scope before lifting. *)
