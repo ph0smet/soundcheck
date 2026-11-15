@@ -62,6 +62,7 @@ export CGO_ENABLED=0
 "$soundcheck_python" "$soundcheck_script_dir/test_bootstrap_packs_runner.py"
 "$soundcheck_python" "$soundcheck_script_dir/test_controller_apis_runner.py"
 "$soundcheck_python" "$soundcheck_script_dir/test_policy_changes_runner.py"
+"$soundcheck_python" "$soundcheck_script_dir/test_policy_sequences_runner.py"
 dune build bench/kubernetes-rbac/model_oracle.exe bench/kubernetes-rbac/policy_change_oracle.exe cli/main.exe
 
 # Separate frozen operations check native write/bind/escalate/full-policy
@@ -73,6 +74,16 @@ dune build bench/kubernetes-rbac/model_oracle.exe bench/kubernetes-rbac/policy_c
   --z3 "$soundcheck_z3" \
   --module-metadata "$soundcheck_build_dir/kubernetes-module.json" \
   --output "$soundcheck_build_dir/policy-changes/results.json"
+
+# Frozen operation order advances native fixture state after every accepted
+# write. Final access and every original-baseline preservation prefix are
+# checked separately; the sequence caller never supplies intermediate objects.
+"$soundcheck_python" "$soundcheck_script_dir/run_policy_sequences.py" \
+  --reference "$soundcheck_build_dir/reference-oracle" \
+  --soundcheck "$soundcheck_repo_root/_build/default/cli/main.exe" \
+  --z3 "$soundcheck_z3" \
+  --module-metadata "$soundcheck_build_dir/kubernetes-module.json" \
+  --output "$soundcheck_build_dir/policy-sequences/results.json"
 
 # Explicit bootstrap assumptions retain native policy and every contributor;
 # selection and receipts do not establish installed state or completeness.
