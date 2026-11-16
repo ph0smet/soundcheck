@@ -61,6 +61,12 @@ type inventory struct {
 }
 
 func main() {
+	if len(os.Args) == 2 && os.Args[1] == "--policy-retirement-reference-info" {
+		if err := json.NewEncoder(os.Stdout).Encode(policyRetirementRuntimeInfo()); err != nil {
+			panic(err)
+		}
+		return
+	}
 	if len(os.Args) > 1 && os.Args[1] == "--policy-sequence-reference" {
 		policySequenceReferenceFiles(os.Args[2:])
 		return

@@ -1,0 +1,46 @@
+{
+  "apimachinery": {
+    "pkg/apis/meta/v1/helpers.go": "b56724474eb59064d6831942a4c7ad72e984778d5fb94789d6da1f725cdf116c",
+    "pkg/labels/selector.go": "7cd3b379da3cc2683b81fd7a6122bf6b213df5af2b32439998c40b74cf178a11"
+  },
+  "apiserver": {
+    "pkg/authorization/authorizerfactory/builtin.go": "e613a59e128e13ea81b77114db48046bfdd16e7800e3f71aa2a038d1d91cb22a",
+    "pkg/endpoints/filters/authorization.go": "ecaa911bfee83cc5710e64081b8cc9fefbbe19885b62af7fa95ab2523185b4f0",
+    "pkg/endpoints/filters/requestinfo.go": "69ab6223dac69d8c311e0f4dd0673216208650eccfb01addc741faa1c5890c8c",
+    "pkg/endpoints/handlers/delete.go": "ffe67be30b91a86167d634003ad835fcd3c2e1dff60b53ebf0fbb3ad9d1c0510",
+    "pkg/endpoints/handlers/update.go": "1cde28b20b8b1fd9c03dc3d37572933b409dd97c249b7aacd53b104ce1177871",
+    "pkg/endpoints/request/requestinfo.go": "ae96b44fbfe3a39ba205ccc96cb28938179a41c515f7bddfb41e803a621db115",
+    "pkg/registry/generic/registry/dryrun.go": "41727a443af0d9a06ef167bbc66f1644f9733f31e2ec7a53555163788df3635f",
+    "pkg/registry/generic/registry/store.go": "d7d0341f475e4de43a985419d15800ced365dafeafdee59269d8b687579d3ee3",
+    "pkg/registry/rest/delete.go": "5a1f2db87e49ff50505747b07f694dccad60441ebb438da1b78b716fbd45f737",
+    "pkg/registry/rest/update.go": "1fe46d52eb59483405e2b3b35a9e8e892b7661a918bab5b9da8a00f5dc2e2f84",
+    "pkg/storage/interfaces.go": "6dfac3f659f7eea2b0a34bc43d909a2905a4ff63c0c998424aed455e03f220a6"
+  },
+  "component-helpers": {
+    "auth/rbac/validation/policy_comparator.go": "f00527bdd0aae7ab2bf6e038a140bbbc1e1e72de6bb909dd928a43af6e653054"
+  },
+  "kubernetes": {
+    "pkg/apis/rbac/v1/defaults.go": "dba9b940f2569ffc47d63b42878ea178eacf6aadbc8ef6167a1d97af69e3c95b",
+    "pkg/apis/rbac/validation/validation.go": "b21d460c4146b3128a1302e9001f97aeaa1ec0b37975bf56dcf0d76b10d442d3",
+    "pkg/controller/clusterroleaggregation/clusterroleaggregation_controller.go": "0da2f4b85af5e9147b8d453f57c8ff50739062c6eb7118f74c354d4decc5aee5",
+    "pkg/kubeapiserver/authorizer/reload.go": "873fdb6b2efdae5ebdaab668c1fbab162bd76a766e63356b9ce26c24ceaf2f8a",
+    "pkg/registry/rbac/clusterrole/policybased/storage.go": "2ae57ed1d3dece6042b2fe6fe64cd5c1936858fb6cdd167897a4b80e2ba9c27f",
+    "pkg/registry/rbac/clusterrole/storage/storage.go": "7a7245935cf2f7a3963b56ee49eb1a4c2d58a780d42c4e847143fce8fd16c2fb",
+    "pkg/registry/rbac/clusterrole/strategy.go": "fdaef23d4dedcbf2873b6ee622c94a048eb800fc9c45aa5897a4752a32ecc75b",
+    "pkg/registry/rbac/clusterrolebinding/policybased/storage.go": "95647ef85509132e93030165cef5e2fab1f0a2eb9f5a1cb472b648a285f35977",
+    "pkg/registry/rbac/clusterrolebinding/storage/storage.go": "f15e050df9e019fc53e5c09323e277073eb68cc0c83c4590e42074745c3aa8da",
+    "pkg/registry/rbac/clusterrolebinding/strategy.go": "9a4de9d2a30454b4e4afe0a153851412b66eb3c2628e05f3b22a1f114b6d275c",
+    "pkg/registry/rbac/escalation_check.go": "8e3d0abf9a6647351c70c7e4f69e42b7011b3d7fda751f22f927465f77c3e6c1",
+    "pkg/registry/rbac/helpers.go": "470ed6c61515fc2ae99042141cdbaaff626c1ef25201d8dfb377ed1b95602dec",
+    "pkg/registry/rbac/rest/storage_rbac.go": "2542d558fc31501642b39b725be2a687d5e61267675b031ef3aa1deed028b148",
+    "pkg/registry/rbac/role/policybased/storage.go": "6f5ba0ca27d2be2b1b041dfc1afaaca535877524bd87d45f202a1afb16350e18",
+    "pkg/registry/rbac/role/storage/storage.go": "9fda3999385dcc3f0bb0329ec215e488fd962f21908e6124672adeb44f357169",
+    "pkg/registry/rbac/role/strategy.go": "33a5368d6296d4a5d397714636816c6a1bfa001c95bbb019fad357d8612b9a6d",
+    "pkg/registry/rbac/rolebinding/policybased/storage.go": "68bdbba7ed3ca89d4e582f3896825a350936ddbbd42cfda9ea08e344df604461",
+    "pkg/registry/rbac/rolebinding/storage/storage.go": "280cb0877bf58721c3f7c926af3c2ecd1e8efed9d5763239268d96dfc2a48af7",
+    "pkg/registry/rbac/rolebinding/strategy.go": "3c23a11ef1b6785c5718435a2e6542dea4f0a238fa56aea962c56cdf2036f95e",
+    "pkg/registry/rbac/validation/internal_version_adapter.go": "b5f0b689384f51779df7be6c661dfc77a4a8ffe79f167d34ddb87b566ad27d7c",
+    "pkg/registry/rbac/validation/rule.go": "f0d54df76476a917ee9b2bc1a495b5a7aab55fbcf283a6283246735ebb783ec8",
+    "plugin/pkg/auth/authorizer/rbac/rbac.go": "64fb483dceb31028d2ddf7daffdaa2afbdd8e4c083b68f5f8fcfee42e951d95e"
+  }
+}

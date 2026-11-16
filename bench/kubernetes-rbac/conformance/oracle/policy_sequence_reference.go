@@ -28,6 +28,7 @@ type policySequenceSpec struct {
 	Actor         string               `json:"actor"`
 	Steps         []policySequenceStep `json:"steps"`
 	Requirements  json.RawMessage      `json:"requirements"`
+	Invariants    []string             `json:"invariants,omitempty"`
 }
 
 type policySequenceExecution struct {
@@ -64,7 +65,7 @@ func policySequenceSingle(spec policySequenceSpec, step policySequenceStep) []by
 		namespace = step.Target.Namespace
 	}
 	data, err := json.Marshal(map[string]interface{}{
-		"schema_version": 1, "kind": "kubernetes-rbac-policy-change", "actor": spec.Actor,
+		"schema_version": spec.SchemaVersion, "kind": "kubernetes-rbac-policy-change", "actor": spec.Actor,
 		"operation": step.Operation, "requirements": spec.Requirements,
 		"target": map[string]interface{}{"kind": step.Target.Kind, "namespace": namespace, "name": step.Target.Name}})
 	if err != nil {
@@ -79,8 +80,35 @@ func decodePolicySequenceSpec(data []byte) (policySequenceSpec, error) {
 	if err != nil || len(strictErrors) != 0 {
 		return spec, fmt.Errorf("invalid sequence contract: %v %v", err, strictErrors)
 	}
-	if spec.SchemaVersion != 1 || spec.Kind != "kubernetes-rbac-policy-sequence" || len(spec.Steps) < 1 || len(spec.Steps) > 16 {
-		return spec, fmt.Errorf("expected sequence schema 1 with 1..16 steps")
+	if (spec.SchemaVersion != 1 && spec.SchemaVersion != 2) || spec.Kind != "kubernetes-rbac-policy-sequence" || len(spec.Steps) < 1 || len(spec.Steps) > 16 {
+		return spec, fmt.Errorf("expected sequence schema 1 or 2 with 1..16 steps")
+	}
+	var rawContract map[string]json.RawMessage
+	json.Unmarshal(data, &rawContract)
+	_, hasInvariants := rawContract["invariants"]
+	if spec.SchemaVersion == 1 && hasInvariants || spec.SchemaVersion == 2 && (!hasInvariants || spec.Invariants == nil) {
+		return spec, fmt.Errorf("invariants is required only for schema 2 and must be an array")
+	}
+	if spec.SchemaVersion == 2 {
+		var requirements struct {
+			Clauses []struct {
+				Name string `json:"name"`
+			} `json:"clauses"`
+		}
+		if err := json.Unmarshal(spec.Requirements, &requirements); err != nil {
+			return spec, err
+		}
+		clauses := map[string]bool{}
+		for _, clause := range requirements.Clauses {
+			clauses[clause.Name] = true
+		}
+		selected := map[string]bool{}
+		for _, name := range spec.Invariants {
+			if !clauses[name] || selected[name] {
+				return spec, fmt.Errorf("invariants must name distinct existing access clauses")
+			}
+			selected[name] = true
+		}
 	}
 	var raw struct {
 		Steps []json.RawMessage `json:"steps"`
@@ -96,7 +124,7 @@ func decodePolicySequenceSpec(data []byte) (policySequenceSpec, error) {
 		}
 		// Preserve raw namespace null/string representation for the single-write
 		// decoder, rather than silently normalizing malformed target fields.
-		value := map[string]interface{}{"schema_version": 1, "kind": "kubernetes-rbac-policy-change",
+		value := map[string]interface{}{"schema_version": spec.SchemaVersion, "kind": "kubernetes-rbac-policy-change",
 			"actor": spec.Actor, "operation": step.Operation, "target": rawStep["target"], "requirements": spec.Requirements}
 		encoded, _ := json.Marshal(value)
 		if _, _, err := decodePolicyChangeSpec(encoded); err != nil {
@@ -193,26 +221,38 @@ func policySequenceInstall(current []byte, target policyChangeTarget, replacemen
 		return nil, err
 	}
 	found := false
-	for index, raw := range list.Items {
+	updated := []json.RawMessage{}
+	for _, raw := range list.Items {
 		objects, err := policyChangeRawObjects(append(append([]byte(`{"items":[`), raw...), []byte(`]}`)...))
 		if err != nil {
 			return nil, err
 		}
 		if _, ok := objects[policySequenceKey(target)]; ok {
-			list.Items[index] = append(json.RawMessage{}, replacement...)
+			if replacement != nil {
+				updated = append(updated, append(json.RawMessage{}, replacement...))
+			}
 			found = true
+		} else {
+			updated = append(updated, raw)
 		}
 	}
-	if !found {
-		list.Items = append(list.Items, append(json.RawMessage{}, replacement...))
+	if !found && replacement != nil {
+		updated = append(updated, append(json.RawMessage{}, replacement...))
 	}
-	return json.Marshal(map[string]interface{}{"apiVersion": "v1", "kind": "List", "items": list.Items})
+	return json.Marshal(map[string]interface{}{"apiVersion": "v1", "kind": "List", "items": updated})
 }
 
 func policySequencePlan(before, after, contract []byte) (policySequenceSpec, []json.RawMessage, error) {
 	spec, err := decodePolicySequenceSpec(contract)
 	if err != nil {
 		return spec, nil, err
+	}
+	if spec.SchemaVersion == 2 {
+		for _, data := range [][]byte{before, after} {
+			if err := policyRetirementInventoryBoundary(data); err != nil {
+				return spec, nil, err
+			}
+		}
 	}
 	left, err := policyChangeRawObjects(before)
 	if err != nil {
@@ -246,8 +286,11 @@ func policySequencePlan(before, after, contract []byte) (policySequenceSpec, []j
 	states := []json.RawMessage{append(json.RawMessage{}, before...)}
 	for index, step := range spec.Steps {
 		replacement, exists := right[policySequenceKey(step.Target)]
-		if !exists {
+		if !exists && step.Operation != "delete-existing" {
 			return spec, nil, fmt.Errorf("step %d target is absent from final inventory", index+1)
+		}
+		if exists && step.Operation == "delete-existing" {
+			return spec, nil, fmt.Errorf("deleted target is present in final inventory")
 		}
 		next, err := policySequenceInstall(states[len(states)-1], step.Target, replacement)
 		if err != nil {
