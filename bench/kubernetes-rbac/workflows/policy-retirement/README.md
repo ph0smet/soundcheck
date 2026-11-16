@@ -3,7 +3,7 @@
 This synthetic workflow replaces a Role and binding, then removes the obsolete
 objects while retaining the application's ConfigMap access throughout the
 transition. The complete snapshots, trusted identities, frozen plan and access
-requirements are hand-authored; this is adapter acceptance evidence,
+requirements are hand-authored; this is adapter/evaluator acceptance evidence,
 not a deployment pilot or live-agent result.
 
 From the repository root:
@@ -112,6 +112,19 @@ supports the single deletion contract. See the [contract and trust boundary](../
 `--evidence-dir NEW_DIRECTORY` writes private snapshots, exact hashes, reports,
 queries and checked outcomes. These support replay and audit; they are not
 independently checked proof certificates.
+
+## Evaluate submitted candidates
+
+The [submitted-repair evaluator](../../../repair/RBAC.md) consumes `suite.yaml`
+and `submissions.yaml`. The three tasks cover migration, required-access handoff
+and single deletion, including negative attempts submitted after a success.
+They exercise format-5 accounting, not autonomous repair success.
+
+```sh
+dune exec bench/repair/rbac_main.exe -- \
+  bench/kubernetes-rbac/workflows/policy-retirement/suite.yaml \
+  bench/kubernetes-rbac/workflows/policy-retirement/submissions.yaml
+```
 
 The model is conditional on each prior operation completing and becoming visible.
 Deletion means full removal using ordinary default DELETE options. No actual

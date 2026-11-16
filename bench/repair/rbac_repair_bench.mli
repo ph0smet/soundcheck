@@ -15,10 +15,17 @@ type sequence_stages = {
   step : int option;
   final_comparison_result : string option;
   intermediate_preservation_result : string option;
+  state_invariants_result : string option;
+  state_invariants_checked : int option;
+  invariant_failure_state : int option;
 }
 (** Minimized stages from one ordered-sequence run. [step] is a one-based
-    failing operation index, not an attempted candidate ordinal. Skipped stages
-    remain absent; a one-step sequence has no intermediate preservation stage. *)
+    failing operation index, not an attempted candidate ordinal; version-2
+    invariants can instead fail at state 0 (the original inventory).
+    [invariant_failure_state] is populated only for that failure phase.
+    [state_invariants_checked] counts executed state checks, including a failed
+    check; skipped stages remain absent. A one-step sequence has no intermediate
+    preservation stage. Legacy sequences have no state-invariant summaries. *)
 
 type attempt_row = {
   id : string;
@@ -40,6 +47,7 @@ type task_row = {
   provenance : Pilot.provenance;
   profile : string option;
   contract_kind : string option;
+  contract_version : int option;
   access_profile : string option;
   baseline_sha256 : string option;
   contract_sha256 : string option;
@@ -57,6 +65,8 @@ val freeze :
     their canonical identity, including fixed context and change scope. Change
     contracts also freeze actor, operation, target and all nested requirements.
     Sequence contracts freeze the exact ordered targets/operations as well.
+    Version 2 also freezes the selected invariant clause names and deletion
+    operations; no candidate controls that selection or the version.
     Stable trusted inputs are required while freezing; this is not a sandbox. *)
 
 val parse_submissions :
@@ -82,7 +92,8 @@ val run :
     exceptions and incoherent reports become explicit tool failures. A change
     result must bind the outer frozen contract and exact before/after bytes.
     Sequence results also retain coherent authorization, final comparison and
-    intermediate preservation stages; no stage is rerun for projection. *)
+    intermediate preservation stages; version 2 also validates every recorded
+    state-invariant stage. No stage is rerun for projection. *)
 
 val failed_tasks : failure -> frozen_suite -> task_row list
 (** Preserve the frozen schedule and available input digests when submission
@@ -96,13 +107,16 @@ val to_json : task_row list -> string
 (** Minimized experimental summary: never contains raw reports, inputs,
     witnesses, formulas, paths, canonical contracts or diagnostic text.
     Access-only suites retain formats 1/2 (2 for any frozen non-v1 access
-    contract). Any frozen policy-change contract selects format 3, including
+    contract). Version-1 policy-change contracts select format 3, including
     mixed suites and failed submissions; it adds authorization/outer assurance,
     per-task contract kind/access profile, valid_change and authorization_failed.
-    Any frozen sequence contract selects format 4, adding sequence phase/step,
+    Version-1 sequence contracts select format 4, adding sequence phase/step,
     assurance, final-comparison and intermediate-preservation summaries plus a
-    distinct valid_sequence count. Existing formats 1–3 remain unchanged.
-    No frozen public contract or verifier report schema is changed. *)
+    distinct valid_sequence count. Any successfully frozen version-2 policy
+    change/sequence selects format 5, adding per-task contract versions and
+    state-invariant results, executed-state counts and failure-state indices,
+    plus an invariant_failed count. Existing formats 1–4 remain unchanged.
+    The evaluator consumes the versioned gate outputs without changing them. *)
 
 val fatal_json : string -> string
 (** The argument must be an internal failure constant, not a diagnostic. *)
