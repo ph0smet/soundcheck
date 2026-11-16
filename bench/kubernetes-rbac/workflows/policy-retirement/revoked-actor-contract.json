@@ -1,0 +1,117 @@
+{
+  "schema_version": 2,
+  "kind": "kubernetes-rbac-policy-sequence",
+  "actor": "deployer",
+  "steps": [
+    {
+      "operation": "delete-existing",
+      "target": {
+        "kind": "RoleBinding",
+        "namespace": "team-a",
+        "name": "deployer"
+      }
+    },
+    {
+      "operation": "create",
+      "target": {
+        "kind": "Role",
+        "namespace": "team-a",
+        "name": "replacement-reader"
+      }
+    },
+    {
+      "operation": "create",
+      "target": {
+        "kind": "RoleBinding",
+        "namespace": "team-a",
+        "name": "replacement-app"
+      }
+    },
+    {
+      "operation": "delete-existing",
+      "target": {
+        "kind": "RoleBinding",
+        "namespace": "team-a",
+        "name": "old-app"
+      }
+    },
+    {
+      "operation": "delete-existing",
+      "target": {
+        "kind": "Role",
+        "namespace": "team-a",
+        "name": "old-reader"
+      }
+    }
+  ],
+  "invariants": [
+    "configmaps-required"
+  ],
+  "requirements": {
+    "schema_version": 10,
+    "kind": "kubernetes-rbac-access",
+    "context": {
+      "schema_version": 1,
+      "snapshot_complete": true,
+      "identities": [
+        {
+          "username": "app",
+          "groups": []
+        },
+        {
+          "username": "deployer",
+          "groups": []
+        }
+      ]
+    },
+    "clauses": [
+      {
+        "name": "configmaps-required",
+        "kind": "must_allow",
+        "subject": "app",
+        "namespace": "team-a",
+        "resource": "configmaps",
+        "names": null,
+        "request_kind": "resource",
+        "operation": "get",
+        "api_group": "",
+        "subresource": ""
+      },
+      {
+        "name": "secrets-not-granted",
+        "kind": "must_not_grant",
+        "subject": "app",
+        "namespace": "team-a",
+        "resource": "secrets",
+        "names": null,
+        "request_kind": "resource",
+        "operation": "get",
+        "api_group": "",
+        "subresource": ""
+      }
+    ],
+    "change_scope": [
+      {
+        "subject": "app",
+        "namespace": "team-a",
+        "resource": "configmaps",
+        "names": null,
+        "request_kind": "resource",
+        "operation": "get",
+        "api_group": "",
+        "subresource": ""
+      },
+      {
+        "subject": "app",
+        "namespace": "team-a",
+        "resource": "secrets",
+        "names": null,
+        "request_kind": "resource",
+        "operation": "get",
+        "api_group": "",
+        "subresource": ""
+      }
+    ],
+    "custom_resources": []
+  }
+}

@@ -390,3 +390,15 @@
        (source_tree ../../bench/kubernetes-rbac/workflows/policy-sequences))
  (action (run %{exe:policy_sequence_adapters_t.exe} %{exe:../../cli/main.exe}
    ../../scripts/verify-approved-contract.sh ../../bench/kubernetes-rbac/workflows/policy-sequences)))
+
+(executable
+ (name policy_retirement_adapters_t)
+ (modules policy_retirement_adapters_t)
+ (libraries soundcheck_core soundcheck_kubernetes_rbac unix))
+
+(rule
+ (alias runtest)
+ (deps ../../scripts/verify-approved-contract.sh
+       (source_tree ../../bench/kubernetes-rbac/workflows/policy-retirement))
+ (action (run %{exe:policy_retirement_adapters_t.exe} %{exe:../../cli/main.exe}
+   ../../scripts/verify-approved-contract.sh ../../bench/kubernetes-rbac/workflows/policy-retirement)))
