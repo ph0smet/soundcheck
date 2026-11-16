@@ -113,6 +113,37 @@ let run_with_trace ?z3 spec source =
 
 let run ?z3 spec source = fst (run_with_trace ?z3 spec source)
 
+type selected_plan = {
+  selected_spec : Contract_spec.t;
+  selected_policy : Ir.policy;
+  selected_contract : Contract.t;
+  selected_identity : Report.frozen_spec;
+  selected_queries : Contract_verify.obligation list;
+}
+type selected = { report : Report.t; trace : Contract_verify.trace_entry list }
+
+let plan_selected spec ~clauses ~frozen_spec source =
+  let contract = Contract_spec.to_contract spec in
+  let known = List.map Contract.name contract.clauses in
+  if clauses=[] || List.length (List.sort_uniq String.compare clauses)<>List.length clauses ||
+     not (List.for_all (fun name -> List.mem name known) clauses) then
+    Error "selected invariant clauses must be nonempty, unique names in the frozen access contract"
+  else match Snapshot.of_string source with
+    | Error reason -> Error reason
+    | Ok snapshot ->
+      let policy = Lower.policy spec snapshot in
+      let contract = {contract with clauses=List.filter (fun c -> List.mem (Contract.name c) clauses) contract.clauses} in
+      Ok {selected_spec=spec;selected_policy=policy;selected_contract=contract;
+        selected_identity=frozen_spec;selected_queries=Contract_verify.plan policy contract}
+
+let selected_queries plan = plan.selected_queries
+let execute_selected ?z3 plan =
+  let result,trace=Contract_verify.run_with_trace ?z3 plan.selected_policy plan.selected_contract in
+  let report=contract_report_of_result plan.selected_spec plan.selected_policy result in
+  {report={report with property_name="rbac-sequence-invariants";
+    property_description="The selected frozen access clauses hold at this sequence state; unselected final-only clauses are not asserted by this report.";
+    frozen_spec=Some plan.selected_identity};trace}
+
 type comparison = {
   report : Report.t;
   candidate_report : Report.t option;

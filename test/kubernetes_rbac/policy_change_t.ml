@@ -116,7 +116,7 @@ let () =
     "actor not trusted",replace "actor" (str "mallory") normal;
     "actor case is exact",replace "actor" (str "Alice") normal;
     "wrong contract kind",replace "kind" (str "kubernetes-rbac-access") normal;
-    "unknown version",replace "schema_version" (`Number "2") normal;
+    "unknown version",replace "schema_version" (`Number "3") normal;
     "rounded version",replace "schema_version" (`Number "1.0") normal;
     "string version",replace "schema_version" (str "1") normal;
     "missing requirements",remove "requirements" normal;

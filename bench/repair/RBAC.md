@@ -12,6 +12,9 @@ gate without reimplementing its authorization or solver logic.
 Ordered-sequence tasks call `Policy_sequence.run` once: every frozen operation
 must be authorized from its preceding state, final access must hold, and modeled
 permissions outside the approved change scope must be preserved after every step.
+Version-2 change/sequence contracts add explicit policy deletion. Version-2
+sequences also freeze selected access clauses that must hold in the original
+inventory and every resulting state.
 
 ```sh
 eval "$(opam env)"
@@ -48,7 +51,8 @@ The separate `rbac_main.exe` command selects the connector; candidates cannot
 select it or supply a contract, baseline, identity context, change scope, solver,
 comparison mode or claimed outcome. For policy-change tasks they also cannot
 replace the actor, operation, target or nested requirements. Sequence tasks also
-freeze the entire ordered step list; candidates supply only the final snapshot.
+freeze the entire ordered step list and, in version 2, the selected invariant
+clause names; candidates supply only the final snapshot.
 Each suite `config` is the original baseline.
 Paths are relative to their own metadata directory, with traversal and symlink
 components rejected by the existing regular-file reader.
@@ -111,7 +115,9 @@ solver failure still yield `unknown`; successful authorization alone earns no
 acceptance. `change_assurance` is the outer gate's `within_profile` or
 `unsupported_or_inconclusive` status; nested assurance retains its own meaning.
 
-The supported single-object create/update-existing boundary is unchanged.
+Version-1 contracts retain the single-object create/update-existing boundary.
+Version 2 also supports `delete-existing` under the documented ordinary-deletion
+model: the exact target must exist before the edit and be absent afterward.
 Native policy coverage is deterministic analysis; nested verification uses SMT.
 Neither stage establishes successful API mutation, admission or runtime effects.
 This extension does not run agents, contact a cluster, or rerun public benchmark v2.
@@ -151,7 +157,8 @@ executed intermediate reports must retain the expected access identity and
 profile. Neither authorization nor the solver is rerun to produce a summary.
 
 `sequence_phase` and `sequence_step` identify the stopping phase and its one-based
-operation index. They do not identify the first defect in deployment order:
+operation index. Version-2 invariants can fail at state 0, the original inventory.
+These fields do not identify the first defect in deployment order:
 the gate validates the whole plan, checks all authorizations, checks final access
 and preservation, then checks intermediate preservation in order. Final access
 requirements apply at the endpoint. Intermediate states may still violate those
@@ -172,6 +179,55 @@ unknowns, negative controls and input/tool failures remain in the denominator,
 including attempts after success. The conditional model assumes each earlier
 write succeeds and becomes visible before the next check; it does not establish
 atomic deployment, controller convergence, rollback or successful API mutation.
+
+## Retirement and transition-invariant evaluation
+
+Version-2 policy contracts use the same evaluator and candidate-only metadata:
+
+```sh
+eval "$(opam env)"
+dune exec bench/repair/rbac_main.exe -- \
+  bench/kubernetes-rbac/workflows/policy-retirement/suite.yaml \
+  bench/kubernetes-rbac/workflows/policy-retirement/submissions.yaml
+```
+
+The supplied campaign has **three synthetic tasks and eleven hand-authored
+attempts**. These exercise the gate and accounting; they are not agent results.
+
+| Task | Controls and first accepted attempt |
+| --- | --- |
+| Retire obsolete policies | Missing replacement, unowned grant, lost required access, unrelated Pod grant, then valid replacement/retirement at attempt 5; another authorization failure follows. |
+| Preserve access during a handoff | A final-valid candidate temporarily loses required ConfigMap access; a valid handoff passes at attempt 2; another temporary-loss attempt remains counted. |
+| Delete an obsolete binding | Leaving the target present is unsupported; removing it passes at attempt 2. |
+
+The campaign exits zero because each task has a valid candidate and no input/tool
+errors. Negative attempts remain in the counts, including both failures after
+success. Individual invariant failures remain non-proofs even when the final
+access/preservation comparison proved.
+
+`invariants` selects existing final-access clause names. The actor, identities,
+groups, domain, scope, selection and ordered operations all remain frozen outside
+candidate control. The evaluator binds the complete outer identity and exact
+input bytes, validates each recorded state/query/report chain, and checks that
+invariant reports identify the outer sequence and expected nested access profile.
+It does not rerun any stage to produce the summary.
+
+For version 2, the gate checks the complete structural plan, all preceding-state
+authorizations, final access/preservation, the selected invariants at states
+0 through N, and then intermediate preservation. `state_invariants_result` is
+the last executed invariant result, or `not_required` when no clauses were
+selected and the sequence reached that stage. `state_invariants_checked` counts
+executed state checks, including a failing check. `invariant_failure_state` is
+populated only when the gate stops in `state_invariants`; 0 denotes the original
+inventory and a positive value denotes the state after that operation. Skipped
+stages, version-1 sequences and non-sequence tasks have null invariant fields.
+
+The distinct `invariant_failed` outcome records a violated, vacuous or
+inconsistent invariant stage. Solver failures remain `unknown`. Neither can
+accept an attempt. The strict snapshot/reference boundary still applies to every
+state; deletion assumes that the object is fully removed and the result visible
+before the next operation. This does not prove live deletion, controller
+reconciliation, successful API mutation or atomic migration.
 
 ## Interpretation and boundaries
 
@@ -229,7 +285,8 @@ including existing fatal summaries. Any successfully frozen newer contract
 (access schema 2–10) selects format 2:
 each task includes its trusted `profile` (null for an invalid/unreadable contract),
 and the top-level `profile` is the sole known profile or null for mixed profiles.
-Without a sequence task, any successfully frozen policy-change contract selects **format 3**, including
+Without a newer policy contract or sequence task, any successfully frozen
+version-1 policy-change contract selects **format 3**, including
 mixed access/change suites and failed submission metadata. Formats 1 and 2 retain
 their existing fields and meanings. Format 3 adds:
 
@@ -246,7 +303,8 @@ The top-level profile is null when outer/access task profiles differ. A failed
 contract has null kind/profile fields; the raw digest is retained when readable.
 The existing Kong format and report/evidence schemas are unchanged.
 
-Any successfully frozen ordered-sequence contract selects **format 4**, including
+Without a newer policy contract, any successfully frozen version-1
+ordered-sequence contract selects **format 4**, including
 mixed access/change/sequence suites and failed submission metadata. Existing
 task sets keep formats 1–3 unchanged. Format 4 adds:
 
@@ -257,6 +315,19 @@ task sets keep formats 1–3 unchanged. Format 4 adds:
   null for access/single-change tasks and for attempts with input/tool failures.
 - `comparison: frozen_ordered_policy_sequence_and_scope_preservation`;
   each task's frozen kind still determines its gate and required stages.
+
+Any successfully frozen **version-2 policy-change or sequence contract** selects
+**format 5**, including mixed suites and failed submission metadata. Existing
+task sets retain formats 1–4 unchanged. Format 5 adds:
+
+- Per-task `contract_version`, identifying that task's frozen outer contract
+  (or its access schema for access-only tasks); invalid contracts have null.
+- Per-attempt `state_invariants_result`, `state_invariants_checked`, and
+  `invariant_failure_state`, with the execution meanings described above.
+- A distinct `invariant_failed` outcome count.
+- `comparison: frozen_policy_retirement_and_state_invariants`; the frozen kind
+  and version still select each task's actual gate. The top-level profile is
+  null when tasks use different access/outer profiles.
 
 The [named-write workflow](../kubernetes-rbac/workflows/write-access/README.md)
 provides schema-3 controls for partial fixes, required manager writes and a
@@ -278,7 +349,8 @@ Access-task repair outcomes are `valid_repair`, `contract_failed`,
 with `valid_change` and can also return `authorization_failed`.
 Ordered-sequence tasks use `valid_sequence` and the same non-success outcome
 names, with the explicit phase fields distinguishing final and intermediate
-preservation failures.
+preservation failures. Version-2 sequences can additionally return
+`invariant_failed`; a final proof alone cannot accept such an attempt.
 A failure has no repair outcome and is
 counted separately. Invalid or unreadable submissions retain the frozen schedule
 with `submitted_attempts: null`; invalid suites have `scheduled_tasks: null`.
@@ -321,4 +393,8 @@ Sequence checks cover frozen ordering, final versus intermediate failures,
 temporary permission gains/losses, one-step and mixed-task summaries, exact input
 and outer-identity substitutions, all attempts after success, and skipped or
 unknown solver stages.
+Retirement checks additionally cover mixed deletion sequences, initial-state and
+intermediate invariant failures, frozen clause selection, unknown invariant
+solvers, mixed contract versions, exact format-5 accounting and unchanged
+format-4 output for legacy sequences.
 The same command also runs the existing Kong evaluator regressions.

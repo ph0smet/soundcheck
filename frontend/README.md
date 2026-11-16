@@ -9,6 +9,7 @@ verdict, counterexample and assurance finding comes from the engine unchanged.
 | Audit   | Upload one config or a zip of configs. Every Kong config found is checked with each exploratory preset and, when you attach one, your reviewed frozen contract, with a live results matrix and a Markdown or PDF report. Includes a sample bundle for trying it without a config. | `soundcheck verify` per file and check |
 | Verify  | Prove a property or a frozen contract over a Kong decK config. Shows the verdict, exit code, counterexample as an HTTP request, assurance findings, and highlights the offending routes in the editor. | `soundcheck verify … --format json` |
 | Compare | Decision, route/service or service-target equivalence of two configs, optionally bound to a frozen contract (repair check). | `soundcheck compare … --format json` |
+| RBAC | Review and lock a contract and original snapshot, then check access, a repair, one policy change or an ordered migration. Inspect state results, counterexamples, assurance and private evidence. | `soundcheck rbac check-contract`, `verify`, `compare`, `change`, `sequence` |
 | Corpus  | Browse the 50 labeled cases in `bench/kong/cases`, open one in Verify, or re-run it and diff against its golden. | `soundcheck verify` |
 | Profile | The versioned Kong assurance boundary: modeled, conservative and unsupported features. | `soundcheck profile kong --format json` |
 
@@ -117,14 +118,17 @@ Engine discovery order: `SOUNDCHECK_BIN`, then `_build/default/cli/main.exe`, th
 | `POST /api/verify` | `{ config, spec }`, where `spec` is `{ mode: "property", property, pathPrefix?, method?, host?, trustedCidr? }` or `{ mode: "contract", contract }` | `{ ok: true, exitCode, report, durationMs, command, provenance }` or `{ ok: false, stage, message, exitCode }` |
 | `POST /api/compare` | `{ before, after, mode, contract? }` | Same envelope with a compare or repair report |
 | `POST /api/audit` | multipart form: `file` (YAML, JSON or zip) or `source=samples`; `gateway`, `pathPrefix`, `trustedCidr`, optional `contractText` | NDJSON stream: one `plan` event, a `result` event per file and check, then `done` only if every check finished. Input problems return 400 `{ error }` |
+| `POST /api/rbac/review` | `{ mode, contract, baseline? }`, with `mode` one of `verify`, `repair`, `change`, `sequence` | Structural review text, selected profiles and exact contract/baseline digests; no verdict |
+| `POST /api/rbac/run` | Review inputs plus `candidate` and `reviewed: { contractSha256, baselineSha256 }` | Accepted native report, profiles, provenance and evidence ZIP, or an `EngineFailure` |
 | `GET /api/profile` | | Assurance profile |
 | `GET /api/engine` | | Engine and solver availability |
 
-`report` is the engine's JSON after strict validation (verify schema 10, compare and
+Kong `report` is the engine's JSON after strict validation (verify schema 10, compare and
 repair schema 1, profile schema 1; evidence manifest schema 2). The adapter pins
 these versions and rejects older or unknown wire shapes. The web interface
-remains Kong-only: object-resource reports are rejected before presentation,
-even though the shared report schema can represent them. Kong counterexamples
+keeps its Kong endpoints separate: object-resource reports are rejected by those
+endpoints even though the shared report schema can represent them. The RBAC
+workspace has its own strict report and evidence acceptance. Kong counterexamples
 carry `object_request: null`, `identity_groups: null` and `granting_rules: []`.
 `provenance` gives the SHA-256 of every input
 document, the engine's identity (executable SHA-256 and Z3 version, when the web
@@ -196,6 +200,49 @@ its canonical identity, and the engine's evidence manifest for each contract che
 report is a summary, not a signed artifact. For audit-grade evidence of a frozen
 contract, use `soundcheck verify <config> --contract <contract> --evidence-dir <dir>`.
 
+## RBAC workspace
+
+Open **RBAC** at `/rbac`. Supply a frozen JSON access, policy-change or sequence
+contract and the required snapshots, or load a labeled synthetic example.
+Access verification uses one candidate; repair, change and sequence checks use
+an original and a candidate. The original is the complete inventory assumed by
+the contract, not a snapshot the UI discovers or certifies as complete.
+
+Review the contract's trusted identities, access clauses, approved change scope,
+actor and ordered operations. Structural review is not a proof. Lock the reviewed
+context before running candidates; replacing the contract or original snapshot
+requires a new review. Candidate edits make earlier results stale. Private RBAC
+documents are not saved to browser storage by default.
+
+The result comes from the CLI. Sequence views distinguish predecessor
+authorization, final requirements, selected invariants at S0 and every resulting
+state, and preservation outside the approved scope. Skipped obligations are not
+successes. The reported failing phase follows engine execution order and need not
+be the earliest defect in chronological state order. `NoOpinion` means that RBAC
+supplies no grant, not that the complete API server denies the request.
+
+Inspect the report, selected assurance profile and input provenance, and download
+the evidence for the exact accepted run. Evidence can contain complete private
+snapshots and should be shared accordingly. It supports replay; it is not an
+independently checked proof certificate. Ordinary modeled deletion assumes
+successful, complete removal visible before the next step. A valid sequence is
+not an atomic deployment guarantee, and this workspace never applies changes to
+a cluster. The local review lock is an operator workflow, not authentication or
+a replacement for the trusted-base CI gate.
+
+The RBAC adapter accepts access contract schemas 1–10 and policy-change/sequence
+schemas 1–2 through the existing engine. It validates shared report schema 10,
+outer reports 1–2, the corresponding profiles and nested evidence layouts. The
+returned canonical contract is checked against the original engine review;
+report/exit agreement and evidence hashes alone cannot substitute a different
+contract. Unknown wire versions and incomplete bundles are refused.
+
+Each input document is limited to 512 KiB. Evidence is limited to 4,096 files,
+64 MiB total before compression, 16 MiB per file and 16 MiB compressed. Oversized
+bundles produce an explicit failure; use the CLI for larger inputs or bundles.
+The ZIP travels with the accepted response and is downloaded from that response,
+without a persistent server-side archive or an endpoint that accepts file paths.
+
 ## Gateways and the audit
 
 `src/lib/gateways.ts` lists every gateway the UI knows. Kong is supported; Repose is
@@ -245,15 +292,20 @@ npm run check    # lint, typecheck and tests
 `SOUNDCHECK_TEST_BIN=../_build/default/cli/main.exe npm test` also runs the engine
 conformance suite (skipped when no engine is built). CI runs it on every pull request,
 and separately builds the Docker image with its full test gate and smoke-tests it.
+`python3 scripts/rbac-web-smoke.py --url http://127.0.0.1:3000`, run from the
+repository root against a running app, checks all four RBAC modes, an intermediate
+failure, context/origin rejection and the downloadable ZIP using Python's ZIP
+reader. The Docker CI smoke includes this check.
 
 ## Structure
 
 ```
-src/app/            routes: verify, compare, corpus, profile, api/*
+src/app/            routes: verify, compare, rbac, corpus, profile, api/*
 src/components/     shell (nav, theme, engine status), results, editors, screens
 src/lib/contract.ts the engine's JSON contracts as strict validators (types inferred)
 src/lib/audit.ts    audit plan, completion and outcome semantics
 src/lib/domain.ts   property catalog, verdict semantics, proof-obligation rendering
+src/lib/rbac/       RBAC report contracts, workspace API and result presentation
 src/lib/server/     engine runner, output acceptance, HTTP guards, bench corpus reader
 ```
 

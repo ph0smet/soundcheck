@@ -53,6 +53,11 @@ val comparison_schema_version : int
 (** Schema 3 identifies repair comparisons explicitly; verification bundles
     retain schema 2 and their existing serialization. *)
 
+val verification_stages : Report.t -> Contract_verify.trace_entry list -> (unit, string) result
+(** Pure protocol validation for one recorded contract run: ordered stages,
+    short-circuiting and report outcome. Does not run a solver, interpret queries
+    or attest to completeness or frozen identity; the connector binds those. *)
+
 val comparison_stages :
   Report.t -> Report.t -> comparison_trace -> (unit, string) result
 (** Check that the final report, candidate report and recorded executions agree:

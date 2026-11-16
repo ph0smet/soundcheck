@@ -1,0 +1,13 @@
+format_version: 1
+attempts:
+  - {task: retire-obsolete-policies, id: unchanged, config: before.json}
+  - {task: retire-obsolete-policies, id: unowned-permission, config: authorization-failed.json}
+  - {task: retire-obsolete-policies, id: required-access-lost, config: contract-failed.json}
+  - {task: retire-obsolete-policies, id: unrelated-pod-grant, config: out-of-scope-regression.json}
+  - {task: retire-obsolete-policies, id: replacement-and-retirement, config: repaired.json}
+  - {task: retire-obsolete-policies, id: later-unauthorized-attempt, config: authorization-failed.json}
+  - {task: preserve-access-during-handoff, id: temporary-access-loss, config: handoff-invariant-failed.json}
+  - {task: preserve-access-during-handoff, id: access-preserved, config: handoff-repaired.json}
+  - {task: preserve-access-during-handoff, id: later-temporary-access-loss, config: handoff-invariant-failed.json}
+  - {task: delete-obsolete-binding, id: target-still-present, config: delete-before.json}
+  - {task: delete-obsolete-binding, id: target-removed, config: delete-after.json}

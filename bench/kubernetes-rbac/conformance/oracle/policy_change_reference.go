@@ -251,7 +251,8 @@ func decodePolicyChangeSpec(data []byte) (policyChangeSpec, *user.DefaultInfo, e
 	if len(strictErrors) != 0 {
 		return spec, nil, fmt.Errorf("invalid contract: %v", strictErrors)
 	}
-	if spec.SchemaVersion != 1 || spec.Kind != "kubernetes-rbac-policy-change" || (spec.Operation != "create" && spec.Operation != "update-existing") {
+	if (spec.SchemaVersion != 1 && spec.SchemaVersion != 2) || spec.Kind != "kubernetes-rbac-policy-change" ||
+		(spec.Operation != "create" && spec.Operation != "update-existing" && !(spec.SchemaVersion == 2 && spec.Operation == "delete-existing")) {
 		return spec, nil, fmt.Errorf("unsupported policy-change contract version/kind/operation")
 	}
 	var raw struct {
@@ -380,7 +381,9 @@ func policyChangeBoundary(beforeJSON, afterJSON []byte, before, after inventory,
 	}
 	old, oldExists := projectPolicies(before)[key]
 	next, nextExists := projectPolicies(after)[key]
-	if !nextExists || (spec.Operation == "create" && oldExists) || (spec.Operation == "update-existing" && !oldExists) {
+	if (spec.Operation == "delete-existing" && (!oldExists || nextExists)) ||
+		(spec.Operation != "delete-existing" && !nextExists) ||
+		(spec.Operation == "create" && oldExists) || (spec.Operation == "update-existing" && !oldExists) {
 		return fmt.Errorf("operation does not match target existence")
 	}
 	if old.AggregationRule != nil || next.AggregationRule != nil {
@@ -410,6 +413,14 @@ func evaluatePolicyChange(beforeJSON, afterJSON, contractJSON []byte) policyChan
 	if len(out.ValidationErrors) != 0 {
 		return out
 	}
+	if spec.SchemaVersion == 2 {
+		for _, data := range [][]byte{beforeJSON, afterJSON} {
+			if err := policyRetirementInventoryBoundary(data); err != nil {
+				out.ValidationErrors = append(out.ValidationErrors, err.Error())
+				return out
+			}
+		}
+	}
 	if err := policyChangeBoundary(beforeJSON, afterJSON, before, after, spec); err != nil {
 		out.ValidationErrors = append(out.ValidationErrors, err.Error())
 		return out
@@ -425,7 +436,9 @@ func evaluatePolicyChange(beforeJSON, afterJSON, contractJSON []byte) policyChan
 		out.ValidationErrors = append(out.ValidationErrors, err.Error())
 		return out
 	}
-	if obj == nil || (spec.Operation == "create" && old != nil) || (spec.Operation == "update-existing" && old == nil) {
+	if (spec.Operation == "delete-existing" && (old == nil || obj != nil)) ||
+		(spec.Operation != "delete-existing" && obj == nil) ||
+		(spec.Operation == "create" && old != nil) || (spec.Operation == "update-existing" && old == nil) {
 		out.ValidationErrors = append(out.ValidationErrors, "operation does not match before/after target existence")
 		return out
 	}
@@ -437,7 +450,7 @@ func evaluatePolicyChange(beforeJSON, afterJSON, contractJSON []byte) policyChan
 			return out
 		}
 	}
-	if old != nil {
+	if old != nil && obj != nil {
 		out.OnlyGCFields = rbacregistry.IsOnlyMutatingGCFields(obj, old, kapihelper.Semantic)
 	}
 	resolver, static := rbacresolver.NewTestRuleResolver(before.roles, before.roleBindings, before.clusterRoles, before.clusterRoleBindings)
@@ -508,6 +521,9 @@ func evaluatePolicyChange(beforeJSON, afterJSON, contractJSON []byte) policyChan
 	if spec.Operation == "update-existing" {
 		method = "PUT"
 		path += "/" + url.PathEscape(spec.Target.Name)
+	} else if spec.Operation == "delete-existing" {
+		method = "DELETE"
+		path += "/" + url.PathEscape(spec.Target.Name)
 	}
 	entry := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		info, _ := apirequest.RequestInfoFrom(req.Context())
@@ -515,6 +531,8 @@ func evaluatePolicyChange(beforeJSON, afterJSON, contractJSON []byte) policyChan
 		var storageError error
 		if spec.Operation == "create" {
 			_, storageError = storage.Create(ctx, obj, nil, &metav1.CreateOptions{})
+		} else if spec.Operation == "delete-existing" {
+			_, _, storageError = storage.Delete(ctx, spec.Target.Name, nil, &metav1.DeleteOptions{})
 		} else {
 			_, _, storageError = storage.Update(ctx, spec.Target.Name, rest.DefaultUpdatedObjectInfo(obj), nil, nil, false, &metav1.UpdateOptions{})
 		}

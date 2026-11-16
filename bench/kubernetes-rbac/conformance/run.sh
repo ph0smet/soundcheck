@@ -63,6 +63,7 @@ export CGO_ENABLED=0
 "$soundcheck_python" "$soundcheck_script_dir/test_controller_apis_runner.py"
 "$soundcheck_python" "$soundcheck_script_dir/test_policy_changes_runner.py"
 "$soundcheck_python" "$soundcheck_script_dir/test_policy_sequences_runner.py"
+"$soundcheck_python" "$soundcheck_script_dir/test_policy_retirement_runner.py"
 dune build bench/kubernetes-rbac/model_oracle.exe bench/kubernetes-rbac/policy_change_oracle.exe cli/main.exe
 
 # Separate frozen operations check native write/bind/escalate/full-policy
@@ -74,6 +75,15 @@ dune build bench/kubernetes-rbac/model_oracle.exe bench/kubernetes-rbac/policy_c
   --z3 "$soundcheck_z3" \
   --module-metadata "$soundcheck_build_dir/kubernetes-module.json" \
   --output "$soundcheck_build_dir/policy-changes/results.json"
+
+# Schema-2 ordinary deletes use the actual generic storage delete path; selected
+# access clauses are independently replayed at S0 and every derived state.
+"$soundcheck_python" "$soundcheck_script_dir/run_policy_retirement.py" \
+  --reference "$soundcheck_build_dir/reference-oracle" \
+  --soundcheck "$soundcheck_repo_root/_build/default/cli/main.exe" \
+  --z3 "$soundcheck_z3" \
+  --module-metadata "$soundcheck_build_dir/kubernetes-module.json" \
+  --output "$soundcheck_build_dir/policy-retirement/results.json"
 
 # Frozen operation order advances native fixture state after every accepted
 # write. Final access and every original-baseline preservation prefix are

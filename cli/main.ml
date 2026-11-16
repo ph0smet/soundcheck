@@ -47,7 +47,7 @@ let usage () =
      usage: soundcheck rbac change BEFORE.json AFTER.json --contract CHANGE.json [--format human|json|github] [--evidence-dir NEW_DIRECTORY]\n\
      usage: soundcheck rbac sequence BEFORE.json AFTER.json --contract SEQUENCE.json [--format human|json|github] [--evidence-dir NEW_DIRECTORY]\n\
     \  Verify versioned static RBAC access requirements, or verify a repair and preserve other decisions.\n\
-     usage: soundcheck profile kong|kubernetes-rbac|kubernetes-rbac-policy-sequence [--format human|json]\n\
+     usage: soundcheck profile kong|kubernetes-rbac|kubernetes-rbac-policy-change[-v2]|kubernetes-rbac-policy-sequence[-v2] [--format human|json]\n\
     \  RBAC also accepts --contract-version 1|2|3|4|5|6|7|8|9|10 (default 1).\n\
     \  Print the versioned connector assurance profile and exit.\n\
      \n\
@@ -434,12 +434,19 @@ let run_profile connector rest =
       options format (Some (int_of_string value)) rest
     | _ -> usage () in
   let format,version = options None None rest in
-  if connector <> "kong" && connector <> "kubernetes-rbac" && connector <> "kubernetes-rbac-policy-sequence" then begin
-    Printf.eprintf "unknown connector %S (expected kong|kubernetes-rbac|kubernetes-rbac-policy-sequence)\n" connector;
+  if not (List.mem connector ["kong";"kubernetes-rbac";"kubernetes-rbac-policy-change";
+      "kubernetes-rbac-policy-change-v2";"kubernetes-rbac-policy-sequence";"kubernetes-rbac-policy-sequence-v2"]) then begin
+    Printf.eprintf "unknown connector %S (expected kong|kubernetes-rbac|kubernetes-rbac-policy-change[-v2]|kubernetes-rbac-policy-sequence[-v2])\n" connector;
     exit 2
   end;
   let rendered =
     match connector,format with
+    | "kubernetes-rbac-policy-change",Human -> Soundcheck_kubernetes_rbac.Policy_change.profile_human_for_version 1
+    | "kubernetes-rbac-policy-change",Json -> Soundcheck_kubernetes_rbac.Policy_change.profile_json
+    | "kubernetes-rbac-policy-change-v2",Human -> Soundcheck_kubernetes_rbac.Policy_change.profile_human_for_version 2
+    | "kubernetes-rbac-policy-change-v2",Json -> Soundcheck_kubernetes_rbac.Policy_change.profile_json_for_version 2
+    | "kubernetes-rbac-policy-sequence-v2",Human -> Soundcheck_kubernetes_rbac.Policy_sequence.profile_human_for_version 2
+    | "kubernetes-rbac-policy-sequence-v2",Json -> Soundcheck_kubernetes_rbac.Policy_sequence.profile_json_for_version 2
     | "kubernetes-rbac-policy-sequence",Human ->
       Soundcheck_kubernetes_rbac.Policy_sequence.profile_human
     | "kubernetes-rbac-policy-sequence",Json -> Soundcheck_kubernetes_rbac.Policy_sequence.profile_json

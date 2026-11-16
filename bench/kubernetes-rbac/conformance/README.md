@@ -315,3 +315,22 @@ python3 bench/kubernetes-rbac/conformance/test_coverage_runner.py
 python3 bench/kubernetes-rbac/conformance/test_bootstrap_packs_runner.py
 python3 bench/kubernetes-rbac/conformance/test_controller_apis_runner.py
 ```
+
+## Policy retirement and migration
+
+The separate [retirement corpus](../policy-retirement/README.md) covers schema-2
+ordinary named deletion of all four policy kinds, mixed distinct-target plans,
+and selected invariant clauses at the original and every resulting state.
+`run_policy_retirement.py` checks 49 frozen cases, 29 rejected boundaries and
+83 native operation prerequisites. Its 60 independently declared state/clause
+checks establish the intended migration outcomes using the pinned authorizer;
+eight lifted failures replay across 16 original/offending-state native decisions.
+
+Unlike creation/update, ordinary DELETE traverses the embedded policy wrapper
+without bind/escalate/coverage checks. The oracle invokes real generic
+`Store.Delete` and `rest.BeforeDelete`; only final persistence is fixture-backed.
+The strict snapshot model excludes finalizers/owners/deletion timestamps, and
+only empty DeleteOptions are used. Full visible removal is conditional; admission,
+controllers, concurrent writes and actual deployment are not established.
+The corpus is frozen before native-only execution and production comparison;
+acceptance rehashes its complete inputs, source pins, tools and native linkage.

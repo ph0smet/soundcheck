@@ -1,0 +1,14 @@
+format_version: 1
+cases:
+  - id: retire-obsolete-policies
+    provenance: synthetic
+    config: before.json
+    contract: contract.json
+  - id: preserve-access-during-handoff
+    provenance: synthetic
+    config: handoff-before.json
+    contract: handoff-contract.json
+  - id: delete-obsolete-binding
+    provenance: synthetic
+    config: delete-before.json
+    contract: delete-contract.json

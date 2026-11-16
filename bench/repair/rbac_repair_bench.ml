@@ -9,6 +9,9 @@ type sequence_stages = {
   assurance : string; phase : string; step : int option;
   final_comparison_result : string option;
   intermediate_preservation_result : string option;
+  state_invariants_result : string option;
+  state_invariants_checked : int option;
+  invariant_failure_state : int option;
 }
 type attempt_row = {
   id : string; ordinal : int; candidate_sha256 : string option;
@@ -21,7 +24,7 @@ type attempt_row = {
 type task_row = {
   id : string; provenance : Pilot.provenance;
   profile : string option;
-  contract_kind : string option; access_profile : string option;
+  contract_kind : string option; contract_version : int option; access_profile : string option;
   baseline_sha256 : string option; contract_sha256 : string option;
   frozen_contract_sha256 : string option;
   failure : failure option; attempts : attempt_row list;
@@ -40,10 +43,13 @@ let requirements = function Access spec -> spec | Change spec -> K.Change_spec.r
   | Sequence spec -> K.Sequence_spec.requirements spec
 let contract_kind = function Access _ -> K.Contract_spec.kind | Change _ -> K.Change_spec.kind
   | Sequence _ -> K.Sequence_spec.kind
+let contract_version = function Access spec -> K.Contract_spec.version spec
+  | Change spec -> K.Change_spec.version spec
+  | Sequence spec -> K.Sequence_spec.version spec
 let access_profile spec = K.Assurance.id_for_version (K.Contract_spec.version (requirements spec))
 let profile = function Access spec -> K.Assurance.id_for_version (K.Contract_spec.version spec)
-  | Change _ -> K.Policy_change.profile_id
-  | Sequence _ -> K.Policy_sequence.profile_id
+  | Change spec -> K.Policy_change.profile_id_for_version (K.Change_spec.version spec)
+  | Sequence spec -> K.Policy_sequence.profile_id_for_version (K.Sequence_spec.version spec)
 type frozen_task = {
   task : Pilot.case;
   baseline : (string, failure) result;
@@ -192,6 +198,7 @@ let project_sequence spec ~before ~after result =
   let view = K.Policy_sequence.evaluation result in
   let nested_spec = K.Sequence_spec.requirements spec in
   let expected_profile = K.Assurance.id_for_version (K.Contract_spec.version nested_spec) in
+  let version = K.Sequence_spec.version spec in
   let prefix_reports = List.for_all (fun (entry : K.Policy_sequence.intermediate) ->
     match entry.verification with
     | None -> true
@@ -207,9 +214,32 @@ let project_sequence spec ~before ~after result =
         | (Report.Proved|Report.Unknown _),None -> true
         | Report.Violated _,Some clause -> clause.name=preservation_id && clause.kind=Report.Must_preserve
         | _ -> false)) view.intermediate_preservation in
+  let invariant_reports = List.for_all (fun (entry : K.Policy_sequence.invariant) ->
+    match entry.verification with
+    | None -> true
+    | Some value ->
+      let report = value.K.Verify.report in
+      let selected_clause = match report.clause with
+        | None -> false
+        | Some clause -> List.mem clause.name (K.Sequence_spec.invariants spec)
+          && List.exists (fun (expected : K.Contract_spec.clause) ->
+            expected.name=clause.name && clause.kind=(match expected.kind with
+              | Must_allow -> Report.Must_allow | Must_not_grant -> Report.Must_not_grant))
+            (K.Contract_spec.clauses nested_spec) in
+      report.frozen_spec=Some (K.Sequence_spec.frozen_spec spec)
+      && report.property_name="rbac-sequence-invariants"
+      && (match report.assurance with
+        | Some assessment -> assessment.profile=expected_profile
+          && assessment.status=Report.Within_profile && assessment.findings=[]
+        | None -> false)
+      && (match report.result,report.clause with
+        | (Report.Proved|Report.Unknown _),None -> true
+        | (Report.Violated _|Report.Vacuous|Report.Inconsistent _),Some _ -> selected_clause
+        | _ -> false)) view.state_invariants in
   if view.frozen_contract <> Some (K.Sequence_spec.canonical spec)
     || view.before_sha256 <> Sha256.string before || view.after_sha256 <> Sha256.string after
-    || not prefix_reports || Result.is_error (K.Policy_sequence.validate_evaluation result)
+    || not prefix_reports || not invariant_reports
+    || Result.is_error (K.Policy_sequence.validate_evaluation result)
   then Error Report_mismatch
   else
     let open K.Policy_sequence in
@@ -219,6 +249,18 @@ let project_sequence spec ~before ~after result =
       | [] when view.phase=Complete && List.length (K.Sequence_spec.steps spec)=1 -> Some "not_required"
       | [] -> None
       | last::_ -> Some (result_name last.K.Verify.report.result) in
+    let invariant_runs = List.filter_map (fun (entry : invariant) -> entry.verification)
+        view.state_invariants in
+    let state_invariants_result = if version=1 then None else match List.rev invariant_runs with
+      | [] when view.state_invariants=[] && List.mem view.phase [Intermediate_preservation;Complete] ->
+        Some "not_required"
+      | [] -> None
+      | last::_ -> Some (result_name last.K.Verify.report.result) in
+    let state_invariants_checked = match state_invariants_result with
+      | None -> None | Some _ -> Some (List.length invariant_runs) in
+    let invariant_failure_state = if view.phase=State_invariants then view.failing_step else None in
+    let invariants_passed = if version=1 then state_invariants_result=None
+      else List.mem state_invariants_result [Some "proved";Some "not_required"] in
     let nested = match view.comparison with
       | None -> Ok None
       | Some comparison -> Result.map Option.some
@@ -236,12 +278,18 @@ let project_sequence spec ~before ~after result =
             when nested.repair_result="out_of_scope_regression" -> Some "out_of_scope_regression"
         | Unknown,Final_verification,Some true,Some nested,None
             when nested.repair_result="unknown" -> Some "unknown"
+        | Invariant_failed,State_invariants,Some true,Some nested,None
+            when nested.repair_result="valid_repair"
+              && List.mem state_invariants_result [Some "violated";Some "vacuous";Some "inconsistent"] ->
+          Some "invariant_failed"
+        | Unknown,State_invariants,Some true,Some nested,None
+            when nested.repair_result="valid_repair" && state_invariants_result=Some "unknown" -> Some "unknown"
         | Out_of_scope_regression,Intermediate_preservation,Some true,Some nested,Some "violated"
-            when nested.repair_result="valid_repair" -> Some "out_of_scope_regression"
+            when nested.repair_result="valid_repair" && invariants_passed -> Some "out_of_scope_regression"
         | Unknown,Intermediate_preservation,Some true,Some nested,Some "unknown"
-            when nested.repair_result="valid_repair" -> Some "unknown"
+            when nested.repair_result="valid_repair" && invariants_passed -> Some "unknown"
         | Valid_sequence,Complete,Some true,Some nested,Some ("proved"|"not_required")
-            when nested.repair_result="valid_repair" -> Some "valid_sequence"
+            when nested.repair_result="valid_repair" && invariants_passed -> Some "valid_sequence"
         | _ -> None in
       match expected with
       | None -> Error Report_mismatch
@@ -250,7 +298,8 @@ let project_sequence spec ~before ~after result =
           assurance=(if view.outcome=Unknown then "unsupported_or_inconclusive" else "within_profile");
           phase=phase_name view.phase;step=view.failing_step;
           final_comparison_result=Option.map (fun nested -> nested.repair_result) nested;
-          intermediate_preservation_result} in
+          intermediate_preservation_result;state_invariants_result;state_invariants_checked;
+          invariant_failure_state} in
         let authorization_result = Option.map (fun allowed -> if allowed then "allowed" else "not_authorized")
             view.authorization_allowed in
         Ok {contract_result=Option.bind nested (fun value -> value.contract_result);
@@ -262,6 +311,7 @@ let task_row entry failure attempts =
   {id=entry.task.id;provenance=entry.task.provenance;
    profile=Result.to_option (Result.map profile entry.contract);
    contract_kind=Result.to_option (Result.map contract_kind entry.contract);
+   contract_version=Result.to_option (Result.map contract_version entry.contract);
    access_profile=Result.to_option (Result.map access_profile entry.contract);
    baseline_sha256=entry.baseline_digest;contract_sha256=entry.contract_digest;
    frozen_contract_sha256=entry.frozen_contract_digest;failure;attempts}
@@ -350,7 +400,13 @@ let attempt_json ~version (row : attempt_row) = `O ([
         | None -> `Null | Some step -> integer step);
       "final_comparison_result",optional (Option.bind row.sequence (fun value -> value.final_comparison_result));
       "intermediate_preservation_result",optional
-        (Option.bind row.sequence (fun value -> value.intermediate_preservation_result))] else []))
+        (Option.bind row.sequence (fun value -> value.intermediate_preservation_result))] else [])
+  @ (if version>=5 then [
+      "state_invariants_result",optional (Option.bind row.sequence (fun value -> value.state_invariants_result));
+      "state_invariants_checked",(match Option.bind row.sequence (fun value -> value.state_invariants_checked) with
+        | None -> `Null | Some count -> integer count);
+      "invariant_failure_state",(match Option.bind row.sequence (fun value -> value.invariant_failure_state) with
+        | None -> `Null | Some state -> integer state)] else []))
 let task_json ~version (row : task_row) = `O ([
   "id",string row.id; "provenance",string (provenance_name row.provenance);
   "baseline_sha256",optional row.baseline_sha256;
@@ -360,17 +416,23 @@ let task_json ~version (row : task_row) = `O ([
   "first_valid_attempt",(match first_valid row with None -> `Null | Some attempt -> integer attempt.ordinal);
   "attempts",`A (List.map (attempt_json ~version) row.attempts)]
   @ (if version>=2 then ["profile",optional row.profile] else [])
-  @ if version>=3 then ["contract_kind",optional row.contract_kind;
+  @ (if version>=3 then ["contract_kind",optional row.contract_kind;
       "access_profile",optional row.access_profile] else [])
+  @ if version>=5 then ["contract_version",(match row.contract_version with
+      | None -> `Null | Some contract_version -> integer contract_version)] else [])
 let header version profile = ["experimental_format_version",integer version;
   "kind",string "submitted_rbac_repair_evaluation";
   "profile",optional profile;
-  "comparison",string (if version>=4 then "frozen_ordered_policy_sequence_and_scope_preservation"
+  "comparison",string (if version>=5 then "frozen_policy_retirement_and_state_invariants"
+    else if version>=4 then "frozen_ordered_policy_sequence_and_scope_preservation"
     else if version=3 then "frozen_policy_change_and_scope_preservation" else "frozen_scope_preservation")]
 let to_json tasks =
   let profiles = List.filter_map (fun (task : task_row) -> task.profile) tasks
     |> List.sort_uniq String.compare in
-  let version = if List.exists (fun (task : task_row) -> task.contract_kind=Some K.Sequence_spec.kind) tasks then 4
+  let version = if List.exists (fun (task : task_row) ->
+      List.mem task.contract_kind [Some K.Change_spec.kind;Some K.Sequence_spec.kind]
+      && Option.fold ~none:false ~some:((<=) 2) task.contract_version) tasks then 5
+    else if List.exists (fun (task : task_row) -> task.contract_kind=Some K.Sequence_spec.kind) tasks then 4
     else if List.exists (fun (task : task_row) -> task.contract_kind=Some K.Change_spec.kind) tasks then 3
     else if List.exists ((<>) K.Assurance.profile_id) profiles then 2 else 1 in
   let profile = if version = 1 then Some K.Assurance.profile_id
@@ -383,6 +445,7 @@ let to_json tasks =
     integer (count (fun (row : attempt_row) -> row.repair_result = Some result) attempts))
       (["valid_repair"] @ (if version>=3 then ["valid_change";"authorization_failed"] else [])
        @ (if version>=4 then ["valid_sequence"] else [])
+       @ (if version>=5 then ["invariant_failed"] else [])
        @ ["contract_failed";"out_of_scope_regression";"unknown"])
     @ ["errors",integer (count (fun (row : attempt_row) -> row.failure <> None
         || row.repair_result = None) attempts)] in

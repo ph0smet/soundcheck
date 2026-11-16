@@ -10,7 +10,9 @@ This combines two checks with different meanings:
 
 1. A deterministic check of Kubernetes v1.34.0's RBAC write prerequisites:
    initial `create`/`update`, followed by explicit `bind`/`escalate` or full policy
-   coverage using the caller's **original** permissions.
+   coverage using the caller's **original** permissions. Schema 2 also supports
+   ordinary named `delete`, which needs the initial grant without a bind,
+   escalate or coverage requirement.
 2. The existing solver-backed access-contract and repair-preservation checks,
    using the nested contract's fixed identities and request domain.
 
@@ -21,7 +23,7 @@ permission under a composed authorization chain.
 For multiple ordered edits, use the separate
 [`rbac sequence` contract and gate](rbac-policy-sequences.md). It checks authority
 from each preceding state and preserves out-of-scope decisions after every edit;
-the single-operation contract described here keeps its original semantics.
+the schema-1 single-operation contract keeps its original semantics.
 
 ## Run the synthetic example
 
@@ -86,9 +88,10 @@ access schema 11. The actor must exactly match a nested trusted identity; groups
 are taken only from that frozen identity. A policy owner must review those
 groups and establish inventory completeness independently.
 
-Both inputs are complete strict JSON Kubernetes Lists. Supported operations are
+Both inputs are complete strict JSON Kubernetes Lists. Schema 1 supports
 `create` and `update-existing` on Role, ClusterRole, RoleBinding or
-ClusterRoleBinding. Cluster-scoped targets require `namespace: null`. Creation
+ClusterRoleBinding. Schema 2 also accepts `delete-existing`. Cluster-scoped
+targets require `namespace: null`. Creation
 requires absence before and presence after; update requires presence in both.
 The target's name is fixed and supports Kubernetes RBAC path-segment names such
 as `system:controller:example`.
@@ -102,9 +105,55 @@ changes, metadata-only/no-op updates, aggregate ClusterRole targets and actors
 in `system:masters` are unsupported. Existing non-target aggregates must remain
 complete and already resolved in both snapshots.
 
-Patch, apply, delete, create-on-update, impersonation, multi-object sequences,
+Patch, apply, bulk deletion, create-on-update, impersonation, multi-object sequences,
 controller reconciliation and concurrent/live state are outside this profile.
 Unsupported input or an exceeded work limit yields `unknown`.
+
+## Retire one policy object
+
+A schema-2 contract keeps the same fields and adds `delete-existing`:
+
+```json
+{
+  "schema_version": 2,
+  "kind": "kubernetes-rbac-policy-change",
+  "actor": "deployer",
+  "operation": "delete-existing",
+  "target": {"kind": "RoleBinding", "namespace": "team-a", "name": "old-app"},
+  "requirements": {"...": "a complete existing kubernetes-rbac-access contract"}
+}
+```
+
+The target must exist in the original inventory and be absent from the candidate.
+Every unrelated object must remain unchanged. Deletion checks the caller's
+`delete` permission on that exact resource, namespace and **name**, using only
+the original inventory. It does not require the permissions contained in the
+removed Role or referenced by the removed binding. Create/update retain their
+existing bind/escalate or coverage checks.
+
+Both inventories must still resolve every role reference. Remove bindings before
+their referenced roles; aggregate targets remain unsupported. The operation
+models ordinary default DELETE options and assumes completed removal, not merely
+an accepted deletion request. Finalizers, owner references and deletion timestamps
+are outside the strict metadata subset. Unsafe deletion options, admission,
+garbage collection, concurrent edits and controller reconciliation are not modeled.
+
+Run the [synthetic retirement example](../bench/kubernetes-rbac/workflows/policy-retirement/README.md):
+
+```sh
+dune exec soundcheck -- rbac change \
+  bench/kubernetes-rbac/workflows/policy-retirement/delete-before.json \
+  bench/kubernetes-rbac/workflows/policy-retirement/delete-after.json \
+  --contract bench/kubernetes-rbac/workflows/policy-retirement/delete-contract.json \
+  --format json
+dune exec soundcheck -- profile kubernetes-rbac-policy-change-v2 --format json
+```
+
+Schema-2 reports and outer evidence use version 2 and profile
+`kubernetes-rbac-v1.34-policy-change-v2`. Existing schema-1 reports, canonical
+identities and profiles are unchanged. The nested access and comparison reports
+retain their existing format. `profile kubernetes-rbac-policy-change` inspects
+version 1; the explicit `-v2` selector inspects the new profile.
 
 ## Read the authorization evidence
 
@@ -122,7 +171,7 @@ outside the nested access contract's catalogue. Different atomic obligations
 may be covered by different whole owner rules. A finite list of current
 resources cannot cover a proposed wildcard.
 
-The outer JSON report uses schema **1**, kind
+For schema-1 contracts, the outer JSON report uses schema **1**, kind
 `kubernetes-rbac-policy-change` and profile
 `kubernetes-rbac-v1.34-policy-change-v1`. Its `authorization` contains the initial
 and special request attributes, granting rule indices, and, when needed,
@@ -132,8 +181,9 @@ the operation namespace, retaining binding and rule order. Missing atoms retain
 their proposed rule index and atom index within that rule. They are policy
 obligations, not concrete request counterexamples.
 
-`special` is null if the initial grant is absent. `coverage` is null if the
-initial grant is absent or explicit special authority suffices. `verification`
+`special` is null if the initial grant is absent or the operation is deletion.
+`coverage` is null for deletion, if the initial grant is absent, or if explicit
+special authority suffices. `verification`
 is null when authorization did not succeed; otherwise it retains the unchanged
 schema-10 candidate and comparison reports. A solver failure returns `unknown`;
 vacuous and inconsistent requirements remain visible in the nested report and
@@ -180,7 +230,8 @@ prerequisites. See the [Action boundary](../README.md#github-action).
 ## Save evidence and check conformance
 
 Append `--evidence-dir /tmp/soundcheck-policy-change-evidence` to `rbac change`,
-using a new destination. The private outer schema-1 bundle binds the exact
+using a new destination. The private outer bundle (schema 1 or 2, matching the
+change contract) binds the exact
 before/after bytes by SHA-256, canonical change contract, profile, report and
 verifier provenance. When executed, `verification/` contains the unchanged
 comparison evidence with every planned query, solver outcome and validated SAT
@@ -196,3 +247,6 @@ checks the pinned production authorizer, policy-based storage guards and native
 policy coverage independently. It uses fixture storage and does not contact a
 cluster. See the [approved scope](plans/2026-11-rbac-policy-changes.md) for the
 semantic boundary and acceptance requirements.
+
+The [retirement and migration scope](plans/2026-11-rbac-retirement-migrations.md)
+records schema-2 deletion semantics and its separate pinned native acceptance.

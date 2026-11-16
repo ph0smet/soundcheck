@@ -12,7 +12,7 @@ inputs:
     required: false
     default: kong
   mode:
-    description: Trusted workflow-selected mode, verify, repair, change or sequence; repair/change/sequence require kubernetes-rbac on a pull request with the original snapshot at the same config path in the approved base commit; change checks one frozen policy operation; sequence checks the frozen ordered operations and preservation after every step
+    description: Trusted workflow-selected mode, verify, repair, change or sequence; repair/change/sequence require kubernetes-rbac on a pull request with the original snapshot at the same config path in the approved base commit; change checks one frozen policy operation; sequence checks frozen ordered operations, selected schema-2 invariants in the original and every resulting state, and preservation after every step
     required: false
     default: verify
   config:

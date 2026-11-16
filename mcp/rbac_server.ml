@@ -40,11 +40,17 @@ let tool name description =
 
 let tools state =
   match state.contract with
-  | Sequence _ -> J.obj ["tools",J.arr [tool "sequence"
-      ("Check the frozen ordered operations using each preceding state, final access requirements, and out-of-scope preservation after every step. Only config may be supplied. Immutable baseline SHA-256 " ^
+  | Sequence contract -> J.obj ["tools",J.arr [tool "sequence"
+      ((if K.Sequence_spec.version contract=1 then
+          "Check the frozen ordered operations using each preceding state, final access requirements, and out-of-scope preservation after every step. Only config may be supplied. Immutable baseline SHA-256 "
+        else
+          "Check the frozen ordered create/update/delete operations using each preceding state, final access, selected invariants in the original and every resulting state, and preservation outside the approved scope after every step. Deletion assumes complete visible removal. Only config may be supplied. Immutable baseline SHA-256 ") ^
         Sha256.string (Option.get state.baseline))]]
-  | Change _ -> J.obj ["tools",J.arr [tool "change"
-      ("Check the single policy operation and frozen access/preservation requirements using original-snapshot authorization. Only config may be supplied. Immutable baseline SHA-256 " ^
+  | Change contract -> J.obj ["tools",J.arr [tool "change"
+      ((if K.Change_spec.version contract=1 then
+          "Check the single policy operation and frozen access/preservation requirements using original-snapshot authorization. Only config may be supplied. Immutable baseline SHA-256 "
+        else
+          "Check the single frozen create/update/delete operation and access/preservation requirements using original-snapshot authorization. Deletion assumes complete visible removal. Only config may be supplied. Immutable baseline SHA-256 ") ^
         Sha256.string (Option.get state.baseline))]]
   | Access _ ->
   let verify = tool "verify"

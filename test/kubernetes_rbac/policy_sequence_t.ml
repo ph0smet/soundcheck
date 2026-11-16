@@ -97,7 +97,7 @@ let () =
     "duplicate target",contract [step "a";step "a"];
     "duplicate key",add "actor" (str "deployer") (contract [step "a"]);
     "unknown key",add "intermediate_requirements" (`Bool false) (contract [step "a"]);
-    "unknown version",replace "schema_version" (`Number "2") (contract [step "a"]);
+    "unknown version",replace "schema_version" (`Number "3") (contract [step "a"]);
     "noninteger version",replace "schema_version" (`Number "1.0") (contract [step "a"]);
     "missing requirements",remove "requirements" (contract [step "a"]);
     "unknown actor",replace "actor" (str "other") (contract [step "a"]);

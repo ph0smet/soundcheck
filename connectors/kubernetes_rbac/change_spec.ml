@@ -1,18 +1,20 @@
 open Input
 
-type operation = Create | Update_existing
+type operation = Create | Update_existing | Delete_existing
 type target = { kind : string; namespace : string; name : string }
-type t = { actor : Identity.identity; operation : operation; target : target;
+type t = { version : int; actor : Identity.identity; operation : operation; target : target;
            requirements : Contract_spec.t }
 let kind = "kubernetes-rbac-policy-change"
 let has_kind source = match protect (fun () -> parse source) with
   | Ok (`O fields) -> List.assoc_opt "kind" fields=Some (`String kind)
   | _ -> false
 let actor t = t.actor
+let version t = t.version
 let operation t = t.operation
 let target t = t.target
 let requirements t = t.requirements
 let operation_name = function Create -> "create" | Update_existing -> "update-existing"
+  | Delete_existing -> "delete-existing"
 let resource target = match target.kind with
   | "Role" -> "roles" | "ClusterRole" -> "clusterroles"
   | "RoleBinding" -> "rolebindings" | "ClusterRoleBinding" -> "clusterrolebindings"
@@ -21,7 +23,9 @@ let resource target = match target.kind with
 let of_string source = protect (fun () ->
   let p = "change_contract" in
   let fields = obj p ["schema_version";"kind";"actor";"operation";"target";"requirements"] (parse source) in
-  if field p "schema_version" fields <> `Number "1" then reject p "schema_version must be integer 1";
+  let version = match field p "schema_version" fields with
+    | `Number "1" -> 1 | `Number "2" -> 2
+    | _ -> reject p "schema_version must be integer 1 or 2" in
   require_equal (p ^ ".kind") (string_field p "kind" fields) kind;
   let requirements = match Contract_spec.of_string (json (field p "requirements" fields)) with
     | Ok value -> value | Error reason -> reject (p ^ ".requirements") reason in
@@ -34,7 +38,10 @@ let of_string source = protect (fun () ->
     reject (p ^ ".actor") "system:masters bypass actors are outside the policy-change profile";
   let operation = match string_field p "operation" fields with
     | "create" -> Create | "update-existing" -> Update_existing
-    | _ -> reject (p ^ ".operation") "expected create or update-existing; patch, apply, delete and create-on-update are unsupported" in
+    | "delete-existing" when version=2 -> Delete_existing
+    | _ -> reject (p ^ ".operation") (if version=1 then
+        "expected create or update-existing; patch, apply, delete and create-on-update are unsupported"
+      else "expected create, update-existing or delete-existing; patch, apply, bulk deletion and create-on-update are unsupported") in
   let p = p ^ ".target" in
   let fields = obj p ["kind";"namespace";"name"] (field "change_contract" "target" fields) in
   let target_kind = string_field p "kind" fields in
@@ -46,9 +53,9 @@ let of_string source = protect (fun () ->
     | `String value when namespaced -> namespace (p ^ ".namespace") value
     | `Null when not namespaced -> ""
     | _ -> reject (p ^ ".namespace") "use a namespace string for Role/RoleBinding and null for cluster-scoped kinds" in
-  {actor;operation;target={kind=target_kind;namespace=ns;name};requirements})
+  {version;actor;operation;target={kind=target_kind;namespace=ns;name};requirements})
 
-let canonical t = json (`O ["schema_version",`Number "1";"kind",`String kind;
+let canonical t = json (`O ["schema_version",`Number (string_of_int t.version);"kind",`String kind;
   "actor",`String t.actor.username;"operation",`String (operation_name t.operation);
   "target",`O ["kind",`String t.target.kind;
     "namespace",(if t.target.namespace="" then `Null else `String t.target.namespace);
@@ -56,7 +63,9 @@ let canonical t = json (`O ["schema_version",`Number "1";"kind",`String kind;
   "requirements",parse (Contract_spec.canonical t.requirements)])
 
 let review t =
-  Printf.sprintf "Frozen RBAC policy change (schema 1)\nActor: %S; trusted groups: [%s]\nOperation: %s\nTarget: %s namespace=%S name=%S\nOnly this target may change. Authorization uses the original snapshot.\nInitial and bind/escalate/coverage checks do not establish successful mutation.\nNested access contract: schema %d; preservation domain follows that schema.\n"
-    t.actor.username (String.concat ", " (List.map (Printf.sprintf "%S") t.actor.groups))
+  Printf.sprintf "Frozen RBAC policy change (schema %d)\nActor: %S; trusted groups: [%s]\nOperation: %s\nTarget: %s namespace=%S name=%S\nOnly this target may change. Authorization uses the original snapshot.\n%s\nNested access contract: schema %d; preservation domain follows that schema.\n"
+    t.version t.actor.username (String.concat ", " (List.map (Printf.sprintf "%S") t.actor.groups))
     (operation_name t.operation) t.target.kind t.target.namespace t.target.name
+    (if t.version=1 then "Initial and bind/escalate/coverage checks do not establish successful mutation."
+     else "Create/update use initial and bind/escalate/coverage checks; ordinary delete-existing uses the initial named delete grant only. Removal is conditional on successful fully visible deletion, with default options and no concurrent writes or controller reconciliation.")
     (Contract_spec.version t.requirements)
