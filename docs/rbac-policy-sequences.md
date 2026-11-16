@@ -241,3 +241,9 @@ The [local RBAC web workspace](../frontend/README.md#rbac-workspace) reviews the
 same contract and shows authorization, invariant and preservation results for
 each state. It invokes the existing CLI and downloads the evidence for that run;
 it does not execute the migration against a cluster.
+
+The [bounded transition stress harness](../bench/kubernetes-rbac/transition-stress/README.md)
+freezes synthetic cases before execution and records all outcomes and timings.
+Its smoke tier runs in CI; the larger tier covers up to 16 steps, 260 inventory
+objects, 16 identities and 16 clauses. These constructions complement native
+conformance and do not establish worst-case performance or deployment readiness.

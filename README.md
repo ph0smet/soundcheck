@@ -107,12 +107,16 @@ selected modeled behavior outside the repair's scope is preserved. Ordinary
 Kong and the bounded RBAC profile share the CLI/library, frozen MCP and reusable
 Action workflows. RBAC also supports MCP repair comparison with a startup
 baseline; see its [contract and integration boundary](docs/kubernetes-rbac.md).
-For a single Role or binding creation/update, [`rbac change`](docs/rbac-policy-changes.md)
-also checks the frozen caller's original write, bind/escalate or full-policy
-authority before running the access and preservation checks.
+For a single Role or binding operation, [`rbac change`](docs/rbac-policy-changes.md)
+checks the frozen caller's original authority before running access and
+preservation checks. Schema 2 adds named deletion alongside creation/update.
 For an ordered multi-object plan, [`rbac sequence`](docs/rbac-policy-sequences.md)
 authorizes each step from its preceding state and preserves out-of-scope
-permissions after every step while verifying the final access requirements.
+permissions after every step. Schema 2 supports mixed creation/update/deletion
+and selected access requirements that must hold in the original and every
+resulting state, as well as the final requirements. The
+[retirement and migration example](bench/kubernetes-rbac/workflows/policy-retirement/README.md)
+replaces a role and binding while retaining required access.
 
 1. **Review the requirement.** A policy owner selects a supported contract kind,
    reviews its scope and assumptions, and approves it separately from the
@@ -168,11 +172,17 @@ or CI job.
 | Verification | Six Kong property templates, three Kong frozen contract kinds, and paired RBAC access contracts |
 | Verdicts | `proved`, `violated`, `vacuous`, `inconsistent`, or `unknown` |
 | Comparisons | Kong decision/routing equivalence; RBAC decision preservation outside a frozen change scope |
-| Interfaces | CLI/library, schema-v10 JSON, frozen MCP, GitHub annotations and the Action for both targets; web UI for Kong |
+| Interfaces | CLI/library, schema-v10 JSON, frozen MCP, GitHub annotations and the Action for both targets; local web workspaces for Kong and RBAC |
 | Audit output | Kong/RBAC verification bundles, RBAC repair-comparison bundles, SMT-LIB2 queries and reference conformance replays |
 
 Additional gateways, OPA/Rego, IAM, and app-level authorization
 are [future targets](#roadmap), not shipped connectors.
+
+The [web workspace](frontend/README.md) includes an **RBAC** screen for reviewing
+a frozen contract and checking access, repairs, policy changes or ordered
+migrations. It shows the engine's authorization, per-state requirements,
+preservation results and evidence. Contract review is distinct from verification;
+the local UI does not replace trusted CI or approval of the requirements.
 
 ### Kubernetes RBAC example
 
@@ -418,7 +428,8 @@ the same approved original snapshot. It requires a separate change contract and
 is also pull-request-only.
 [`mode: sequence`](docs/rbac-policy-sequences.md#keep-inputs-fixed-in-mcp-and-ci)
 uses a separate frozen ordered contract and the same approved-base extraction
-for multi-object plans; it also requires a pull request.
+for multi-object plans, including schema-2 deletion and selected transition
+invariants; it also requires a pull request.
 
 Use a reviewed full commit SHA in a fresh, trusted job before candidate code
 runs. The caller workflow, mode, connector, fixed config/contract paths, and
@@ -620,9 +631,10 @@ evidence to the shared verification core.
   coverage through small authorized deployment pilots.
 - **Evaluate RBAC on real workflows.** The static connector covers controller
   resources, reviewed custom APIs, URLs and bounded mutation prerequisites.
-  A separate frozen change gate checks one Role/binding write's authorization.
+  Frozen change and sequence gates check Role/binding operations, including
+  bounded retirement and migration with requirements throughout the transition.
   Evaluate repair usefulness on public inputs and authorized deployments;
-  multi-step privilege escalation, impersonation and runtime effects need
+  broader privilege transitions, impersonation and runtime effects need
   separate models.
 - **Extend to more policy systems.** Additional gateways, OPA/Rego, IAM, and
   application authorization remain future targets. Each target needs precise

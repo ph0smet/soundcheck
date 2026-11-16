@@ -51,6 +51,24 @@ jobs:
         # Keep the preceding build parallel; rerun every test without retries.
         run: opam exec -- dune test --force -j 1
 
+      - name: Check transition-stress accounting and protocol controls
+        run: python3 bench/kubernetes-rbac/transition-stress/test_runner.py
+
+      - name: Run bounded RBAC transition smoke cases
+        run: |
+          opam exec -- python3 bench/kubernetes-rbac/transition-stress/run.py \
+            --binary _build/default/cli/main.exe --tier smoke \
+            --output "$RUNNER_TEMP/rbac-transition-stress"
+
+      - name: Retain transition-stress inputs and results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rbac-transition-stress
+          path: ${{ runner.temp }}/rbac-transition-stress/
+          if-no-files-found: ignore
+          retention-days: 7
+
   kong-conformance:
     name: Kong conformance (3.9.3)
     runs-on: ubuntu-latest
