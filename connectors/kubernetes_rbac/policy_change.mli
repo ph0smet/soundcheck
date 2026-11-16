@@ -20,6 +20,9 @@ type evaluation = {
   comparison : Verify.comparison option;
 }
 val profile_id : string
+val profile_id_for_version : int -> string
+val profile_json_for_version : int -> string
+val profile_human_for_version : int -> string
 val evaluation : t -> evaluation
 (** Read-only view of one completed run for trusted evaluators. Binds the outer
     contract and exact inputs, retaining the original nested comparison/trace.

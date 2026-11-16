@@ -48,6 +48,21 @@ let () =
   let source file=read (Filename.concat root file) in
   let contract=source "contract.json" and before=source "before.json" and repaired=source "repaired.json" in
   let spec=ok (K.Sequence_spec.of_string contract) in
+  let next_json=replace "schema_version" (`Number "2") (K.Input.parse contract) in
+  let next_json=match next_json with
+    | `O fields -> `O (("invariants",`A [])::fields) | _ -> failwith "expected object" in
+  let next_contract=K.Input.json next_json in
+  check "connector supports the next policy version"
+    (Result.is_ok (K.Sequence_spec.of_string next_contract));
+  let blocked=freeze ~suite_root:"unused" ~read_suite:(fun file ->
+    Ok (if file="contract.json" then next_contract else before)) [task ()] in
+  let pending=ok (parse_submissions blocked (submissions [entry "next" "candidate"])) in
+  let read_candidate=ref false in
+  let blocked_rows=run ~read_candidate:(fun _ -> read_candidate:=true;Ok before)
+    ~submission_root:"unused" blocked pending in
+  check "unsupported evaluator version fails before candidate evaluation"
+    ((first blocked_rows).failure=Some Contract_invalid && exit_code blocked_rows=1
+     && not !read_candidate);
   let expected=[
     "before.json","unknown",None,None,"preparation",Some 1,None,None;
     "authorization-failed.json","authorization_failed",Some "not_authorized",None,"authorization",Some 1,None,None;

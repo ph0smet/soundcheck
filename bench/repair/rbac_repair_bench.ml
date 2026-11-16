@@ -29,8 +29,16 @@ type task_row = {
 type contract = Access of K.Contract_spec.t | Change of K.Change_spec.t
   | Sequence of K.Sequence_spec.t
 let parse_contract bytes =
-  if K.Sequence_spec.has_kind bytes then Result.map (fun spec -> Sequence spec) (K.Sequence_spec.of_string bytes)
-  else if K.Change_spec.has_kind bytes then Result.map (fun spec -> Change spec) (K.Change_spec.of_string bytes)
+  (* Reject policy versions whose profile and stage protocol this evaluator
+     cannot yet project into its legacy summary formats. *)
+  if K.Sequence_spec.has_kind bytes then
+    Result.bind (K.Sequence_spec.of_string bytes) (fun spec ->
+      if K.Sequence_spec.version spec=1 then Ok (Sequence spec)
+      else Error "unsupported evaluator policy-sequence version")
+  else if K.Change_spec.has_kind bytes then
+    Result.bind (K.Change_spec.of_string bytes) (fun spec ->
+      if K.Change_spec.version spec=1 then Ok (Change spec)
+      else Error "unsupported evaluator policy-change version")
   else Result.map (fun spec -> Access spec) (K.Contract_spec.of_string bytes)
 let canonical = function
   | Access spec -> K.Contract_spec.canonical spec

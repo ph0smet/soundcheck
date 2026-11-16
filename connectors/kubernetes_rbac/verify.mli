@@ -9,6 +9,19 @@ val run_with_trace : ?z3:string -> Contract_spec.t -> string ->
     execution result. Short-circuited obligations are retained as unexecuted.
     Unsupported snapshots return [None]; no solver is rerun to collect evidence. *)
 
+type selected_plan
+type selected = {
+  report : Soundcheck_core.Report.t;
+  trace : Soundcheck_core.Contract_verify.trace_entry list;
+}
+val plan_selected : Contract_spec.t -> clauses:string list ->
+  frozen_spec:Soundcheck_core.Report.frozen_spec -> string -> (selected_plan, string) result
+val selected_queries : selected_plan -> Soundcheck_core.Contract_verify.obligation list
+val execute_selected : ?z3:string -> selected_plan -> selected
+(** Check only selected existing clauses in their frozen order, retaining the
+    original identity/domain and binding the outer transition contract. No
+    claim about unselected clauses is made. Planning does not invoke a solver. *)
+
 val compare : ?z3:string -> Contract_spec.t -> before:string -> after:string -> Soundcheck_core.Report.t
 
 type comparison = {

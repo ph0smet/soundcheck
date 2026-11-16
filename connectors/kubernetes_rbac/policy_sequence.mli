@@ -1,7 +1,7 @@
 (** Ordered conditional policy changes; final access plus preservation at every
     post-step state. Authorization is deterministic native-policy analysis. *)
-type outcome = Valid_sequence | Authorization_failed | Contract_failed | Out_of_scope_regression | Unknown
-type phase = Preparation | Authorization | Final_verification | Intermediate_preservation | Complete
+type outcome = Valid_sequence | Authorization_failed | Contract_failed | Invariant_failed | Out_of_scope_regression | Unknown
+type phase = Preparation | Authorization | Final_verification | State_invariants | Intermediate_preservation | Complete
 val phase_name : phase -> string
 type step = {
   index : int;
@@ -9,6 +9,12 @@ type step = {
   before_sha256 : string;
   after_sha256 : string;
   authorization : Policy_change.authorization option;
+}
+type invariant = {
+  state : int;
+  state_sha256 : string;
+  queries : Soundcheck_core.Contract_verify.obligation list;
+  verification : Verify.selected option;
 }
 type intermediate = { step : int; query : string; verification : Verify.preservation option }
 type t
@@ -23,6 +29,7 @@ type evaluation = {
   failing_step : int option;
   steps : step list;
   intermediate_preservation : intermediate list;
+  state_invariants : invariant list;
 }
 val evaluation : t -> evaluation
 val validate_evaluation : t -> (unit, string) result
@@ -34,6 +41,9 @@ val validate_evaluation : t -> (unit, string) result
 val run : ?z3:string -> Sequence_spec.t -> before:string -> after:string -> t
 val invalid_contract : string -> before:string -> after:string -> t
 val profile_id : string
+val profile_id_for_version : int -> string
+val profile_json_for_version : int -> string
+val profile_human_for_version : int -> string
 val profile_json : string
 val profile_human : string
 val to_json : t -> string

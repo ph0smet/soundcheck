@@ -230,21 +230,25 @@ let candidate_trace_outcome entries =
   | [] -> Error "comparison evidence requires a nonempty candidate obligation plan"
   | _ -> scan 0 None entries
 
+let verification_stages (report : Report.t) entries =
+  let ( let* ) = Result.bind in
+  let* candidate_outcome = candidate_trace_outcome entries in
+  if candidate_outcome <> outcome_name report.result then
+    Error "candidate report disagrees with its recorded execution"
+  else if (match report.result with
+      | Report.Unknown reported ->
+        List.find_map (fun (entry : Contract_verify.trace_entry) -> match entry.execution with
+            | Contract_verify.Executed (Solve.Unknown reason) -> Some reason
+            | _ -> None) entries <> Some reported
+      | _ -> false) then
+    Error "candidate unknown reason disagrees with its recorded execution"
+  else Ok ()
+
 let comparison_stages (report : Report.t) (candidate_report : Report.t)
     (trace : comparison_trace) =
   let open Contract_verify in
   let ( let* ) = Result.bind in
-  let* candidate_outcome = candidate_trace_outcome trace.candidate in
-  if candidate_outcome <> outcome_name candidate_report.result then
-    Error "candidate report disagrees with its recorded execution"
-  else if (match candidate_report.result with
-      | Report.Unknown reported ->
-        List.find_map (fun (entry : trace_entry) -> match entry.execution with
-            | Executed (Solve.Unknown reason) -> Some reason
-            | _ -> None) trace.candidate <> Some reported
-      | _ -> false) then
-    Error "candidate unknown reason disagrees with its recorded execution"
-  else
+  let* () = verification_stages candidate_report trace.candidate in
     match candidate_report.result, trace.preservation.execution, report.result with
     | Report.Proved, Executed Solve.Proved, Report.Proved
     | Report.Proved, Executed (Solve.Violated _), Report.Violated _ -> Ok ()

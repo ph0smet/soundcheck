@@ -374,6 +374,11 @@
  (modules policy_sequence_t)
  (libraries soundcheck_core soundcheck_kubernetes_rbac unix))
 
+(test
+ (name policy_retirement_t)
+ (modules policy_retirement_t)
+ (libraries soundcheck_core soundcheck_kubernetes_rbac unix))
+
 (executable
  (name policy_sequence_adapters_t)
  (modules policy_sequence_adapters_t)

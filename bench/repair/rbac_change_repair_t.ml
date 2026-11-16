@@ -48,6 +48,19 @@ let () =
   let source name=read (Filename.concat root name) in
   let contract=source "contract.json" and before=source "before.json" in
   let spec=ok (K.Change_spec.of_string contract) in
+  let next_json=replace "schema_version" (`Number "2") (K.Input.parse contract) in
+  let next_contract=K.Input.json next_json in
+  check "connector supports the next policy version"
+    (Result.is_ok (K.Change_spec.of_string next_contract));
+  let blocked=freeze ~suite_root:"unused" ~read_suite:(fun file ->
+    Ok (if file="contract.json" then next_contract else before)) [task ()] in
+  let pending=ok (parse_submissions blocked (submissions [entry "next" "candidate"])) in
+  let read_candidate=ref false in
+  let blocked_rows=run ~read_candidate:(fun _ -> read_candidate:=true;Ok before)
+    ~submission_root:"unused" blocked pending in
+  check "unsupported evaluator version fails before candidate evaluation"
+    ((first blocked_rows).failure=Some Contract_invalid && exit_code blocked_rows=1
+     && not !read_candidate);
   let repaired=source "repaired.json" in
   let expected=[
     "repaired.json","valid_change",Some "allowed",Some "proved";
