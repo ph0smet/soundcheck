@@ -16,10 +16,15 @@ describe("RBAC evidence file boundary",()=>{
       await symlink(path.join(directory,"report.json"),path.join(directory,"link.json"));
       await expect(readEvidenceFiles(directory)).rejects.toThrow("symbolic link");
     });
-    await temporary(async directory=>{
-      await writeFile(path.join(directory,"bad\\name.json"),"{}");
-      await expect(readEvidenceFiles(directory)).rejects.toThrow("unsafe evidence path");
-    });
+    // Spaces are valid filename characters on every supported OS, but forbidden
+    // in evidence paths. A literal backslash filename is possible only on POSIX.
+    const unsafeNames = process.platform === "win32" ? ["bad name.json"] : ["bad name.json", "bad\\name.json"];
+    for (const name of unsafeNames) {
+      await temporary(async directory=>{
+        await writeFile(path.join(directory,name),"{}");
+        await expect(readEvidenceFiles(directory)).rejects.toThrow("unsafe evidence path");
+      });
+    }
   });
   it("rejects oversized files before reading and excessive directory depth",async()=>{
     await temporary(async directory=>{
