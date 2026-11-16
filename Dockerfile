@@ -110,6 +110,7 @@ RUN npm ci --no-audit --no-fund
 COPY frontend/ ./
 # Corpus pages are prerendered from the bench data at build time.
 COPY bench/kong /src/bench/kong
+COPY bench/kubernetes-rbac /src/bench/kubernetes-rbac
 # Copying the built engine makes this stage wait for the engine stage, so the
 # frontend checks never compete for CPU with the solver-heavy `dune test` gate
 # (BuildKit would otherwise run the two stages in parallel, and the solver's
@@ -136,6 +137,7 @@ COPY --from=web /src/frontend/.next/static /app/.next/static
 # Standalone output omits public/ (the navbar logo lives there); copy it explicitly.
 COPY --from=web /src/frontend/public /app/public
 COPY bench/kong /opt/soundcheck/bench/kong
+COPY bench/kubernetes-rbac /opt/soundcheck/bench/kubernetes-rbac
 COPY --chmod=755 docker/entrypoint.sh /usr/local/bin/entrypoint
 
 # HOSTNAME=0.0.0.0 is needed for Docker port publishing to reach the server.

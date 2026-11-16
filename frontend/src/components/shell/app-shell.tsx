@@ -4,6 +4,7 @@ import {
   BookMarked,
   FileSearch,
   GitCompareArrows,
+  Network,
   Library,
   ChevronLeft,
   ShieldCheck,
@@ -22,6 +23,7 @@ const NAV: { href: string; label: string; hint: string; icon: LucideIcon }[] = [
   { href: "/audit", label: "Audit", hint: "Scan configs", icon: FileSearch },
   { href: "/verify", label: "Verify", hint: "Prove a property", icon: ShieldCheck },
   { href: "/compare", label: "Compare", hint: "Decision equivalence", icon: GitCompareArrows },
+  { href: "/rbac", label: "Kubernetes RBAC", hint: "Review access and migrations", icon: Network },
   { href: "/corpus", label: "Corpus", hint: "Labeled cases", icon: Library },
   { href: "/profile", label: "Profile", hint: "Assurance boundary", icon: BookMarked },
 ];

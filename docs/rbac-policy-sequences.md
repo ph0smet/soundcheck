@@ -236,3 +236,8 @@ sequence tasks. Its synthetic attempts validate accounting and the gate; they do
 not measure live-agent success or a real deployment pilot. The
 [approved scope](plans/2026-11-rbac-ordered-changes.md) records the semantic choices
 and independent native conformance requirements.
+
+The [local RBAC web workspace](../frontend/README.md#rbac-workspace) reviews the
+same contract and shows authorization, invariant and preservation results for
+each state. It invokes the existing CLI and downloads the evidence for that run;
+it does not execute the migration against a cluster.

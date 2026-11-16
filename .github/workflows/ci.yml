@@ -335,6 +335,7 @@ jobs:
             -H 'content-type: application/json' -H 'origin: https://evil.example' \
             -d '{}' http://127.0.0.1:3000/api/verify)"
           test "$status" = 403
+          python3 scripts/rbac-web-smoke.py --url http://127.0.0.1:3000
 
       - name: Container logs
         if: always()
