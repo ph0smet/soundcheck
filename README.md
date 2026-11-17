@@ -186,6 +186,10 @@ the local UI does not replace trusted CI or approval of the requirements.
 
 ### Kubernetes RBAC example
 
+Follow the [RBAC walkthrough](docs/kubernetes-rbac-quickstart.md) for the complete
+repair demo and local workspace, or the
+[owner-reviewed pilot guide](docs/evaluation/kubernetes-rbac-pilot.md) for deployment inputs.
+
 Keep a workload's required ConfigMap access while removing unwanted Secret
 access. Then check that the repair preserves other identities' permissions:
 

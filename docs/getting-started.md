@@ -5,8 +5,10 @@ counterexample, and the main integration outputs. Its commands use checked-in
 fixtures, but opam dependency resolution is not locked and solver-selected
 witnesses can vary.
 
-Soundcheck currently verifies decK-style Kong configurations for Kong OSS 3.9.3
-under the `traditional` and `traditional_compatible` HTTP routers. Read
+This walkthrough uses decK-style Kong configurations for Kong OSS 3.9.3 under
+the `traditional` and `traditional_compatible` HTTP routers. For the other
+shipped connector, follow the [Kubernetes RBAC walkthrough](kubernetes-rbac-quickstart.md)
+after installing the shared toolchain below. Read
 [Supported model and limits](../README.md#supported-model) before treating a
 result as a deployment claim.
 
