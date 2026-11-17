@@ -1,4 +1,7 @@
-# Advisory deployment pilot protocol
+# Advisory Kong deployment pilot protocol
+
+For Kubernetes RBAC inventories and identity/access requirements, use the
+separate [RBAC pilot guide](kubernetes-rbac-pilot.md) and its review worksheet.
 
 The existing [local pilot runner](../../bench/pilot/README.md) and
 [review worksheet](../../bench/pilot/review-worksheet.md) are the implementation

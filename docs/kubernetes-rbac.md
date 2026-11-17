@@ -19,14 +19,18 @@ Older contracts keep their original domains.
 CLI and library workflows share the decision IR,
 encoder, Z3 backend and witness validation with the Kong connector.
 
-For an explicit Role or binding creation/update, the separate
+For an explicit Role or binding creation, update or schema-2 deletion, the separate
 [`rbac change` workflow](rbac-policy-changes.md) freezes the caller and operation,
-checks original-snapshot write/bind/escalate/full-policy authority, then runs
+checks original-snapshot authority for that operation, then runs
 these existing access and preservation checks. Its new outer contract/report
 does not change the access schemas described here. The separate
 [`rbac sequence` workflow](rbac-policy-sequences.md) freezes an ordered list of
 edits, checks authority from each preceding state, and preserves out-of-scope
-permissions after every step while requiring final access compliance.
+permissions after every step while requiring final access compliance. Schema 2
+also supports selected requirements at the original and every resulting state.
+
+Start with the [repair walkthrough](kubernetes-rbac-quickstart.md), or use the
+[owner-reviewed pilot guide](evaluation/kubernetes-rbac-pilot.md) for deployment inputs.
 
 ## Try the workflow
 
@@ -377,12 +381,14 @@ dune exec soundcheck -- rbac check-contract \
 ```
 
 This read-only command uses the same strict contract reader as verification and
-prints a human-readable review of schemas 1–9: the selected profile, exact declared
+prints a human-readable review of access schemas 1–10: the selected profile, exact declared
 identities and groups, ordered clause meanings, approved changes, and separate
 SHA-256 hashes for the raw artifact and canonical frozen contract. Artifact counts
 are reported after normalization; they measure size, not human authoring effort.
 It takes only a contract file, has no overrides or JSON report format, and invokes
 neither a solver nor Kubernetes. It does not rewrite or generate requirements.
+It also reviews outer policy-change and sequence contracts (schemas 1–2),
+including their actor, operation targets and selected invariants where applicable.
 
 **Exit 0 means structurally parsed, not verified.** An inconsistent contract can
 parse successfully. Inhabitation, consistency, access and repair
@@ -1395,8 +1401,9 @@ the before/after decision change. An annotation retains the same exit code as
 the JSON result. Non-proof results and I/O failures are error annotations;
 only a proof is a notice.
 
-RBAC exposes CLI, library, frozen MCP and reusable Action workflows. The web UI
-remains Kong-specific.
+RBAC exposes CLI, library, frozen MCP and reusable Action workflows. The local
+[RBAC workspace](../frontend/README.md#rbac-workspace) adds contract review,
+access/repair/change/sequence runs, model-validated witnesses and evidence downloads.
 
 ## Frozen MCP workflow
 
@@ -1543,8 +1550,9 @@ the parser or the target model. A saved query's trailing `get-value` can produce
 a model-unavailable error after `unsat` during direct batch Z3 replay; Soundcheck's
 solver executes the observation only after SAT. Retained formulas, contracts,
 reports and models can contain sensitive identifiers even though raw snapshots
-are omitted. Review bundles before sharing. The web UI does not accept RBAC
-bundles.
+are omitted. Review bundles before sharing. The RBAC workspace validates and
+downloads evidence from its own runs; the Kong Audit screen is not an importer
+for arbitrary RBAC evidence bundles.
 
 ## Repair-comparison evidence
 
@@ -1583,7 +1591,8 @@ approved change scope for the frozen identities within the supported profile.
 
 The same exclusive-write, manifest-last, exit-code and sensitivity rules apply.
 Schema-2 consumers must reject comparison bundles unless explicitly updated to
-understand both stages. No Kong comparison or web UI evidence support is implied.
+understand both stages. The RBAC workspace supports these bundles from its own
+repair runs; this does not add Kong comparison evidence support.
 
 ## Submitted-repair evaluation
 
